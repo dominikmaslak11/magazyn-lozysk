@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.LozyskaOffline" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#2e7d5a</item>
+        <item name="android:windowBackground">#ffffff</item>
+    </style>
+</resources>

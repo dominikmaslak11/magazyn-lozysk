@@ -1,0 +1,23 @@
+# --- Python / serwer webowy ---
+venv/
+__pycache__/
+*.pyc
+*.db
+*.db-journal
+
+# --- Pliki APK (duże binarki - buduj lokalnie z android-klient/android-offline) ---
+*.apk
+
+# --- Android / Gradle (wspólne dla android-klient i android-offline) ---
+**/build/
+**/.gradle/
+**/.idea/
+**/.kotlin/
+**/local.properties
+**/*.iml
+**/captures/
+**/.cxx/
+**/.externalNativeBuild/
+
+# --- system ---
+.DS_Store

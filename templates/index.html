@@ -1,0 +1,162 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Magazyn Łożysk</title>
+<meta name="theme-color" content="#1e6fa8">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/static/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="/static/css/style.css">
+
+<header class="appbar">
+  <button class="icon-btn" id="themeToggle" title="Zmień motyw">🌗</button>
+  <h1>Magazyn Łożysk</h1>
+  <button class="icon-btn" id="dataTabBtn" title="Dane / kopie zapasowe">⚙️</button>
+</header>
+
+<nav class="tabbar">
+  <div class="tab active" data-view="bearings">Łożyska</div>
+  <div class="tab" data-view="shelves">Regały</div>
+  <div class="tab" data-view="data">Dane</div>
+</nav>
+
+<main>
+  <!-- ================= ŁOŻYSKA ================= -->
+  <section id="view-bearings" class="view active">
+    <div class="toolbar">
+      <input type="search" id="searchInput" placeholder="Szukaj po symbolu...">
+    </div>
+    <div id="bearingsGrid" class="bearing-grid"></div>
+    <div id="bearingsEmpty" class="empty-state" style="display:none">
+      Brak łożysk. Dodaj pierwsze przyciskiem + w prawym dolnym rogu.
+    </div>
+  </section>
+
+  <!-- ================= REGAŁY ================= -->
+  <section id="view-shelves" class="view">
+    <p class="help-text">
+      Duże łożyska (większa średnica zewnętrzna D) trafiają na regały o niższym poziomie,
+      małe - na regały o wyższym poziomie. Zakresy D możesz dowolnie zmieniać.
+      Łożyska przypisane ręcznie nie są ruszane przy przeliczaniu.
+    </p>
+    <div class="toolbar">
+      <button class="btn primary" id="saveShelvesBtn">Zapisz zmiany</button>
+      <button class="btn" id="reassignBtn">Przelicz automatyczne przydziały</button>
+    </div>
+    <div id="shelvesList"></div>
+  </section>
+
+  <!-- ================= DANE ================= -->
+  <section id="view-data" class="view">
+    <div class="card">
+      <h2 style="margin-top:0;font-size:16px;">Kopia zapasowa i eksport</h2>
+      <p class="help-text" style="margin-top:-6px">
+        Plik bazy (.db) to pełna, dokładna kopia - najlepszy sposób na backup i przenoszenie
+        danych między urządzeniami. Plik JSON jest czytelny dla człowieka.
+      </p>
+      <div class="inline-btn-row">
+        <a class="btn" href="/api/export/db">Pobierz kopię bazy (.db)</a>
+        <a class="btn" href="/api/export/json">Pobierz eksport (.json)</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0;font-size:16px;">Etykiety regałów</h2>
+      <p class="help-text" style="margin-top:-6px">
+        PDF do wydruku - jedna strona na regał, z listą przypisanych łożysk (symbol, typ,
+        wymiary, ilość, uwagi). Przyklej kartkę na regale, żeby od razu było widać co gdzie leży.
+      </p>
+      <div class="inline-btn-row">
+        <a class="btn primary" href="/api/export/shelf-labels-pdf">Pobierz etykiety regałów (PDF)</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0;font-size:16px;">Import</h2>
+      <p class="help-text" style="margin-top:-6px">
+        Import bazy (.db) CAŁKOWICIE zastępuje bieżące dane (przed importem robiony jest
+        automatyczny backup). Import JSON pozwala wybrać: zastąp albo dopisz.
+      </p>
+      <div class="field">
+        <label>Importuj plik bazy (.db)</label>
+        <input type="file" id="importDbFile" accept=".db">
+      </div>
+      <div class="field">
+        <label>Importuj eksport (.json)</label>
+        <input type="file" id="importJsonFile" accept=".json">
+        <div class="inline-btn-row">
+          <button class="btn small" id="importJsonReplace">Zastąp bieżące dane</button>
+          <button class="btn small" id="importJsonAppend">Dopisz jako nowe</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0;font-size:16px;">Automatyczne kopie zapasowe</h2>
+      <p class="help-text" style="margin-top:-6px">
+        Robione automatycznie przy starcie serwera oraz przed każdym importem (ostatnie 20).
+        Leżą na komputerze, na którym działa serwer, w folderze <code>~/.lozyska_data/backups</code>.
+      </p>
+      <div id="backupsList" class="data-list"></div>
+    </div>
+  </section>
+</main>
+
+<button class="fab" id="addBearingBtn" title="Dodaj łożysko">+</button>
+
+<!-- ================= MODAL: dodaj/edytuj łożysko ================= -->
+<div class="overlay" id="bearingOverlay">
+  <div class="sheet">
+    <h2 id="bearingModalTitle">Dodaj łożysko</h2>
+
+    <div class="field">
+      <label>Typ łożyska</label>
+      <select id="f_typ"></select>
+    </div>
+
+    <div class="field">
+      <label>Symbol</label>
+      <input id="f_symbol" placeholder="np. 6008, UC206, 30204...">
+      <div class="inline-btn-row">
+        <button class="btn small" id="btnFetchBySymbol">Pobierz wymiary</button>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field"><label>d wew. [mm]</label><input id="f_d" inputmode="decimal"></div>
+      <div class="field"><label>D zew. [mm]</label><input id="f_D" inputmode="decimal"></div>
+      <div class="field"><label>Wysokość B [mm]</label><input id="f_B" inputmode="decimal"></div>
+    </div>
+    <div class="inline-btn-row" style="margin-bottom:14px">
+      <button class="btn small" id="btnFetchByDims">Znajdź symbol na podstawie wymiarów</button>
+    </div>
+
+    <div class="source-note" id="sourceNote">Źródło danych: —</div>
+
+    <div class="field">
+      <label>Ilość sztuk</label>
+      <input id="f_ilosc" type="number" min="0" step="1" inputmode="numeric">
+    </div>
+
+    <div class="field">
+      <label>Regał</label>
+      <select id="f_regal"></select>
+    </div>
+
+    <div class="field">
+      <label>Uwagi</label>
+      <input id="f_uwagi">
+    </div>
+
+    <div class="sheet-actions">
+      <button class="btn ghost" id="btnCancelBearing">Anuluj</button>
+      <button class="btn danger" id="btnDeleteBearing" style="display:none">Usuń</button>
+      <button class="btn primary" id="btnSaveBearing">Zapisz</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/static/js/app.js"></script>
