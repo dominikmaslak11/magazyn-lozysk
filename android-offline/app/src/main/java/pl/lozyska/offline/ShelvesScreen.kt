@@ -22,7 +22,7 @@ private class ShelfFields(nazwa: String, poziom: String, dMin: String, dMax: Str
 @Composable
 fun ShelvesScreen(vm: OfflineViewModel) {
     val shelves by vm.shelves.collectAsState()
-    val localFields = remember { mutableStateMapOf<Int, ShelfFields>() }
+    val localFields = remember { mutableStateMapOf<String, ShelfFields>() }
 
     LaunchedEffect(shelves.map { it.id }) {
         for (s in shelves) {

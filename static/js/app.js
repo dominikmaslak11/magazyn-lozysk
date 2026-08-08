@@ -119,9 +119,9 @@ function renderBearings() {
   }
 
   grid.querySelectorAll("[data-edit]").forEach((btn) =>
-    btn.addEventListener("click", () => openBearingModal(Number(btn.dataset.edit))));
+    btn.addEventListener("click", () => openBearingModal(btn.dataset.edit)));
   grid.querySelectorAll("[data-del]").forEach((btn) =>
-    btn.addEventListener("click", () => deleteBearing(Number(btn.dataset.del))));
+    btn.addEventListener("click", () => deleteBearing(btn.dataset.del)));
 }
 
 async function deleteBearing(id) {
@@ -244,7 +244,7 @@ async function saveBearing() {
     ilosc: parseInt($("#f_ilosc").value || "0", 10),
     zrodlo: state.chosenSource,
     uwagi: $("#f_uwagi").value.trim(),
-    regal_id: reczny ? Number(shelfChoice) : null,
+    regal_id: reczny ? shelfChoice : null,
     reczny_przydzial: reczny,
   };
 
@@ -297,7 +297,7 @@ async function saveShelves() {
   const cards = $$("#shelvesList .shelf-card");
   try {
     for (const card of cards) {
-      const id = Number(card.dataset.id);
+      const id = card.dataset.id;
       const payload = {
         nazwa: card.querySelector(".s-nazwa").value.trim(),
         poziom: parseInt(card.querySelector(".s-poziom").value, 10),

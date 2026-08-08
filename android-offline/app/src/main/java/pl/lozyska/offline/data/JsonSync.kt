@@ -8,18 +8,20 @@ import java.util.Locale
 
 /**
  * Format identyczny z eksportem JSON wersji desktopowej/webowej (server.py -> /api/export/json),
- * żeby pliki dało się swobodnie przenosić między komputerem a telefonem w obie strony.
+ * żeby pliki dało się swobodnie przenosić między komputerem a telefonem w obie strony. To osobny,
+ * RĘCZNY mechanizm backupu/przenoszenia danych - nie mylić z automatyczną synchronizacją
+ * (patrz SyncEngine.kt), która używa innego, "żywego" formatu (SyncStateDto).
  */
 
 data class ShelfDto(
-    val id: Int, val nazwa: String, val poziom: Int,
+    val id: String, val nazwa: String, val poziom: Int,
     val d_min: Double?, val d_max: Double?,
 )
 
 data class BearingDto(
-    val id: Int, val symbol: String, val typ: String,
+    val id: String, val symbol: String, val typ: String,
     val d: Double?, @SerializedName("D") val dZew: Double?, val B: Double?,
-    val ilosc: Int, val regal_id: Int?, val reczny_przydzial: Boolean,
+    val ilosc: Int, val regal_id: String?, val reczny_przydzial: Boolean,
     val zrodlo: String, val uwagi: String?,
 )
 
@@ -35,7 +37,7 @@ object JsonSync {
 
     fun toJson(shelves: List<ShelfEntity>, bearings: List<BearingEntity>): String {
         val dto = ExportDto(
-            wersja = 1,
+            wersja = 2,
             eksport_z_dnia = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(Date()),
             regaly = shelves.map { ShelfDto(it.id, it.nazwa, it.poziom, it.dMin, it.dMax) },
             lozyska = bearings.map {
@@ -46,13 +48,13 @@ object JsonSync {
         return gson.toJson(dto)
     }
 
-    /** Zwraca encje z ID-kami TAKIMI JAK W PLIKU (do remapowania przez Repository przy imporcie). */
     fun fromJson(json: String): Pair<List<ShelfEntity>, List<BearingEntity>> {
         val dto = gson.fromJson(json, ExportDto::class.java)
-        val shelves = dto.regaly.map { ShelfEntity(it.id, it.nazwa, it.poziom, it.d_min, it.d_max) }
+        val now = System.currentTimeMillis()
+        val shelves = dto.regaly.map { ShelfEntity(it.id, it.nazwa, it.poziom, it.d_min, it.d_max, now) }
         val bearings = dto.lozyska.map {
             BearingEntity(it.id, it.symbol, it.typ, it.d, it.dZew, it.B, it.ilosc, it.regal_id,
-                it.reczny_przydzial, it.zrodlo, it.uwagi ?: "")
+                it.reczny_przydzial, it.zrodlo, it.uwagi ?: "", now)
         }
         return shelves to bearings
     }

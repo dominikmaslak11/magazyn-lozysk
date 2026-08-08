@@ -18,12 +18,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import pl.lozyska.offline.sync.SyncWorker
 
 class MainActivity : ComponentActivity() {
     private val vm: OfflineViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        SyncWorker.schedulePeriodic(applicationContext)
         setContent {
             LozyskaOfflineTheme {
                 AppScaffold(vm)
@@ -52,6 +54,14 @@ fun AppScaffold(vm: OfflineViewModel) {
             snackbarHostState.showSnackbar(it)
             vm.clearMessage()
         }
+    }
+
+    // Synchronizacja przy otwarciu appki i za każdym razem, gdy adres serwera się zmieni
+    // (StateFlow z DataStore ładuje się asynchronicznie, więc kluczujemy efekt na jego
+    // wartości, a nie na Unit - inaczej można by złapać jeszcze niezaładowaną wartość "").
+    val serverUrl by vm.serverUrl.collectAsState()
+    LaunchedEffect(serverUrl) {
+        if (serverUrl.isNotBlank()) vm.syncNow()
     }
 
     Scaffold(

@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 import pl.lozyska.offline.data.BearingEntity
 import pl.lozyska.offline.data.ShelfWithCounts
 
-private const val AUTO_SHELF = -1
+private val AUTO_SHELF: String? = null
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -163,7 +163,7 @@ private fun TypDropdown(selected: String, options: List<String>, onSelected: (St
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ShelfDropdown(shelves: List<ShelfWithCounts>, selectedId: Int, onSelected: (Int) -> Unit) {
+private fun ShelfDropdown(shelves: List<ShelfWithCounts>, selectedId: String?, onSelected: (String?) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val label = if (selectedId == AUTO_SHELF) "Auto (na podstawie średnicy D)"
         else shelves.find { it.id == selectedId }?.let { shelfLabel(it) } ?: "Auto (na podstawie średnicy D)"

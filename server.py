@@ -70,7 +70,7 @@ def api_bearings_add():
     return jsonify({"id": new_id}), 201
 
 
-@app.route("/api/bearings/<int:bearing_id>", methods=["PUT"])
+@app.route("/api/bearings/<bearing_id>", methods=["PUT"])
 def api_bearings_update(bearing_id):
     payload = request.get_json(force=True)
     if db.get_bearing(bearing_id) is None:
@@ -85,7 +85,7 @@ def api_bearings_update(bearing_id):
     return jsonify({"ok": True})
 
 
-@app.route("/api/bearings/<int:bearing_id>", methods=["DELETE"])
+@app.route("/api/bearings/<bearing_id>", methods=["DELETE"])
 def api_bearings_delete(bearing_id):
     if db.get_bearing(bearing_id) is None:
         abort(404)
@@ -124,7 +124,7 @@ def api_shelves_list():
     return jsonify([_shelf_to_dict(s, counts) for s in shelves])
 
 
-@app.route("/api/shelves/<int:shelf_id>", methods=["PUT"])
+@app.route("/api/shelves/<shelf_id>", methods=["PUT"])
 def api_shelves_update(shelf_id):
     payload = request.get_json(force=True)
     db.update_shelf(shelf_id, payload["nazwa"], int(payload["poziom"]),
@@ -136,6 +136,23 @@ def api_shelves_update(shelf_id):
 def api_shelves_reassign():
     changed = db.reassign_all_auto()
     return jsonify({"changed": changed})
+
+
+# ---------------------------------------------------- synchronizacja (telefony) ----
+
+@app.route("/api/sync/state")
+def api_sync_state():
+    """Pełny stan (włącznie ze skasowanymi rekordami - nagrobki) do zaciągnięcia przez klienta."""
+    return jsonify(db.sync_state())
+
+
+@app.route("/api/sync/push", methods=["POST"])
+def api_sync_push():
+    """Przyjmuje rekordy zmienione lokalnie na urządzeniu i odsyła pełny, zmergowany stan
+    (patrz opis algorytmu w database.py nad sync_state/apply_sync_push)."""
+    payload = request.get_json(force=True)
+    db.apply_sync_push(payload.get("shelves", []), payload.get("bearings", []))
+    return jsonify(db.sync_state())
 
 
 # ------------------------------------------------------- backup / eksport / import ----

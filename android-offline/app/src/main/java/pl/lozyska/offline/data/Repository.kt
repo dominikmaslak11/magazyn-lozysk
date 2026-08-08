@@ -3,6 +3,7 @@ package pl.lozyska.offline.data
 import pl.lozyska.offline.BearingCatalog
 import pl.lozyska.offline.KatalogWpis
 import pl.lozyska.offline.OnlineLookup
+import java.util.UUID
 import java.util.regex.Pattern
 
 const val SOURCE_OFFLINE = "offline"
@@ -29,6 +30,8 @@ fun normalizeSymbol(raw: String): String {
     return if (m.find()) m.group(0) else upper
 }
 
+fun newLocalId(): String = UUID.randomUUID().toString()
+
 class Repository(private val db: AppDatabase) {
     private val bearingDao = db.bearingDao()
     private val shelfDao = db.shelfDao()
@@ -36,25 +39,27 @@ class Repository(private val db: AppDatabase) {
     fun observeBearings(search: String) = bearingDao.observeAll(search)
     fun observeShelvesWithCounts() = shelfDao.observeAllWithCounts()
 
-    suspend fun getBearing(id: Int) = bearingDao.getById(id)
+    suspend fun getBearing(id: String) = bearingDao.getById(id)
 
     suspend fun saveBearing(
-        id: Int?, symbol: String, typ: String, d: Double?, dZew: Double?, b: Double?,
-        ilosc: Int, zrodlo: String, uwagi: String, regalId: Int?, recznyPrzydzial: Boolean,
+        id: String?, symbol: String, typ: String, d: Double?, dZew: Double?, b: Double?,
+        ilosc: Int, zrodlo: String, uwagi: String, regalId: String?, recznyPrzydzial: Boolean,
     ) {
         val finalRegalId = if (recznyPrzydzial) regalId else suggestShelfId(dZew)
         val entity = BearingEntity(
-            id = id ?: 0, symbol = symbol, typ = typ, d = d, dZew = dZew, b = b, ilosc = ilosc,
+            id = id ?: newLocalId(), symbol = symbol, typ = typ, d = d, dZew = dZew, b = b, ilosc = ilosc,
             regalId = finalRegalId, recznyPrzydzial = recznyPrzydzial, zrodlo = zrodlo, uwagi = uwagi,
+            updatedAt = System.currentTimeMillis(),
         )
         if (id == null) bearingDao.insert(entity) else bearingDao.update(entity)
     }
 
-    suspend fun deleteBearing(bearing: BearingEntity) = bearingDao.delete(bearing)
+    /** Miękkie kasowanie - patrz komentarz przy BearingEntity.deletedAt (propagacja przy synchronizacji). */
+    suspend fun deleteBearing(bearing: BearingEntity) = bearingDao.softDelete(bearing.id, System.currentTimeMillis())
 
-    suspend fun saveShelf(shelf: ShelfEntity) = shelfDao.update(shelf)
+    suspend fun saveShelf(shelf: ShelfEntity) = shelfDao.update(shelf.copy(updatedAt = System.currentTimeMillis()))
 
-    suspend fun suggestShelfId(outerDiameter: Double?): Int? {
+    suspend fun suggestShelfId(outerDiameter: Double?): String? {
         if (outerDiameter == null) return null
         val shelves = shelfDao.getAllOnce() // poziom malejąco
         if (shelves.isEmpty()) return null
@@ -70,9 +75,10 @@ class Repository(private val db: AppDatabase) {
 
     suspend fun reassignAllAuto(): Int {
         val auto = bearingDao.getAutoAssigned()
+        val now = System.currentTimeMillis()
         for (bearing in auto) {
             val newShelf = suggestShelfId(bearing.dZew)
-            bearingDao.updateRegal(bearing.id, newShelf)
+            bearingDao.updateRegal(bearing.id, newShelf, now)
         }
         return auto.size
     }
@@ -116,32 +122,42 @@ class Repository(private val db: AppDatabase) {
         } else emptyList()
     }
 
-    // ------------------------------------------------------- eksport/import ----
+    // ------------------------------------------------------- eksport/import JSON (ręczny backup) ----
 
     suspend fun exportSnapshot(): Pair<List<ShelfEntity>, List<BearingEntity>> =
         shelfDao.getAllOnce() to bearingDao.getAllOnce()
 
     suspend fun importReplace(shelves: List<ShelfEntity>, bearings: List<BearingEntity>) {
-        bearingDao.deleteAll()
-        shelfDao.deleteAll()
-        val idMap = mutableMapOf<Int, Int>()
-        for (s in shelves) {
-            val newId = shelfDao.insert(s.copy(id = 0)).toInt()
-            idMap[s.id] = newId
-        }
-        for (b in bearings) {
-            bearingDao.insert(b.copy(id = 0, regalId = idMap[b.regalId]))
-        }
+        bearingDao.deleteAllHard()
+        shelfDao.deleteAllHard()
+        shelfDao.insertAll(shelves)
+        bearingDao.insertAll(bearings)
     }
 
     suspend fun importAppend(bearings: List<BearingEntity>) {
         val shelves = shelfDao.getAllOnce()
+        val now = System.currentTimeMillis()
         for (b in bearings) {
             val regalId = if (b.recznyPrzydzial) {
-                // spróbuj dopasować po poziomie/nazwie, w razie braku - auto na podstawie D
                 shelves.find { it.id == b.regalId }?.id ?: suggestShelfId(b.dZew)
             } else suggestShelfId(b.dZew)
-            bearingDao.insert(b.copy(id = 0, regalId = regalId))
+            bearingDao.insert(b.copy(id = newLocalId(), regalId = regalId, updatedAt = now))
         }
+    }
+
+    // ----------------------------------------------------- synchronizacja z serwerem ----
+    // Szczegóły algorytmu: patrz SyncEngine.kt oraz komentarz nad sync_state()/
+    // apply_sync_push() w database.py (serwer).
+
+    suspend fun getLocalChangesSince(sinceLocalMillis: Long): Pair<List<ShelfEntity>, List<BearingEntity>> =
+        shelfDao.getChangedSince(sinceLocalMillis) to bearingDao.getChangedSince(sinceLocalMillis)
+
+    /** Podmienia CAŁĄ lokalną bazę na stan otrzymany z serwera (serwer jest źródłem prawdy). */
+    suspend fun replaceAllFromServer(shelves: List<ShelfEntity>, bearings: List<BearingEntity>) {
+        shelfDao.deleteAllHard()
+        bearingDao.deleteAllHard()
+        // nie wstawiamy rekordów skasowanych na serwerze (deletedAt != null) - to tylko nagrobki do propagacji
+        shelfDao.insertAll(shelves.filter { it.deletedAt == null })
+        bearingDao.insertAll(bearings.filter { it.deletedAt == null })
     }
 }

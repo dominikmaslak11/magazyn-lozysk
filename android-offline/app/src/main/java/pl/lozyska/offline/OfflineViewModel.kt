@@ -12,11 +12,17 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import pl.lozyska.offline.data.*
+import pl.lozyska.offline.sync.SyncEngine
+import pl.lozyska.offline.sync.SyncResult
+import pl.lozyska.offline.sync.SyncSettingsRepository
+import pl.lozyska.offline.sync.normalizeBaseUrl
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class OfflineViewModel(application: Application) : AndroidViewModel(application) {
     private val db = AppDatabase.get(application)
     private val repo = Repository(db)
+    private val syncSettings = SyncSettingsRepository(application)
+    private val syncEngine = SyncEngine(application)
 
     private val _search = MutableStateFlow("")
     val search: StateFlow<String> = _search
@@ -34,11 +40,38 @@ class OfflineViewModel(application: Application) : AndroidViewModel(application)
 
     val types = TypLozyska.values().map { it.etykieta }
 
+    // --------------------------------------------------------- synchronizacja ----
+
+    val serverUrl: StateFlow<String> = syncSettings.serverUrl.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val lastSyncAt: StateFlow<Long> = syncSettings.lastSyncAt.stateIn(viewModelScope, SharingStarted.Eagerly, 0L)
+    val lastSyncStatus: StateFlow<String> = syncSettings.lastSyncStatus.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+
+    private val _syncing = MutableStateFlow(false)
+    val syncing: StateFlow<Boolean> = _syncing
+
+    suspend fun setServerUrl(url: String) = syncSettings.setServerUrl(normalizeBaseUrl(url))
+
+    fun syncNow() {
+        if (_syncing.value) return
+        viewModelScope.launch {
+            _syncing.value = true
+            when (val result = syncEngine.sync()) {
+                is SyncResult.Success ->
+                    _message.value = "Zsynchronizowano: ${result.bearingCount} łożysk, ${result.shelfCount} regałów."
+                is SyncResult.NotConfigured ->
+                    _message.value = "Ustaw adres serwera w zakładce Dane, żeby móc synchronizować."
+                is SyncResult.Error ->
+                    _message.value = "Synchronizacja nieudana: ${result.message}"
+            }
+            _syncing.value = false
+        }
+    }
+
     fun setSearch(q: String) { _search.value = q }
 
     fun saveBearing(
-        id: Int?, symbol: String, typ: String, d: Double?, dZew: Double?, b: Double?,
-        ilosc: Int, zrodlo: String, uwagi: String, regalId: Int?, recznyPrzydzial: Boolean,
+        id: String?, symbol: String, typ: String, d: Double?, dZew: Double?, b: Double?,
+        ilosc: Int, zrodlo: String, uwagi: String, regalId: String?, recznyPrzydzial: Boolean,
         onDone: () -> Unit,
     ) = viewModelScope.launch {
         repo.saveBearing(id, symbol, typ, d, dZew, b, ilosc, zrodlo, uwagi, regalId, recznyPrzydzial)
@@ -67,7 +100,7 @@ class OfflineViewModel(application: Application) : AndroidViewModel(application)
     fun lookupByDimensions(d: Double?, dZew: Double?, b: Double?, onResult: (List<DimensionCandidate>) -> Unit) =
         viewModelScope.launch { onResult(repo.lookupByDimensions(d, dZew, b)) }
 
-    // --------------------------------------------------------- eksport/import ----
+    // --------------------------------------------------------- eksport/import (ręczny backup) ----
 
     fun exportToUri(uri: Uri, onDone: (Boolean) -> Unit) = viewModelScope.launch {
         try {

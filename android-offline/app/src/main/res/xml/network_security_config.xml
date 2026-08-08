@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Serwer Magazynu Łożysk działa jako zwykły HTTP w sieci domowej (bez certyfikatu TLS),
+  więc zezwalamy na ruch cleartext - to świadoma decyzja dla narzędzia działającego
+  wyłącznie w zaufanej sieci lokalnej, nie w internecie publicznym.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
