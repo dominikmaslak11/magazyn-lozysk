@@ -18,7 +18,7 @@ from flask import Flask, jsonify, request, render_template, send_file, abort
 import database as db
 import lookup
 from bearing_data import ALL_TYPES, SOURCE_MANUAL
-from pdf_labels import build_shelf_labels_pdf
+from pdf_labels import build_bearing_qr_labels_pdf, build_shelf_labels_pdf
 
 app = Flask(__name__)
 
@@ -208,6 +208,15 @@ def api_export_shelf_labels_pdf():
     pdf_bytes = build_shelf_labels_pdf()
     return send_file(io.BytesIO(pdf_bytes), mimetype="application/pdf",
                       as_attachment=True, download_name="etykiety_regalow.pdf")
+
+
+@app.route("/api/export/bearing-qr-labels-pdf")
+def api_export_bearing_qr_labels_pdf():
+    """Arkusz naklejek z kodami QR (jedna na łożysko) - do wycięcia i naklejenia.
+    Zeskanowanie takiej naklejki appką Android otwiera łożysko z gotowym symbolem."""
+    pdf_bytes = build_bearing_qr_labels_pdf()
+    return send_file(io.BytesIO(pdf_bytes), mimetype="application/pdf",
+                      as_attachment=True, download_name="naklejki_qr_lozysk.pdf")
 
 
 @app.route("/api/import/db", methods=["POST"])
