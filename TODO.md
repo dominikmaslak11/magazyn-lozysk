@@ -11,9 +11,9 @@ Lista pomysłów zebrana 2026-08-10. Nieoznaczone = do zrobienia, `[x]` = zrobio
 
 ## Otwarte źródło / Google Play
 
-- [ ] Dodać plik `LICENSE` (**GPL-3.0** — ustalone)
+- [x] Dodać plik `LICENSE` (**GPL-3.0** — zrobione 2026-08-10, oficjalny tekst z gnu.org)
 - [x] Repo publiczne na GitHubie (`dominikmaslak11/magazyn-lozysk`)
-- [ ] Rozbudować `README.md` (root) o pełną instrukcję instalacji/uruchomienia dla kogoś z zewnątrz (nie tylko dla siebie), z opisem architektury (serwer Flask + PWA, klient Android offline+sync, legacy desktop)
+- [x] Rozbudować `README.md` (root) — zrobione 2026-08-10: spis treści, diagram architektury, szybki start od `git clone`, tabela struktury repo, sekcja bezpieczeństwa, link do GitHub Issues
 - [ ] Karta sklepu Google Play (opis, grafiki, polityka prywatności) — dopiero gdy appka będzie gotowa do publikacji
 - [ ] Konto dewelopera Google Play (użytkownik zakłada sam — wymaga płatności/danych osobowych)
 - [ ] Podpisany build AAB appki `android-offline` do uploadu
