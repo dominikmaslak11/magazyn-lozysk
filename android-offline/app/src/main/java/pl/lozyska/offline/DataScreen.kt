@@ -21,6 +21,8 @@ fun DataScreen(vm: OfflineViewModel) {
 
     val savedUrl by vm.serverUrl.collectAsState()
     var urlField by remember(savedUrl) { mutableStateOf(savedUrl) }
+    val savedToken by vm.authToken.collectAsState()
+    var tokenField by remember(savedToken) { mutableStateOf(savedToken) }
     val lastSyncAt by vm.lastSyncAt.collectAsState()
     val lastSyncStatus by vm.lastSyncStatus.collectAsState()
     val syncing by vm.syncing.collectAsState()
@@ -54,12 +56,25 @@ fun DataScreen(vm: OfflineViewModel) {
                     label = { Text("Adres serwera") }, singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                OutlinedTextField(
+                    value = tokenField, onValueChange = { tokenField = it },
+                    label = { Text("Token dostępu") }, singleLine = true,
+                    supportingText = {
+                        Text(
+                            "Wypisuje się w konsoli przy starcie serwera; leży też w pliku " +
+                                "~/.lozyska_data/token.txt na komputerze z serwerem.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                )
                 Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(
                         enabled = !syncing,
                         onClick = {
                             scope.launch {
                                 vm.setServerUrl(urlField)
+                                vm.setAuthToken(tokenField)
                                 vm.syncNow()
                             }
                         },
@@ -67,7 +82,7 @@ fun DataScreen(vm: OfflineViewModel) {
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(syncStatusText(lastSyncAt, lastSyncStatus), style = MaterialTheme.typography.bodySmall,
-                    color = if (lastSyncStatus == "blad" || lastSyncStatus == "wymagana_aktualizacja")
+                    color = if (lastSyncStatus in setOf("blad", "wymagana_aktualizacja", "brak_autoryzacji"))
                         MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -131,6 +146,7 @@ private fun syncStatusText(lastSyncAt: Long, status: String): String {
     return when (status) {
         "blad" -> "Ostatnia próba synchronizacji nieudana. Ostatnia udana: $when_"
         "wymagana_aktualizacja" -> "Synchronizacja wstrzymana - appka wymaga aktualizacji. Ostatnia udana: $when_"
+        "brak_autoryzacji" -> "Serwer odrzucił token - popraw go wyżej. Ostatnia udana: $when_"
         else -> "Ostatnia synchronizacja: $when_"
     }
 }

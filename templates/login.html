@@ -1,0 +1,36 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Magazyn Łożysk - logowanie</title>
+<meta name="theme-color" content="#1e6fa8">
+<link rel="icon" href="/static/icons/icon-192.png">
+<link rel="stylesheet" href="/static/css/style.css">
+
+<header class="appbar">
+  <h1>Magazyn Łożysk</h1>
+</header>
+
+<main>
+  <section class="view active">
+    <div class="card" style="max-width:460px;margin:24px auto;">
+      <h2 style="margin-top:0;font-size:16px;">Podaj token dostępu</h2>
+      <p class="help-text" style="margin-top:-6px">
+        Token wypisuje się w konsoli przy starcie serwera i leży w pliku
+        <code>~/.lozyska_data/token.txt</code> na komputerze, na którym działa serwer.
+        Wpisujesz go raz - przeglądarka zapamięta zalogowanie.
+      </p>
+
+      {% if error %}
+      <div class="row" style="color:var(--danger);font-weight:600;">{{ error }}</div>
+      {% endif %}
+
+      <form method="post" style="margin-top:10px;">
+        <div class="field">
+          <label for="token">Token</label>
+          <input type="password" id="token" name="token" autocomplete="current-password"
+                 autofocus required>
+        </div>
+        <button class="btn primary" type="submit" style="margin-top:10px;">Zaloguj</button>
+      </form>
+    </div>
+  </section>
+</main>

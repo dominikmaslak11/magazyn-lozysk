@@ -19,6 +19,8 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             is SyncResult.Error -> Result.retry()
             // Appka za stara - ponawianie w tle nic nie zmieni bez ręcznej aktualizacji appki.
             is SyncResult.UpdateRequired -> Result.success()
+            // Zły/brak tokenu - też nie ma sensu ponawiać, dopóki użytkownik go nie poprawi.
+            is SyncResult.Unauthorized -> Result.success()
         }
     }
 

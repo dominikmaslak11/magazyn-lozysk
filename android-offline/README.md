@@ -17,11 +17,18 @@ Plik APK: `app/build/outputs/apk/debug/app-debug.apk`. Zainstaluj przez
 
 ## Konfiguracja synchronizacji
 
-1. Uruchom serwer (`python ../server.py`) na komputerze.
-2. W appce, w zakładce **Dane**, wpisz adres serwera (np. `192.168.1.23:8420`
-   w tej samej sieci Wi-Fi, albo adres Tailscale w formie `100.x.x.x:8420` dla
-   dostępu spoza domu - patrz `../README.md`) i kliknij „Zapisz i
-   synchronizuj teraz”.
+1. Uruchom serwer (`python ../server.py`) na komputerze. Przy starcie wypisze
+   w konsoli **token dostępu** - będzie potrzebny w kroku 2.
+2. W appce, w zakładce **Dane**, wpisz:
+   - **adres serwera** (np. `192.168.1.23:8420` w tej samej sieci Wi-Fi, albo
+     adres Tailscale w formie `100.x.x.x:8420` dla dostępu spoza domu - patrz
+     `../README.md`),
+   - **token dostępu** (ten z konsoli serwera; leży też w
+     `~/.lozyska_data/token.txt`),
+
+   i kliknij „Zapisz i synchronizuj teraz”. Jeśli token jest zły, appka
+   napisze wprost „Serwer odrzucił połączenie - sprawdź token dostępu”
+   zamiast pokazywać surowy błąd HTTP.
 3. Od tej pory appka synchronizuje się automatycznie: przy każdym otwarciu
    oraz co ok. godzinę w tle (gdy jest połączenie z siecią), plus zawsze
    ręcznie przez ten sam przycisk.

@@ -219,12 +219,41 @@ mechanizmu, bo zawsze serwuje się świeża, prosto z `server.py`.
 
 ## Bezpieczeństwo
 
-Serwer **nie ma żadnej autoryzacji** – każdy, kto ma dostęp do sieci, w
-której nasłuchuje (Wi-Fi domowe albo Twoja sieć Tailscale), może odczytać
-i zmienić dane bez logowania. Dla domowego użytku w zaufanej sieci to
-świadomy kompromis na rzecz prostoty. Jeśli wystawiasz serwer szerzej niż
-własna sieć domowa/Tailscale, rozważ postawienie go za odwróconym proxy z
-uwierzytelnianiem.
+Serwer jest chroniony **pojedynczym, współdzielonym tokenem**. To celowo
+prosty model, dopasowany do tego, czym ta appka jest: prywatnym magazynem
+jednej osoby lub warsztatu, a nie systemem wielu kont z rolami.
+
+**Token generuje się sam** przy pierwszym uruchomieniu serwera i wypisuje
+w konsoli. Leży w `~/.lozyska_data/token.txt` – obok bazy, poza katalogiem
+z kodem, więc `git pull` nigdy go nie nadpisze.
+
+Jak go użyć:
+
+- **Przeglądarka** – przy pierwszym wejściu zobaczysz stronę logowania.
+  Wklej token; przeglądarka zapamięta zalogowanie (ciasteczko sesji).
+  Wylogowanie: `/logout`.
+- **Appka Android** – zakładka **Dane**, pole „Token dostępu”.
+- **Własne skrypty / curl** – nagłówek `X-Auth-Token: <token>` albo
+  `Authorization: Bearer <token>`.
+
+Bez tokenu działają tylko: `/api/version` (appka musi móc sprawdzić
+zgodność wersji, zanim się uwierzytelni), pliki statyczne i strona
+logowania.
+
+**Zmiana tokenu:** skasuj `~/.lozyska_data/token.txt` i zrestartuj serwer –
+wygeneruje się nowy. Trzeba go wtedy wpisać ponownie na wszystkich
+urządzeniach.
+
+**Wyłączenie autoryzacji** (np. w pełni zaufana sieć domowa): uruchom
+serwer ze zmienną `LOZYSKA_AUTH_DISABLED=1`.
+
+### Czego to *nie* rozwiązuje
+
+Ruch idzie po **HTTP, nie HTTPS** – w lokalnej sieci Wi-Fi albo przez
+Tailscale (który sam szyfruje połączenie) jest to w porządku, ale nie
+wystawiaj serwera bezpośrednio do internetu bez postawienia go za
+odwróconym proxy z TLS. Token chroni przed przypadkowym dostępem osoby
+z tej samej sieci, nie przed podsłuchem nieszyfrowanego połączenia.
 
 ## Wersja archiwalna (desktop)
 

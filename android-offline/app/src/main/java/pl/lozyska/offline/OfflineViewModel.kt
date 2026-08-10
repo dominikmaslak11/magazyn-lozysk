@@ -75,7 +75,10 @@ class OfflineViewModel(application: Application) : AndroidViewModel(application)
     val latestServerVersion: StateFlow<String?> =
         syncSettings.serverVersion.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+    val authToken: StateFlow<String> = syncSettings.authToken.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+
     suspend fun setServerUrl(url: String) = syncSettings.setServerUrl(normalizeBaseUrl(url))
+    suspend fun setAuthToken(token: String) = syncSettings.setAuthToken(token)
 
     fun syncNow() {
         if (_syncing.value) return
@@ -91,6 +94,8 @@ class OfflineViewModel(application: Application) : AndroidViewModel(application)
                 is SyncResult.UpdateRequired ->
                     _message.value = "Ta wersja appki jest za stara, żeby synchronizować się z serwerem " +
                         "(serwer: ${result.serverVersion ?: "nowsza wersja"}). Zaktualizuj appkę."
+                is SyncResult.Unauthorized ->
+                    _message.value = "Serwer odrzucił połączenie - sprawdź token dostępu w zakładce Dane."
             }
             _syncing.value = false
         }

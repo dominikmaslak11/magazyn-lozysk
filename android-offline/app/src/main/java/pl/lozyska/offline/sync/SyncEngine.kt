@@ -12,6 +12,8 @@ sealed class SyncResult {
     data class Error(val message: String) : SyncResult()
     /** Appka jest starsza niż min_client_version zgłoszone przez serwer - dane NIE zostały pobrane/wysłane. */
     data class UpdateRequired(val serverVersion: String?) : SyncResult()
+    /** Serwer odrzucił żądanie (401) - brak tokenu albo token nieprawidłowy. */
+    object Unauthorized : SyncResult()
 }
 
 /**
@@ -42,7 +44,7 @@ class SyncEngine(private val context: Context) {
         return try {
             val (localShelves, localBearings) = repo.getLocalChangesSince(lastSyncAt)
             val localAliases = repo.getLocalAliasChangesSince(lastSyncAt)
-            val api = SyncApiClient.forBaseUrl(baseUrl)
+            val api = SyncApiClient.forBaseUrl(baseUrl, settings.authToken.first())
             val serverState = api.pushSync(
                 SyncPushRequest(
                     shelves = localShelves.map { it.toSyncDto() },
@@ -75,6 +77,15 @@ class SyncEngine(private val context: Context) {
                 bearingCount = serverState.bearings.count { it.deleted_at == null },
                 shelfCount = serverState.shelves.count { it.deleted_at == null },
             )
+        } catch (e: retrofit2.HttpException) {
+            if (e.code() == 401) {
+                // Bez tego użytkownik zobaczyłby gołe "HTTP 401" i nie wiedziałby, że chodzi o token.
+                settings.setLastSyncStatus("brak_autoryzacji")
+                SyncResult.Unauthorized
+            } else {
+                settings.setLastSyncStatus("blad")
+                SyncResult.Error("serwer odpowiedział błędem ${e.code()}")
+            }
         } catch (e: Exception) {
             settings.setLastSyncStatus("blad")
             SyncResult.Error(e.message ?: "nieznany błąd połączenia")

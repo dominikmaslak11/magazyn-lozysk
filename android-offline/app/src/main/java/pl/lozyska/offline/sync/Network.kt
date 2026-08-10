@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit
 
 val Context.syncDataStore by preferencesDataStore(name = "sync_ustawienia")
 private val KEY_SERVER_URL = stringPreferencesKey("server_url")
+private val KEY_AUTH_TOKEN = stringPreferencesKey("auth_token")
 private val KEY_LAST_SYNC_AT = longPreferencesKey("last_sync_at")
 private val KEY_LAST_SYNC_STATUS = stringPreferencesKey("last_sync_status")
 private val KEY_SERVER_VERSION = stringPreferencesKey("server_version")
@@ -21,6 +22,9 @@ private val KEY_MIN_CLIENT_VERSION = stringPreferencesKey("min_client_version")
 
 class SyncSettingsRepository(private val context: Context) {
     val serverUrl: Flow<String> = context.syncDataStore.data.map { it[KEY_SERVER_URL] ?: "" }
+
+    /** Token dostępu do serwera (patrz ~/.lozyska_data/token.txt po stronie serwera). */
+    val authToken: Flow<String> = context.syncDataStore.data.map { it[KEY_AUTH_TOKEN] ?: "" }
     val lastSyncAt: Flow<Long> = context.syncDataStore.data.map { it[KEY_LAST_SYNC_AT] ?: 0L }
     val lastSyncStatus: Flow<String> = context.syncDataStore.data.map { it[KEY_LAST_SYNC_STATUS] ?: "" }
 
@@ -30,6 +34,7 @@ class SyncSettingsRepository(private val context: Context) {
     val minClientVersion: Flow<String?> = context.syncDataStore.data.map { it[KEY_MIN_CLIENT_VERSION] }
 
     suspend fun setServerUrl(url: String) = context.syncDataStore.edit { it[KEY_SERVER_URL] = url }
+    suspend fun setAuthToken(token: String) = context.syncDataStore.edit { it[KEY_AUTH_TOKEN] = token.trim() }
     suspend fun setLastSyncAt(millis: Long) = context.syncDataStore.edit { it[KEY_LAST_SYNC_AT] = millis }
     suspend fun setLastSyncStatus(status: String) = context.syncDataStore.edit { it[KEY_LAST_SYNC_STATUS] = status }
 
@@ -49,15 +54,23 @@ fun normalizeBaseUrl(raw: String): String {
 
 object SyncApiClient {
     private var cachedBaseUrl: String? = null
+    private var cachedToken: String? = null
     private var cachedService: SyncApiService? = null
 
-    fun forBaseUrl(baseUrl: String): SyncApiService {
+    fun forBaseUrl(baseUrl: String, authToken: String = ""): SyncApiService {
         val normalized = normalizeBaseUrl(baseUrl)
-        cachedService?.let { if (cachedBaseUrl == normalized) return it }
+        // Token jest częścią klucza cache - po jego zmianie musimy zbudować nowego klienta,
+        // inaczej dalej wysyłalibyśmy stary nagłówek.
+        cachedService?.let { if (cachedBaseUrl == normalized && cachedToken == authToken) return it }
 
         val client = OkHttpClient.Builder()
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
+            .addInterceptor { chain ->
+                val request = if (authToken.isBlank()) chain.request()
+                else chain.request().newBuilder().header("X-Auth-Token", authToken).build()
+                chain.proceed(request)
+            }
             .build()
 
         val retrofit = Retrofit.Builder()
@@ -68,6 +81,7 @@ object SyncApiClient {
 
         val service = retrofit.create(SyncApiService::class.java)
         cachedBaseUrl = normalized
+        cachedToken = authToken
         cachedService = service
         return service
     }

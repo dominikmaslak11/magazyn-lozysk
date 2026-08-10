@@ -92,6 +92,24 @@ Lista pomysłów zebrana 2026-08-10. Nieoznaczone = do zrobienia, `[x]` = zrobio
     dla Dominika osobiście** (obecna płaska struktura mu wystarcza) — robione głównie z myślą o innych
     użytkownikach po publikacji open source.
 
+- [x] **Zabezpieczenie API serwera tokenem** (zrobione 2026-08-10)
+  - [x] Token generowany automatycznie przy pierwszym starcie, zapisany w `~/.lozyska_data/token.txt`
+    (chmod 600, poza katalogiem z kodem) i wypisywany w konsoli przy każdym starcie
+  - [x] Wszystkie `/api/*` wymagają tokenu (`X-Auth-Token` albo `Authorization: Bearer`), porównanie
+    przez `secrets.compare_digest` (stały czas — brak wycieku przez pomiar czasu odpowiedzi)
+  - [x] Wersja webowa: strona `/login` + sesja w ciasteczku, `/logout`; klucz sesji wyprowadzony z tokenu,
+    więc restart serwera nie wylogowuje, ale zmiana tokenu unieważnia sesje
+  - [x] Świadome wyjątki bez tokenu: `/api/version` (appka sprawdza zgodność wersji zanim się
+    uwierzytelni), pliki statyczne, manifest, service worker, `/login`
+  - [x] Android: pole „Token dostępu” w zakładce Dane, nagłówek przez interceptor OkHttp,
+    czytelny komunikat przy 401 zamiast surowego błędu HTTP; `SyncWorker` nie ponawia w kółko przy 401
+  - [x] Wyłącznik `LOZYSKA_AUTH_DISABLED=1` dla w pełni zaufanej sieci
+  - [ ] **Nie przetestowane na fizycznym telefonie** — do sprawdzenia razem z resztą funkcji skanowania
+
 ## Uwagi / ryzyka do pilnowania
 
-- Appka nie ma obecnie żadnej autoryzacji na endpointach API serwera — jeśli appka trafia do publicznego Play Store i ma się łączyć z serwerami różnych ludzi przez internet (nie tylko lokalne Wi-Fi), warto rozważyć czy potrzebne jest jakiekolwiek zabezpieczenie dostępu do serwera.
+- Ruch idzie po HTTP, nie HTTPS. W lokalnym Wi-Fi albo przez Tailscale (który sam szyfruje) to w porządku,
+  ale przy wystawianiu serwera do internetu trzeba postawić go za odwróconym proxy z TLS. Token chroni
+  przed przypadkowym dostępem z tej samej sieci, nie przed podsłuchem nieszyfrowanego połączenia.
+- Token jest współdzielony (jeden dla wszystkich urządzeń) — nie da się odebrać dostępu jednemu telefonowi
+  bez zmiany tokenu na wszystkich. Świadomy kompromis; wystarczający dla prywatnego magazynu.
