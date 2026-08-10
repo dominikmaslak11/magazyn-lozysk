@@ -67,7 +67,8 @@ fun DataScreen(vm: OfflineViewModel) {
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(syncStatusText(lastSyncAt, lastSyncStatus), style = MaterialTheme.typography.bodySmall,
-                    color = if (lastSyncStatus == "blad") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
+                    color = if (lastSyncStatus == "blad" || lastSyncStatus == "wymagana_aktualizacja")
+                        MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
@@ -129,6 +130,7 @@ private fun syncStatusText(lastSyncAt: Long, status: String): String {
     val when_ = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(lastSyncAt))
     return when (status) {
         "blad" -> "Ostatnia próba synchronizacji nieudana. Ostatnia udana: $when_"
+        "wymagana_aktualizacja" -> "Synchronizacja wstrzymana - appka wymaga aktualizacji. Ostatnia udana: $when_"
         else -> "Ostatnia synchronizacja: $when_"
     }
 }

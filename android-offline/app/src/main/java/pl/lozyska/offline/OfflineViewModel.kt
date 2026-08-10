@@ -11,10 +11,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.map
 import pl.lozyska.offline.data.*
 import pl.lozyska.offline.sync.SyncEngine
 import pl.lozyska.offline.sync.SyncResult
 import pl.lozyska.offline.sync.SyncSettingsRepository
+import pl.lozyska.offline.sync.isClientOutdated
+import pl.lozyska.offline.sync.isUpdateAvailable
 import pl.lozyska.offline.sync.normalizeBaseUrl
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -49,6 +52,21 @@ class OfflineViewModel(application: Application) : AndroidViewModel(application)
     private val _syncing = MutableStateFlow(false)
     val syncing: StateFlow<Boolean> = _syncing
 
+    // ----------------------------------------------------- wersjonowanie/aktualizacje ----
+
+    /** Appka jest za stara, żeby bezpiecznie synchronizować się z serwerem - blokuje sync, nie działanie offline. */
+    val updateRequired: StateFlow<Boolean> = syncSettings.minClientVersion
+        .map { min -> isClientOutdated(BuildConfig.VERSION_NAME, min) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    /** Serwer ma nowszą wersję niż ta zainstalowana, ale nadal kompatybilną - informacyjne, nie blokujące. */
+    val updateAvailable: StateFlow<Boolean> = syncSettings.serverVersion
+        .map { server -> isUpdateAvailable(BuildConfig.VERSION_NAME, server) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    val latestServerVersion: StateFlow<String?> =
+        syncSettings.serverVersion.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
     suspend fun setServerUrl(url: String) = syncSettings.setServerUrl(normalizeBaseUrl(url))
 
     fun syncNow() {
@@ -62,6 +80,9 @@ class OfflineViewModel(application: Application) : AndroidViewModel(application)
                     _message.value = "Ustaw adres serwera w zakładce Dane, żeby móc synchronizować."
                 is SyncResult.Error ->
                     _message.value = "Synchronizacja nieudana: ${result.message}"
+                is SyncResult.UpdateRequired ->
+                    _message.value = "Ta wersja appki jest za stara, żeby synchronizować się z serwerem " +
+                        "(serwer: ${result.serverVersion ?: "nowsza wersja"}). Zaktualizuj appkę."
             }
             _syncing.value = false
         }

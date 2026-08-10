@@ -22,6 +22,28 @@ from pdf_labels import build_shelf_labels_pdf
 
 app = Flask(__name__)
 
+# ----------------------------------------------------------------- wersja ----
+# Pojedyncze źródło prawdy: plik VERSION w katalogu repo. MIN_CLIENT_VERSION
+# to najstarsza wersja appki Android, która wciąż potrafi bezpiecznie
+# zsynchronizować się z tym serwerem - podnieś ją ręcznie tylko wtedy, gdy
+# robisz zmianę w formacie/API synchronizacji, która łamie starsze appki.
+# Appka Android porównuje to ze swoim BuildConfig.VERSION_NAME przy każdej
+# synchronizacji i blokuje zapis lokalny, jeśli jest za stara (patrz
+# android-offline/.../sync/VersionCheck.kt).
+APP_VERSION = (Path(__file__).parent / "VERSION").read_text().strip()
+MIN_CLIENT_VERSION = "1.1.0"
+
+
+def _with_version(payload: dict) -> dict:
+    payload["server_version"] = APP_VERSION
+    payload["min_client_version"] = MIN_CLIENT_VERSION
+    return payload
+
+
+@app.route("/api/version")
+def api_version():
+    return jsonify(_with_version({}))
+
 
 # ------------------------------------------------------------------- strona ----
 
@@ -143,7 +165,7 @@ def api_shelves_reassign():
 @app.route("/api/sync/state")
 def api_sync_state():
     """Pełny stan (włącznie ze skasowanymi rekordami - nagrobki) do zaciągnięcia przez klienta."""
-    return jsonify(db.sync_state())
+    return jsonify(_with_version(db.sync_state()))
 
 
 @app.route("/api/sync/push", methods=["POST"])
@@ -152,7 +174,7 @@ def api_sync_push():
     (patrz opis algorytmu w database.py nad sync_state/apply_sync_push)."""
     payload = request.get_json(force=True)
     db.apply_sync_push(payload.get("shelves", []), payload.get("bearings", []))
-    return jsonify(db.sync_state())
+    return jsonify(_with_version(db.sync_state()))
 
 
 # ------------------------------------------------------- backup / eksport / import ----

@@ -17,6 +17,8 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             is SyncResult.Success -> Result.success(workDataOf("bearings" to res.bearingCount))
             is SyncResult.NotConfigured -> Result.success() // brak adresu serwera - nic do zrobienia, nie traktuj jako błąd
             is SyncResult.Error -> Result.retry()
+            // Appka za stara - ponawianie w tle nic nie zmieni bez ręcznej aktualizacji appki.
+            is SyncResult.UpdateRequired -> Result.success()
         }
     }
 

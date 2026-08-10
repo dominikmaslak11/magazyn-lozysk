@@ -29,6 +29,9 @@ data class SyncStateDto(
     val server_time: String,
     val shelves: List<SyncShelfDto>,
     val bearings: List<SyncBearingDto>,
+    // Nullable - starsze serwery (sprzed mechanizmu wersjonowania) ich nie wysyłają.
+    val server_version: String? = null,
+    val min_client_version: String? = null,
 )
 
 data class SyncPushRequest(val shelves: List<SyncShelfDto>, val bearings: List<SyncBearingDto>)

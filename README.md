@@ -88,6 +88,14 @@ W zakładce „Dane” wersji webowej: „Pobierz etykiety regałów (PDF)” �
 generuje dokument z jedną stroną na regał, z listą przypisanych łożysk
 (symbol, typ, d/D/B, ilość, uwagi). Do wydruku i przyklejenia na regale.
 
+## Wersja / aktualizacje
+
+Wersja projektu jest w pliku `VERSION` (root repo). Appka `android-offline`
+sprawdza ją przy każdej synchronizacji z serwerem i - jeśli jest zbyt stara
+względem `MIN_CLIENT_VERSION` w `server.py` - blokuje dalszą synchronizację
+(nie działanie offline) i pokazuje w appce link do najnowszego wydania na
+GitHubie. Szczegóły w `android-offline/README.md`.
+
 ## Uwaga o wyszukiwaniu w internecie
 
 Funkcja internetowa jest wspomagająca (best-effort) – korzysta z wyników

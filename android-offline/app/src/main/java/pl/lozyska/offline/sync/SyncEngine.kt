@@ -2,6 +2,7 @@ package pl.lozyska.offline.sync
 
 import android.content.Context
 import kotlinx.coroutines.flow.first
+import pl.lozyska.offline.BuildConfig
 import pl.lozyska.offline.data.AppDatabase
 import pl.lozyska.offline.data.Repository
 
@@ -9,6 +10,8 @@ sealed class SyncResult {
     data class Success(val bearingCount: Int, val shelfCount: Int) : SyncResult()
     object NotConfigured : SyncResult()
     data class Error(val message: String) : SyncResult()
+    /** Appka jest starsza niż min_client_version zgłoszone przez serwer - dane NIE zostały pobrane/wysłane. */
+    data class UpdateRequired(val serverVersion: String?) : SyncResult()
 }
 
 /**
@@ -45,6 +48,16 @@ class SyncEngine(private val context: Context) {
                     bearings = localBearings.map { it.toSyncDto() },
                 )
             )
+
+            settings.setVersionInfo(serverState.server_version, serverState.min_client_version)
+
+            if (isClientOutdated(BuildConfig.VERSION_NAME, serverState.min_client_version)) {
+                // Za stara appka - NIE nadpisujemy lokalnej bazy danymi w formacie, którego
+                // może nie rozumieć poprawnie. Lokalne zmiany zostały już wysłane wyżej
+                // (pushSync), więc nic nie ginie - zostaną domergowane po aktualizacji.
+                settings.setLastSyncStatus("wymagana_aktualizacja")
+                return SyncResult.UpdateRequired(serverState.server_version)
+            }
 
             repo.replaceAllFromServer(
                 serverState.shelves.map { it.toEntity(syncStartedAt) },

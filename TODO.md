@@ -2,9 +2,16 @@
 
 Lista pomysłów zebrana 2026-08-10. Nieoznaczone = do zrobienia, `[x]` = zrobione, `[~]` = częściowo/wymaga decyzji.
 
+## Decyzje (2026-08-10)
+
+- Licencja: **GPL-3.0**
+- Struktura magazynu: **pełna hierarchia regał → szuflada → skrytka** (duży projekt, wymaga przeprojektowania modelu danych/API/UI/obu appek — patrz sekcja niżej)
+- Konto dewelopera Google Play: **jeszcze nie założone** przez użytkownika — publikacja w Play wstrzymana do tego czasu
+- Kolejność prac: **1) wersjonowanie/aktualizacje (w toku)**, 2) reszta wg priorytetów niżej
+
 ## Otwarte źródło / Google Play
 
-- [ ] Dodać plik `LICENSE` (do ustalenia która licencja — patrz pytanie do użytkownika)
+- [ ] Dodać plik `LICENSE` (**GPL-3.0** — ustalone)
 - [x] Repo publiczne na GitHubie (`dominikmaslak11/magazyn-lozysk`)
 - [ ] Rozbudować `README.md` (root) o pełną instrukcję instalacji/uruchomienia dla kogoś z zewnątrz (nie tylko dla siebie), z opisem architektury (serwer Flask + PWA, klient Android offline+sync, legacy desktop)
 - [ ] Karta sklepu Google Play (opis, grafiki, polityka prywatności) — dopiero gdy appka będzie gotowa do publikacji
@@ -17,15 +24,39 @@ Lista pomysłów zebrana 2026-08-10. Nieoznaczone = do zrobienia, `[x]` = zrobio
 - [ ] **Skanowanie kodów kreskowych/QR** (CameraX + ML Kit) do szybkiego wyszukania łożyska po symbolu
   - [ ] Dodać generowanie QR/kodu kreskowego do etykiet PDF (`pdf_labels.py`), żeby było co skanować
   - [ ] Ekran skanera w `android-offline` (i ew. `android-klient`)
-- [ ] **Mechanizm weryfikacji wersji / wymuszania aktualizacji**
-  - [ ] Endpoint na serwerze zwracający minimalną/aktualną wymaganą wersję API
-  - [ ] Appka Android porównuje przy starcie i blokuje/ostrzega, jeśli wersja za stara
-  - [ ] Do ustalenia: czy to ma sens jako "twardy blokader" czy tylko ostrzeżenie (patrz uwaga o Play Store w rozmowie)
-- [ ] **Konfigurowalna liczba regałów** (usunąć sztywne 9)
-  - [ ] Endpoint `POST /api/shelves` (dodaj regał) i `DELETE /api/shelves/<id>` (usuń regał, z obsługą łożysk które na nim leżały)
-  - [ ] UI webowe: przyciski "Dodaj regał" / "Usuń regał" w zakładce Regały
-  - [ ] Sync do appek Android (model `Shelf` już jest generyczny, powinno zadziałać bez zmian w Room, do zweryfikowania)
-  - [ ] **Do ustalenia z użytkownikiem**: czy chodzi tylko o dowolną liczbę regałów (płasko, jak teraz), czy o pełną hierarchię regał → szuflada → skrytka (wymaga zmiany modelu danych, patrz rozmowa)
+- [x] **Mechanizm weryfikacji wersji / wymuszania aktualizacji** (zrobione 2026-08-10)
+  - [x] Plik `VERSION` (root) + stałe `APP_VERSION`/`MIN_CLIENT_VERSION` i endpoint `GET /api/version` w `server.py`,
+    `server_version`/`min_client_version` dołączone też do `/api/sync/state` i `/api/sync/push`
+  - [x] `android-offline`: `sync/VersionCheck.kt` (porównanie semver), `SyncEngine` blokuje nadpisanie lokalnej
+    bazy i zwraca `SyncResult.UpdateRequired` gdy appka starsza niż `min_client_version` (lokalne zmiany i tak
+    zdążyły się wcześniej wypchnąć na serwer — nic nie ginie)
+  - [x] Baner w UI (`MainActivity.kt`) — czerwony/blokujący gdy `updateRequired`, łagodny gdy tylko
+    `updateAvailable` — z przyciskiem do strony wydań na GitHubie (`RELEASES_URL`)
+  - [x] Zasada: **blokuje tylko synchronizację, nigdy działanie appki offline**
+  - Świadomie NIE dotyczy wersji webowej/PWA — ta zawsze serwuje się świeża prosto z `server.py`, więc
+    "stara wersja" tam nie występuje
+  - Nie dotyczy `android-klient` (appka wygaszona/zastąpiona przez `android-offline`)
+  - Pozostaje do zrobienia przy publikacji w Play: appka **z automatu ma się aktualizować przez sam Play
+    Store** — ten mechanizm to dodatkowe zabezpieczenie przed niekompatybilnością starego klienta z nowszym
+    API serwera, nie zamiennik mechanizmu Play
+- [ ] **Konfigurowalna hierarchia lokalizacji** (zaktualizowana decyzja z 2026-08-10, patrz rozmowa)
+  - Zamiast sztywnych 3 tabel (regał/szuflada/skrytka): **jedna samo-referencyjna tabela `locations`**
+    (`id`, `parent_id` nullable, `nazwa`, `poziom_etykieta` np. "regał"/"półka"/"szuflada"/"skrytka",
+    `d_min`/`d_max` tylko na poziomie liściastym używanym do auto-przydziału).
+  - Użytkownik sam wybiera **głębokość zagnieżdżenia** (0 = płasko jak dziś, 1 = regał+półka,
+    2 = regał+szuflada+skrytka, itd.) — bez zmiany schematu przy każdej kombinacji.
+  - `bearings.regal_id` → `bearings.location_id`, wskazuje na dowolny węzeł drzewa (nie musi być liściem).
+  - Migracja v2 → v3: istniejące `shelves` stają się węzłami `locations` bez rodzica (poziom 0) — dla
+    obecnych użytkowników (w tym Dominika) nic się nie zmienia funkcjonalnie, bo "wystarcza jak do tej pory".
+  - API: CRUD na `locations` (dodaj/usuń/przenieś węzeł na dowolnym poziomie).
+  - UI webowe: drzewo/breadcrumb zamiast płaskiej listy, ale **tylko gdy użytkownik włączy głębsze poziomy**
+    — domyślny widok ma zostać tak prosty jak teraz.
+  - Android (`android-offline`): aktualizacja encji Room (jedna tabela `LocationEntity` zamiast `ShelfEntity`)
+    + ekranu wyboru lokalizacji (drzewo) + silnika sync pod nową tabelę.
+  - `pdf_labels.py`: etykiety per najniższy skonfigurowany poziom.
+  - To osobny, wieloetapowy projekt — rozbić na mniejsze PR-y, nie robić jednym skokiem. **Niski priorytet
+    dla Dominika osobiście** (obecna płaska struktura mu wystarcza) — robione głównie z myślą o innych
+    użytkownikach po publikacji open source.
 
 ## Uwagi / ryzyka do pilnowania
 

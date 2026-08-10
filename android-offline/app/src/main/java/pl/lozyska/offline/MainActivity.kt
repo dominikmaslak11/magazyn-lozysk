@@ -1,23 +1,30 @@
 package pl.lozyska.offline
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Warehouse
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import pl.lozyska.offline.sync.RELEASES_URL
 import pl.lozyska.offline.sync.SyncWorker
 
 class MainActivity : ComponentActivity() {
@@ -47,6 +54,7 @@ private val TABS = listOf(
 fun AppScaffold(vm: OfflineViewModel) {
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     val message by vm.message.collectAsState()
     LaunchedEffect(message) {
@@ -54,6 +62,13 @@ fun AppScaffold(vm: OfflineViewModel) {
             snackbarHostState.showSnackbar(it)
             vm.clearMessage()
         }
+    }
+
+    val updateRequired by vm.updateRequired.collectAsState()
+    val updateAvailable by vm.updateAvailable.collectAsState()
+    val latestServerVersion by vm.latestServerVersion.collectAsState()
+    val openReleases = {
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(RELEASES_URL)))
     }
 
     // Synchronizacja przy otwarciu appki i za każdym razem, gdy adres serwera się zmieni
@@ -87,14 +102,53 @@ fun AppScaffold(vm: OfflineViewModel) {
             }
         }
     ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = "bearings",
-            modifier = Modifier.padding(padding),
+        Column(Modifier.padding(padding)) {
+            if (updateRequired) {
+                UpdateBanner(
+                    text = "Ta wersja appki jest za stara i nie może już synchronizować się z serwerem " +
+                        (latestServerVersion?.let { "(serwer: $it)" } ?: "") +
+                        ". Dane offline działają dalej, ale zaktualizuj appkę, żeby wznowić synchronizację.",
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    onUpdateClick = openReleases,
+                )
+            } else if (updateAvailable) {
+                UpdateBanner(
+                    text = "Dostępna nowsza wersja appki" +
+                        (latestServerVersion?.let { " ($it)" } ?: "") + ".",
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    onUpdateClick = openReleases,
+                )
+            }
+            NavHost(
+                navController = navController,
+                startDestination = "bearings",
+                modifier = Modifier.weight(1f),
+            ) {
+                composable("bearings") { BearingsScreen(vm) }
+                composable("shelves") { ShelvesScreen(vm) }
+                composable("data") { DataScreen(vm) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun UpdateBanner(
+    text: String,
+    containerColor: androidx.compose.ui.graphics.Color,
+    contentColor: androidx.compose.ui.graphics.Color,
+    onUpdateClick: () -> Unit,
+) {
+    Surface(color = containerColor, contentColor = contentColor) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            composable("bearings") { BearingsScreen(vm) }
-            composable("shelves") { ShelvesScreen(vm) }
-            composable("data") { DataScreen(vm) }
+            Icon(Icons.Filled.SystemUpdate, contentDescription = null, modifier = Modifier.padding(end = 10.dp))
+            Text(text, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+            TextButton(onClick = onUpdateClick) { Text("Aktualizuj") }
         }
     }
 }

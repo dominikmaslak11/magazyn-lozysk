@@ -53,6 +53,26 @@ głównie addytywne) to uzasadniony wybór.
 Appka działa też w pełni bez serwera - lokalna baza jest zawsze dostępna,
 synchronizacja jest tylko wzbogaceniem/backupem na wypadek awarii komputera.
 
+## Wersjonowanie / wymuszanie aktualizacji
+
+Każda synchronizacja z serwerem przenosi też informację o wersji (patrz
+`VERSION` i `MIN_CLIENT_VERSION` w `../server.py`):
+
+- Jeśli appka jest **starsza niż `min_client_version`** zgłoszone przez
+  serwer, synchronizacja zatrzymuje się *przed* nadpisaniem lokalnej bazy
+  (lokalne zmiany zdążyły już wcześniej wysłać się na serwer, więc nic nie
+  ginie) i na górze ekranu pojawia się czerwony baner z przyciskiem
+  „Aktualizuj”, prowadzącym do strony wydań na GitHubie. Appka offline
+  działa dalej normalnie - blokowana jest tylko synchronizacja.
+- Jeśli appka jest starsza niż bieżąca `server_version`, ale wciąż
+  kompatybilna, pokazuje się tylko łagodna, informacyjna belka (bez
+  blokowania niczego).
+
+Dla kogoś, kto uruchamia własny serwer: `MIN_CLIENT_VERSION` w `server.py`
+podnoś ręcznie **tylko** wtedy, gdy zmieniasz format/API synchronizacji w
+sposób łamiący starsze appki - w przeciwnym razie zostaw ją bez zmian, żeby
+nie zmuszać ludzi do aktualizacji bez potrzeby.
+
 ## Dostęp spoza domowej sieci
 
 Rekomendowane rozwiązanie: [Tailscale](https://tailscale.com/) - prywatna

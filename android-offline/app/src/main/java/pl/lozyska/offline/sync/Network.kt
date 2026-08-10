@@ -16,15 +16,27 @@ val Context.syncDataStore by preferencesDataStore(name = "sync_ustawienia")
 private val KEY_SERVER_URL = stringPreferencesKey("server_url")
 private val KEY_LAST_SYNC_AT = longPreferencesKey("last_sync_at")
 private val KEY_LAST_SYNC_STATUS = stringPreferencesKey("last_sync_status")
+private val KEY_SERVER_VERSION = stringPreferencesKey("server_version")
+private val KEY_MIN_CLIENT_VERSION = stringPreferencesKey("min_client_version")
 
 class SyncSettingsRepository(private val context: Context) {
     val serverUrl: Flow<String> = context.syncDataStore.data.map { it[KEY_SERVER_URL] ?: "" }
     val lastSyncAt: Flow<Long> = context.syncDataStore.data.map { it[KEY_LAST_SYNC_AT] ?: 0L }
     val lastSyncStatus: Flow<String> = context.syncDataStore.data.map { it[KEY_LAST_SYNC_STATUS] ?: "" }
 
+    // Ostatnie wersje zgłoszone przez serwer - patrz VersionCheck.kt. Trzymane w DataStore,
+    // żeby baner o aktualizacji przetrwał restart appki między synchronizacjami.
+    val serverVersion: Flow<String?> = context.syncDataStore.data.map { it[KEY_SERVER_VERSION] }
+    val minClientVersion: Flow<String?> = context.syncDataStore.data.map { it[KEY_MIN_CLIENT_VERSION] }
+
     suspend fun setServerUrl(url: String) = context.syncDataStore.edit { it[KEY_SERVER_URL] = url }
     suspend fun setLastSyncAt(millis: Long) = context.syncDataStore.edit { it[KEY_LAST_SYNC_AT] = millis }
     suspend fun setLastSyncStatus(status: String) = context.syncDataStore.edit { it[KEY_LAST_SYNC_STATUS] = status }
+
+    suspend fun setVersionInfo(serverVersion: String?, minClientVersion: String?) = context.syncDataStore.edit {
+        if (serverVersion != null) it[KEY_SERVER_VERSION] = serverVersion
+        if (minClientVersion != null) it[KEY_MIN_CLIENT_VERSION] = minClientVersion
+    }
 }
 
 fun normalizeBaseUrl(raw: String): String {
