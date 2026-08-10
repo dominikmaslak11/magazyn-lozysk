@@ -1,6 +1,7 @@
 package pl.lozyska.offline.sync
 
 import com.google.gson.annotations.SerializedName
+import pl.lozyska.offline.data.BarcodeAliasEntity
 import pl.lozyska.offline.data.BearingEntity
 import pl.lozyska.offline.data.ShelfEntity
 import retrofit2.http.Body
@@ -25,6 +26,11 @@ data class SyncBearingDto(
     val updated_at: String? = null, val deleted_at: String? = null,
 )
 
+data class SyncBarcodeAliasDto(
+    val id: String, val kod: String, val symbol: String,
+    val updated_at: String? = null, val deleted_at: String? = null,
+)
+
 data class SyncStateDto(
     val server_time: String,
     val shelves: List<SyncShelfDto>,
@@ -32,9 +38,15 @@ data class SyncStateDto(
     // Nullable - starsze serwery (sprzed mechanizmu wersjonowania) ich nie wysyłają.
     val server_version: String? = null,
     val min_client_version: String? = null,
+    // Nullable z tego samego powodu - serwer sprzed aliasów kodów kreskowych ich nie zna.
+    val barcode_aliases: List<SyncBarcodeAliasDto>? = null,
 )
 
-data class SyncPushRequest(val shelves: List<SyncShelfDto>, val bearings: List<SyncBearingDto>)
+data class SyncPushRequest(
+    val shelves: List<SyncShelfDto>,
+    val bearings: List<SyncBearingDto>,
+    val barcode_aliases: List<SyncBarcodeAliasDto> = emptyList(),
+)
 
 interface SyncApiService {
     @GET("api/sync/state")
@@ -57,6 +69,16 @@ fun BearingEntity.toSyncDto() = SyncBearingDto(
 
 fun SyncShelfDto.toEntity(localTimestamp: Long) = ShelfEntity(
     id = id, nazwa = nazwa, poziom = poziom, dMin = d_min, dMax = d_max,
+    updatedAt = localTimestamp, deletedAt = null,
+)
+
+fun BarcodeAliasEntity.toSyncDto() = SyncBarcodeAliasDto(
+    id = id, kod = kod, symbol = symbol,
+    deleted_at = deletedAt?.let { "deleted" },
+)
+
+fun SyncBarcodeAliasDto.toEntity(localTimestamp: Long) = BarcodeAliasEntity(
+    id = id, kod = kod, symbol = symbol,
     updatedAt = localTimestamp, deletedAt = null,
 )
 

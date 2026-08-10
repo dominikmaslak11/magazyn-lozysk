@@ -73,3 +73,31 @@ interface ShelfDao {
     @Query("SELECT * FROM shelves WHERE updatedAt > :since")
     suspend fun getChangedSince(since: Long): List<ShelfEntity>
 }
+
+@Dao
+interface BarcodeAliasDao {
+    /** Symbol łożyska skojarzony z zeskanowanym kodem z opakowania, albo null gdy nieznany. */
+    @Query("SELECT symbol FROM barcode_aliases WHERE kod = :kod AND deletedAt IS NULL LIMIT 1")
+    suspend fun findSymbolByKod(kod: String): String?
+
+    @Query("SELECT * FROM barcode_aliases WHERE kod = :kod AND deletedAt IS NULL LIMIT 1")
+    suspend fun findByKod(kod: String): BarcodeAliasEntity?
+
+    @Query("SELECT * FROM barcode_aliases WHERE deletedAt IS NULL ORDER BY symbol")
+    fun observeAll(): Flow<List<BarcodeAliasEntity>>
+
+    @Query("SELECT * FROM barcode_aliases WHERE deletedAt IS NULL ORDER BY symbol")
+    suspend fun getAllOnce(): List<BarcodeAliasEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(alias: BarcodeAliasEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(aliases: List<BarcodeAliasEntity>)
+
+    @Query("DELETE FROM barcode_aliases")
+    suspend fun deleteAllHard()
+
+    @Query("SELECT * FROM barcode_aliases WHERE updatedAt > :since")
+    suspend fun getChangedSince(since: Long): List<BarcodeAliasEntity>
+}

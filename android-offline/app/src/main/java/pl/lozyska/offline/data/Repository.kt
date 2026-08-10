@@ -35,6 +35,7 @@ fun newLocalId(): String = UUID.randomUUID().toString()
 class Repository(private val db: AppDatabase) {
     private val bearingDao = db.bearingDao()
     private val shelfDao = db.shelfDao()
+    private val aliasDao = db.barcodeAliasDao()
 
     fun observeBearings(search: String) = bearingDao.observeAll(search)
     fun observeShelvesWithCounts() = shelfDao.observeAllWithCounts()
@@ -152,12 +153,40 @@ class Repository(private val db: AppDatabase) {
     suspend fun getLocalChangesSince(sinceLocalMillis: Long): Pair<List<ShelfEntity>, List<BearingEntity>> =
         shelfDao.getChangedSince(sinceLocalMillis) to bearingDao.getChangedSince(sinceLocalMillis)
 
+    suspend fun getLocalAliasChangesSince(sinceLocalMillis: Long): List<BarcodeAliasEntity> =
+        aliasDao.getChangedSince(sinceLocalMillis)
+
     /** Podmienia CAŁĄ lokalną bazę na stan otrzymany z serwera (serwer jest źródłem prawdy). */
-    suspend fun replaceAllFromServer(shelves: List<ShelfEntity>, bearings: List<BearingEntity>) {
+    suspend fun replaceAllFromServer(
+        shelves: List<ShelfEntity>,
+        bearings: List<BearingEntity>,
+        aliases: List<BarcodeAliasEntity> = emptyList(),
+    ) {
         shelfDao.deleteAllHard()
         bearingDao.deleteAllHard()
+        aliasDao.deleteAllHard()
         // nie wstawiamy rekordów skasowanych na serwerze (deletedAt != null) - to tylko nagrobki do propagacji
         shelfDao.insertAll(shelves.filter { it.deletedAt == null })
         bearingDao.insertAll(bearings.filter { it.deletedAt == null })
+        aliasDao.insertAll(aliases.filter { it.deletedAt == null })
+    }
+
+    // ------------------------------------- aliasy kodów kreskowych (opakowania) ----
+
+    /** Symbol łożyska zapamiętany dla tego kodu z opakowania, albo null gdy appka go nie zna. */
+    suspend fun findSymbolByBarcode(kod: String): String? = aliasDao.findSymbolByKod(kod.trim())
+
+    /** Zapamiętuje skojarzenie kod -> symbol (nadpisuje poprzednie dla tego samego kodu). */
+    suspend fun setBarcodeAlias(kod: String, symbol: String) {
+        val normalized = kod.trim()
+        val existing = aliasDao.findByKod(normalized)
+        aliasDao.insert(
+            BarcodeAliasEntity(
+                id = existing?.id ?: UUID.randomUUID().toString(),
+                kod = normalized,
+                symbol = symbol.trim(),
+                updatedAt = System.currentTimeMillis(),
+            )
+        )
     }
 }

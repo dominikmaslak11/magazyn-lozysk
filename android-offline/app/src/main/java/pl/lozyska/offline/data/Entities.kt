@@ -2,6 +2,7 @@ package pl.lozyska.offline.data
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 // ID to UUID (nie liczba) - dzięki temu telefon może tworzyć nowe rekordy OFFLINE
@@ -44,6 +45,23 @@ data class BearingEntity(
     val recznyPrzydzial: Boolean,
     val zrodlo: String,
     val uwagi: String,
+    val updatedAt: Long = System.currentTimeMillis(),
+    val deletedAt: Long? = null,
+)
+
+/**
+ * Skojarzenie kodu kreskowego z opakowania (zwykle EAN-13, czyli numer handlowy
+ * producenta) z symbolem łożyska - patrz BarcodeAlias w database.py na serwerze.
+ *
+ * Kod EAN nie zawiera oznaczenia łożyska, więc sam skan nic nie mówi o zawartości
+ * pudełka. Zamiast płatnych baz GTIN appka pyta użytkownika RAZ i zapamiętuje
+ * odpowiedź tutaj; skojarzenie synchronizuje się przez serwer na pozostałe telefony.
+ */
+@Entity(tableName = "barcode_aliases", indices = [Index(value = ["kod"])])
+data class BarcodeAliasEntity(
+    @PrimaryKey val id: String,
+    val kod: String,
+    val symbol: String,
     val updatedAt: Long = System.currentTimeMillis(),
     val deletedAt: Long? = null,
 )

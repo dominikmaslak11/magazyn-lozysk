@@ -41,11 +41,13 @@ class SyncEngine(private val context: Context) {
 
         return try {
             val (localShelves, localBearings) = repo.getLocalChangesSince(lastSyncAt)
+            val localAliases = repo.getLocalAliasChangesSince(lastSyncAt)
             val api = SyncApiClient.forBaseUrl(baseUrl)
             val serverState = api.pushSync(
                 SyncPushRequest(
                     shelves = localShelves.map { it.toSyncDto() },
                     bearings = localBearings.map { it.toSyncDto() },
+                    barcode_aliases = localAliases.map { it.toSyncDto() },
                 )
             )
 
@@ -62,6 +64,9 @@ class SyncEngine(private val context: Context) {
             repo.replaceAllFromServer(
                 serverState.shelves.map { it.toEntity(syncStartedAt) },
                 serverState.bearings.map { it.toEntity(syncStartedAt) },
+                // Starszy serwer nie zna aliasów i nie odsyła tego pola - wtedy zostawiamy
+                // lokalne skojarzenia w spokoju zamiast kasować je pustą listą.
+                serverState.barcode_aliases?.map { it.toEntity(syncStartedAt) } ?: repo.getLocalAliasChangesSince(0L),
             )
 
             settings.setLastSyncAt(syncStartedAt)

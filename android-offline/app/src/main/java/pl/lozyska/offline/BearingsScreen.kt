@@ -39,6 +39,7 @@ fun BearingsScreen(vm: OfflineViewModel) {
     var showAdd by remember { mutableStateOf(false) }
     var addInitialSymbol by remember { mutableStateOf<String?>(null) }
     var showScanner by remember { mutableStateOf(false) }
+    var unknownBarcode by remember { mutableStateOf<String?>(null) }
     var pendingDelete by remember { mutableStateOf<BearingEntity?>(null) }
 
     val context = LocalContext.current
@@ -92,12 +93,34 @@ fun BearingsScreen(vm: OfflineViewModel) {
 
     if (showScanner) {
         BarcodeScannerScreen(
-            onResult = { value ->
+            onResult = { value, isProductBarcode ->
                 showScanner = false
-                addInitialSymbol = value.trim()
-                showAdd = true
+                vm.resolveScan(value, isProductBarcode) { outcome ->
+                    when (outcome) {
+                        is ScanOutcome.Symbol -> {
+                            addInitialSymbol = outcome.symbol
+                            showAdd = true
+                        }
+                        // Kod z pudełka, którego jeszcze nie znamy - dopytujemy, zamiast
+                        // wstawiać ciąg cyfr w pole "Symbol" i udawać, że to oznaczenie.
+                        is ScanOutcome.UnknownBarcode -> unknownBarcode = outcome.kod
+                    }
+                }
             },
             onClose = { showScanner = false },
+        )
+    }
+    unknownBarcode?.let { kod ->
+        UnknownBarcodeDialog(
+            kod = kod,
+            onDismiss = { unknownBarcode = null },
+            onConfirm = { symbol ->
+                unknownBarcode = null
+                vm.rememberBarcode(kod, symbol) {
+                    addInitialSymbol = symbol
+                    showAdd = true
+                }
+            },
         )
     }
     if (showAdd) {
@@ -121,6 +144,48 @@ fun BearingsScreen(vm: OfflineViewModel) {
             dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("Anuluj") } },
         )
     }
+}
+
+/**
+ * Kod z opakowania, którego appka jeszcze nie zna. Pytamy RAZ, do jakiego łożyska należy -
+ * odpowiedź zostaje zapamiętana i zsynchronizowana, więc kolejny skan tego samego pudełka
+ * (na dowolnym telefonie) rozpozna je już bez pytania.
+ */
+@Composable
+private fun UnknownBarcodeDialog(kod: String, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
+    var symbol by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Nieznany kod z opakowania") },
+        text = {
+            Column {
+                Text(
+                    "Zeskanowany kod ($kod) to handlowy numer produktu, a nie oznaczenie łożyska - " +
+                        "nie da się z niego odczytać symbolu ani wymiarów.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "Podaj symbol łożyska w tym opakowaniu, a appka zapamięta to skojarzenie i " +
+                        "następnym razem rozpozna je sama (także na pozostałych telefonach).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = symbol, onValueChange = { symbol = it },
+                    label = { Text("Symbol łożyska, np. 6205-2RS") },
+                    singleLine = true, modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(symbol.trim()) }, enabled = symbol.isNotBlank()) {
+                Text("Zapamiętaj")
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Anuluj") } },
+    )
 }
 
 @Composable

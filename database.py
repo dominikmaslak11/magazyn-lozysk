@@ -42,7 +42,7 @@ BACKUP_DIR = DB_DIR / "backups"
 BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 MAX_AUTO_BACKUPS = 20
 
-SCHEMA_VERSION = 2  # v2 = UUID id + updated_at/deleted_at (obsługa synchronizacji)
+SCHEMA_VERSION = 3  # v3 = tabela barcode_aliases (kod z opakowania -> symbol łożyska)
 
 # Domyślne, edytowalne w GUI zakresy średnicy zewnętrznej (mm) dla 9 regałów.
 # poziom 1 = regał najniższy (duże łożyska), poziom 9 = najwyższy (małe łożyska).
@@ -87,6 +87,24 @@ class Shelf:
     deleted_at: str | None = None
 
 
+@dataclass
+class BarcodeAlias:
+    """Skojarzenie kodu kreskowego z opakowania (zwykle EAN-13, czyli numer handlowy
+    producenta) z symbolem łożyska.
+
+    Po co: kod EAN na pudełku NIE zawiera oznaczenia łożyska, tylko numer produktu w
+    systemie sprzedaży. Skan takiego kodu sam z siebie nie mówi nic o tym, co jest w
+    środku. Zamiast korzystać z płatnych i niekompletnych baz GTIN, appka pyta
+    użytkownika RAZ ("co to za łożysko?") i zapamiętuje odpowiedź tutaj - kolejne skany
+    tego samego pudełka, na dowolnym zsynchronizowanym urządzeniu, rozpoznają je od razu.
+    """
+    id: str
+    kod: str
+    symbol: str
+    updated_at: str = ""
+    deleted_at: str | None = None
+
+
 def new_id() -> str:
     return str(uuid.uuid4())
 
@@ -115,6 +133,11 @@ def init_db() -> None:
             cols = {r["name"] for r in conn.execute("PRAGMA table_info(bearings)")}
             if "updated_at" not in cols:
                 _migrate_v1_to_v2(conn)
+        # v2 -> v3: dołożenie tabeli aliasów kodów kreskowych. Sama tabela jest pusta i
+        # niezależna od reszty danych, więc migracja jest bezpieczna i nie wymaga backupu.
+        existing_tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if "barcode_aliases" not in existing_tables:
+            _create_barcode_aliases_table(conn)
     conn.close()
 
 
@@ -148,6 +171,20 @@ def _create_v2_schema(conn: sqlite3.Connection) -> None:
             deleted_at TEXT
         )
     """)
+
+
+def _create_barcode_aliases_table(conn: sqlite3.Connection) -> None:
+    conn.execute("""
+        CREATE TABLE barcode_aliases (
+            id TEXT PRIMARY KEY,
+            kod TEXT NOT NULL,
+            symbol TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            deleted_at TEXT
+        )
+    """)
+    # Jeden aktywny alias na kod - powtórne przypisanie nadpisuje poprzednie (patrz set_barcode_alias).
+    conn.execute("CREATE UNIQUE INDEX idx_barcode_aliases_kod ON barcode_aliases(kod) WHERE deleted_at IS NULL")
 
 
 def _seed_default_shelves(conn: sqlite3.Connection) -> None:
@@ -346,6 +383,73 @@ def _row_to_shelf(row: sqlite3.Row) -> Shelf:
     )
 
 
+def _row_to_alias(row: sqlite3.Row) -> BarcodeAlias:
+    return BarcodeAlias(
+        id=row["id"], kod=row["kod"], symbol=row["symbol"],
+        updated_at=row["updated_at"], deleted_at=row["deleted_at"],
+    )
+
+
+# ------------------------------------------- aliasy kodów kreskowych (opakowania) ----
+
+def normalize_barcode(raw: str) -> str:
+    """Kody z różnych skanerów potrafią przyjść z białymi znakami - porównujemy je
+    zawsze po tej samej, znormalizowanej postaci."""
+    return raw.strip()
+
+
+def get_barcode_aliases() -> list[BarcodeAlias]:
+    conn = get_connection()
+    rows = conn.execute("SELECT * FROM barcode_aliases WHERE deleted_at IS NULL ORDER BY symbol").fetchall()
+    conn.close()
+    return [_row_to_alias(r) for r in rows]
+
+
+def find_symbol_by_barcode(kod: str) -> str | None:
+    """Zwraca symbol łożyska skojarzony z kodem z opakowania albo None, jeśli nieznany."""
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT symbol FROM barcode_aliases WHERE kod=? AND deleted_at IS NULL",
+        (normalize_barcode(kod),),
+    ).fetchone()
+    conn.close()
+    return row["symbol"] if row else None
+
+
+def set_barcode_alias(kod: str, symbol: str) -> str:
+    """Zapamiętuje (albo aktualizuje) skojarzenie kod -> symbol. Zwraca id rekordu."""
+    kod = normalize_barcode(kod)
+    symbol = symbol.strip()
+    conn = get_connection()
+    with conn:
+        row = conn.execute(
+            "SELECT id FROM barcode_aliases WHERE kod=? AND deleted_at IS NULL", (kod,)
+        ).fetchone()
+        if row:
+            conn.execute(
+                "UPDATE barcode_aliases SET symbol=?, updated_at=? WHERE id=?",
+                (symbol, now_iso(), row["id"]),
+            )
+            alias_id = row["id"]
+        else:
+            alias_id = new_id()
+            conn.execute(
+                "INSERT INTO barcode_aliases (id, kod, symbol, updated_at, deleted_at) VALUES (?, ?, ?, ?, NULL)",
+                (alias_id, kod, symbol, now_iso()),
+            )
+    conn.close()
+    return alias_id
+
+
+def delete_barcode_alias(alias_id: str) -> None:
+    """Kasowanie miękkie - nagrobek propaguje się przy synchronizacji na inne urządzenia."""
+    conn = get_connection()
+    with conn:
+        ts = now_iso()
+        conn.execute("UPDATE barcode_aliases SET deleted_at=?, updated_at=? WHERE id=?", (ts, ts, alias_id))
+    conn.close()
+
+
 # ------------------------------------------------------------- synchronizacja ----
 #
 # Model: serwer (ten plik) jest jedynym centralnym węzłem ("hub"). Telefony mają
@@ -373,15 +477,18 @@ def sync_state() -> dict:
     conn = get_connection()
     shelves = [_row_to_shelf(r) for r in conn.execute("SELECT * FROM shelves")]
     bearings = [_row_to_bearing(r) for r in conn.execute("SELECT * FROM bearings")]
+    aliases = [_row_to_alias(r) for r in conn.execute("SELECT * FROM barcode_aliases")]
     conn.close()
     return {
         "server_time": now_iso(),
         "shelves": [asdict(s) for s in shelves],
         "bearings": [asdict(b) for b in bearings],
+        "barcode_aliases": [asdict(a) for a in aliases],
     }
 
 
-def apply_sync_push(shelves_in: list[dict], bearings_in: list[dict]) -> None:
+def apply_sync_push(shelves_in: list[dict], bearings_in: list[dict],
+                     aliases_in: list[dict] | None = None) -> None:
     """Przyjmuje rekordy zmienione lokalnie na urządzeniu klienckim i bezwarunkowo
     je zapisuje (upsert po id), stemplując je czasem serwera."""
     conn = get_connection()
@@ -418,6 +525,26 @@ def apply_sync_push(shelves_in: list[dict], bearings_in: list[dict]) -> None:
                     "INSERT INTO bearings (symbol, typ, d, D_out, B, ilosc, regal_id, reczny_przydzial, "
                     "zrodlo, uwagi, updated_at, deleted_at, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     values_common + (b["id"],),
+                )
+        for a in (aliases_in or []):
+            exists = conn.execute("SELECT 1 FROM barcode_aliases WHERE id=?", (a["id"],)).fetchone()
+            if exists:
+                conn.execute(
+                    "UPDATE barcode_aliases SET kod=?, symbol=?, updated_at=?, deleted_at=? WHERE id=?",
+                    (normalize_barcode(a["kod"]), a["symbol"], ts, a.get("deleted_at"), a["id"]),
+                )
+            else:
+                # Ten sam kod mógł zostać skojarzony niezależnie na dwóch telefonach offline
+                # (różne id, ten sam kod). Unikalny indeks dotyczy tylko rekordów żywych, więc
+                # starsze skojarzenie chowamy jako nagrobek zamiast wywalać się na konflikcie.
+                if a.get("deleted_at") is None:
+                    conn.execute(
+                        "UPDATE barcode_aliases SET deleted_at=?, updated_at=? WHERE kod=? AND deleted_at IS NULL",
+                        (ts, ts, normalize_barcode(a["kod"])),
+                    )
+                conn.execute(
+                    "INSERT INTO barcode_aliases (id, kod, symbol, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?)",
+                    (a["id"], normalize_barcode(a["kod"]), a["symbol"], ts, a.get("deleted_at")),
                 )
     conn.close()
 

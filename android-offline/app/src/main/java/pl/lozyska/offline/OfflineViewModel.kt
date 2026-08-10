@@ -20,6 +20,14 @@ import pl.lozyska.offline.sync.isClientOutdated
 import pl.lozyska.offline.sync.isUpdateAvailable
 import pl.lozyska.offline.sync.normalizeBaseUrl
 
+/** Wynik rozpoznania zeskanowanego kodu - patrz OfflineViewModel.resolveScan. */
+sealed class ScanOutcome {
+    /** Znamy symbol łożyska (nasza naklejka QR albo zapamiętany wcześniej kod z pudełka). */
+    data class Symbol(val symbol: String) : ScanOutcome()
+    /** Kod handlowy (EAN/UPC), którego jeszcze nie skojarzono z żadnym łożyskiem. */
+    data class UnknownBarcode(val kod: String) : ScanOutcome()
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class OfflineViewModel(application: Application) : AndroidViewModel(application) {
     private val db = AppDatabase.get(application)
@@ -89,6 +97,33 @@ class OfflineViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun setSearch(q: String) { _search.value = q }
+
+    // ------------------------------------- skanowanie kodów z opakowań ----
+
+    /**
+     * Rozstrzyga, co zrobić z zeskanowanym kodem:
+     *  - nasza własna naklejka QR zawiera wprost symbol łożyska -> używamy go od razu,
+     *  - kod EAN/UPC z opakowania producenta to numer handlowy, nie oznaczenie łożyska
+     *    -> sprawdzamy zapamiętane skojarzenia, a gdy kodu nie znamy, trzeba dopytać
+     *       użytkownika (patrz ScanOutcome.UnknownBarcode).
+     */
+    fun resolveScan(rawValue: String, isProductBarcode: Boolean, onResult: (ScanOutcome) -> Unit) =
+        viewModelScope.launch {
+            val kod = rawValue.trim()
+            if (!isProductBarcode) {
+                onResult(ScanOutcome.Symbol(kod))
+                return@launch
+            }
+            val known = repo.findSymbolByBarcode(kod)
+            onResult(if (known != null) ScanOutcome.Symbol(known) else ScanOutcome.UnknownBarcode(kod))
+        }
+
+    /** Zapamiętuje "ten kod z pudełka = to łożysko" i synchronizuje to na pozostałe urządzenia. */
+    fun rememberBarcode(kod: String, symbol: String, onDone: () -> Unit = {}) = viewModelScope.launch {
+        repo.setBarcodeAlias(kod, symbol)
+        _message.value = "Zapamiętano: kod $kod = $symbol."
+        onDone()
+    }
 
     fun saveBearing(
         id: String?, symbol: String, typ: String, d: Double?, dZew: Double?, b: Double?,

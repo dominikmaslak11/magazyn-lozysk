@@ -51,7 +51,7 @@ function showView(name) {
   $$(".view").forEach((v) => v.classList.toggle("active", v.id === `view-${name}`));
   $("#addBearingBtn").style.display = name === "bearings" ? "flex" : "none";
   if (name === "shelves") loadShelves();
-  if (name === "data") loadBackups();
+  if (name === "data") { loadBackups(); loadAliases(); }
 }
 
 // --------------------------------------------------------------- API -----
@@ -334,6 +334,29 @@ async function loadBackups() {
   list.innerHTML = backups.map((b) =>
     `<div class="row"><span>${esc(b.nazwa)}</span><span>${b.data} · ${b.rozmiar_kb} KB</span></div>`
   ).join("");
+}
+
+async function loadAliases() {
+  const aliases = await api("/api/barcode-aliases");
+  const list = $("#aliasesList");
+  if (!aliases.length) {
+    list.innerHTML = '<div class="row"><span>Brak zapamiętanych kodów.</span></div>';
+    return;
+  }
+  list.innerHTML = aliases.map((a) =>
+    `<div class="row"><span><code>${esc(a.kod)}</code> → <strong>${esc(a.symbol)}</strong></span>` +
+    `<button class="btn danger" data-alias-id="${esc(a.id)}">Usuń</button></div>`
+  ).join("");
+  list.querySelectorAll("button[data-alias-id]").forEach((btn) => {
+    btn.addEventListener("click", () => deleteAlias(btn.dataset.aliasId));
+  });
+}
+
+async function deleteAlias(id) {
+  if (!confirm("Usunąć to skojarzenie? Przy następnym skanie appka zapyta o nie ponownie.")) return;
+  await api(`/api/barcode-aliases/${id}`, { method: "DELETE" });
+  toast("Skojarzenie usunięte.");
+  await loadAliases();
 }
 
 async function importDbFile() {

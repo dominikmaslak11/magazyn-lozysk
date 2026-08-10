@@ -29,13 +29,35 @@ Lista pomysłów zebrana 2026-08-10. Nieoznaczone = do zrobienia, `[x]` = zrobio
   - [x] Zbudowane i zweryfikowane (`assembleDebug`, uprawnienie CAMERA scalone w manifeście)
   - [ ] **Nie przetestowane na fizycznym telefonie** — do zrobienia przy najbliższej okazji (czy odczyt
     z realnych etykiet działa, czy autofocus daje radę z małym drukiem)
-  - [ ] Dodać generowanie QR/kodu kreskowego do etykiet PDF (`pdf_labels.py`), żeby było co skanować
-    na własnych regałach (na razie skanujemy tylko kody producenta, jeśli są na opakowaniu)
+  - [x] Generowanie naklejek QR do PDF (`pdf_labels.py` + `/api/export/bearing-qr-labels-pdf`) — arkusz A4,
+    3x8 naklejek, każda z QR (koduje symbol), wymiarami i regałem. Zweryfikowane dekoderami (pyzbar+OpenCV):
+    moduł 0,96 mm, sam kod 20,2 mm — ~3x powyżej progu czytelności dla aparatu telefonu
   - [ ] Rozważyć: skanowanie z poziomu wyszukiwarki (skanuj → od razu filtruj listę, zamiast dodawać nowe)
+  - [ ] **Naklejki tylko dla wybranych łożysk** — teraz arkusz generuje ZAWSZE wszystkie pozycje, więc po
+    dodaniu 3 nowych łożysk trzeba wygenerować cały arkusz i wyciąć z niego 3 sztuki (reszta papieru się
+    marnuje). Przydałby się wybór pozycji albo filtr „dodane po dacie”
+  - [ ] Opcjonalnie: dopasowanie siatki do arkuszy samoprzylepnych z wykrojnikiem (Avery L7159 itp.).
+    Świadomie odłożone — obecny arkusz jest pod nożyczki + papier pełnopowierzchniowy (bez wykrojnika)
   - Uwaga: rozmiar APK urósł z ~5 MB do ~40 MB (wbudowany model ML Kit). Alternatywa to wersja
     „unbundled” przez Google Play Services (mniejsze APK, ale wymaga Play Services i pierwszego pobrania
     modelu online) — świadomie wybrano wersję offline-first
   - Nie dotyczy `android-klient` (appka wygaszona)
+- [x] **Tablica skojarzeń kod kreskowy → symbol** (zrobione 2026-08-10)
+  - [x] Serwer: tabela `barcode_aliases` + migracja v2→v3 (dokłada pustą tabelę, nie rusza danych),
+    CRUD, endpointy `/api/barcode-aliases` (GET/POST/DELETE) i `/api/barcode-lookup/<kod>`
+  - [x] Włączone do synchronizacji (`sync_state` / `apply_sync_push`), z obsługą kolizji: ten sam kod
+    skojarzony niezależnie na dwóch telefonach offline → ostatni wygrywa, starszy zostaje nagrobkiem
+    (bez wywalenia się na unikalnym indeksie)
+  - [x] Android: encja Room + DAO + **prawdziwa migracja v2→v3** (NIE destrukcyjna — inaczej zginęłyby
+    zmiany zrobione offline i jeszcze niewypchnięte na serwer)
+  - [x] Appka rozróżnia format kodu: EAN_13/EAN_8/UPC_A/UPC_E = kod handlowy (pytaj), reszta = symbol wprost
+  - [x] Dialog „Nieznany kod z opakowania” — pyta raz, zapamiętuje, synchronizuje
+  - [x] UI webowe (Dane → „Zapamiętane kody z opakowań”) do podglądu i kasowania błędnych skojarzeń —
+    bez tego literówka w symbolu byłaby nie do naprawienia z poziomu telefonu
+  - [x] Zgodność wstecz zweryfikowana: stary klient (bez pola `barcode_aliases`) nie wywala serwera
+    i nie kasuje aliasów; nowy klient wobec starego serwera zostawia lokalne skojarzenia w spokoju
+  - [ ] **Nie przetestowane na fizycznym telefonie** (jak cała funkcja skanowania)
+  - Celowo BEZ zewnętrznych baz GTIN — dla łożysk są płatne i niekompletne; system uczy się sam
 - [x] **Mechanizm weryfikacji wersji / wymuszania aktualizacji** (zrobione 2026-08-10)
   - [x] Plik `VERSION` (root) + stałe `APP_VERSION`/`MIN_CLIENT_VERSION` i endpoint `GET /api/version` w `server.py`,
     `server_version`/`min_client_version` dołączone też do `/api/sync/state` i `/api/sync/push`

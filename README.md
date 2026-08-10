@@ -37,6 +37,10 @@ licencji **[GPL-3.0](LICENSE)**.
 - Skanowanie kodów QR i kreskowych aparatem (appka Android) – po zeskanowaniu
   otwiera się okno dodawania łożyska z automatycznie wypełnionym symbolem i
   dociągniętymi wymiarami. Rozpoznawanie w pełni offline (ML Kit on-device).
+- Generowanie arkusza naklejek QR do wydruku – jedna naklejka na łożysko, do
+  naklejenia na półce lub pudełku.
+- Samoucząca się obsługa kodów EAN z opakowań: appka pyta raz, co jest w pudełku,
+  i rozpoznaje ten sam kod już zawsze, na wszystkich zsynchronizowanych telefonach.
 - Automatyczny przydział łożyska do regału na podstawie średnicy zewnętrznej
   (z możliwością ręcznego nadpisania).
 - Generowanie etykiet regałów do druku (PDF).

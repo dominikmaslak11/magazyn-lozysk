@@ -11,6 +11,7 @@ from __future__ import annotations
 import io
 import os
 import tempfile
+from dataclasses import asdict
 from pathlib import Path
 
 from flask import Flask, jsonify, request, render_template, send_file, abort
@@ -173,8 +174,38 @@ def api_sync_push():
     """Przyjmuje rekordy zmienione lokalnie na urządzeniu i odsyła pełny, zmergowany stan
     (patrz opis algorytmu w database.py nad sync_state/apply_sync_push)."""
     payload = request.get_json(force=True)
-    db.apply_sync_push(payload.get("shelves", []), payload.get("bearings", []))
+    db.apply_sync_push(payload.get("shelves", []), payload.get("bearings", []),
+                        payload.get("barcode_aliases", []))
     return jsonify(_with_version(db.sync_state()))
+
+
+# --------------------------------------- aliasy kodów kreskowych (opakowania) ----
+
+@app.route("/api/barcode-aliases")
+def api_barcode_aliases():
+    return jsonify([asdict(a) for a in db.get_barcode_aliases()])
+
+
+@app.route("/api/barcode-lookup/<path:kod>")
+def api_barcode_lookup(kod):
+    """Zwraca symbol łożyska skojarzony z kodem z opakowania (albo null, gdy nieznany)."""
+    return jsonify({"kod": kod, "symbol": db.find_symbol_by_barcode(kod)})
+
+
+@app.route("/api/barcode-aliases", methods=["POST"])
+def api_barcode_alias_set():
+    payload = request.get_json(force=True)
+    kod = (payload.get("kod") or "").strip()
+    symbol = (payload.get("symbol") or "").strip()
+    if not kod or not symbol:
+        abort(400, "Wymagane pola: kod, symbol")
+    return jsonify({"id": db.set_barcode_alias(kod, symbol), "kod": kod, "symbol": symbol})
+
+
+@app.route("/api/barcode-aliases/<alias_id>", methods=["DELETE"])
+def api_barcode_alias_delete(alias_id):
+    db.delete_barcode_alias(alias_id)
+    return jsonify({"ok": True})
 
 
 # ------------------------------------------------------- backup / eksport / import ----

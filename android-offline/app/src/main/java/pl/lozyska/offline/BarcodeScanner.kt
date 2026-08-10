@@ -42,9 +42,22 @@ import java.util.concurrent.Executors
  * nigdy nie opuszcza telefonu. Zwraca surowy tekst kodu przy pierwszym udanym odczycie
  * i od razu zamyka podgląd (patrz `onResult`).
  */
+/**
+ * Czy zeskanowany kod to handlowy kod produktu (EAN/UPC) z opakowania?
+ *
+ * To rozróżnienie jest istotne: EAN-13 na pudełku łożyska koduje numer produktu w systemie
+ * sprzedaży producenta, a NIE oznaczenie łożyska - nie da się z niego odczytać symbolu ani
+ * wymiarów. Nasze własne naklejki QR (patrz pdf_labels.py) zawierają wprost symbol, więc te
+ * można użyć od razu.
+ */
+fun isProductBarcodeFormat(format: Int): Boolean = format in setOf(
+    Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8,
+    Barcode.FORMAT_UPC_A, Barcode.FORMAT_UPC_E,
+)
+
 @OptIn(ExperimentalGetImage::class)
 @Composable
-fun BarcodeScannerScreen(onResult: (String) -> Unit, onClose: () -> Unit) {
+fun BarcodeScannerScreen(onResult: (String, Boolean) -> Unit, onClose: () -> Unit) {
     Dialog(
         onDismissRequest = onClose,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
@@ -75,10 +88,11 @@ fun BarcodeScannerScreen(onResult: (String) -> Unit, onClose: () -> Unit) {
                         val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
                         scanner.process(image)
                             .addOnSuccessListener { barcodes ->
-                                val value = barcodes.firstOrNull { !it.rawValue.isNullOrBlank() }?.rawValue
+                                val hit = barcodes.firstOrNull { !it.rawValue.isNullOrBlank() }
+                                val value = hit?.rawValue
                                 if (value != null && !hasResult) {
                                     hasResult = true
-                                    onResult(value)
+                                    onResult(value, isProductBarcodeFormat(hit.format))
                                 }
                             }
                             .addOnCompleteListener { imageProxy.close() }

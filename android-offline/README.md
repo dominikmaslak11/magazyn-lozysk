@@ -72,6 +72,27 @@ Uprawnienie do aparatu jest proszone dopiero przy pierwszym użyciu skanera i
 jest w pełni opcjonalne — bez niego appka działa normalnie, symbol po prostu
 wpisujesz ręcznie.
 
+### Kody kreskowe z opakowań (EAN) — appka uczy się sama
+
+Kod EAN-13 na pudełku łożyska to **numer handlowy producenta, a nie oznaczenie
+łożyska** — nie da się z niego odczytać ani symbolu, ani wymiarów. Dlatego appka
+rozróżnia dwa przypadki:
+
+- **Nasza naklejka QR** (albo kod producenta zawierający oznaczenie) → symbol
+  jest wprost w kodzie, więc appka od razu otwiera łożysko z wymiarami.
+- **Kod handlowy EAN/UPC** → appka sprawdza zapamiętane skojarzenia. Jeśli kodu
+  jeszcze nie zna, **pyta raz**: „co to za łożysko?”. Odpowiedź zostaje
+  zapisana i zsynchronizowana przez serwer, więc każdy kolejny skan tego samego
+  pudełka — także na innym telefonie — rozpoznaje je natychmiast, bez pytania.
+
+Świadomie **nie** korzystamy z zewnętrznych baz GTIN: dla łożysk są płatne i
+niekompletne, a takie samouczące się skojarzenia pokrywają dokładnie ten
+asortyment, który faktycznie masz w magazynie.
+
+Zapamiętane skojarzenia zobaczysz (i skasujesz, jeśli któreś jest błędne) w
+wersji webowej, w zakładce **Dane → „Zapamiętane kody z opakowań”**. Po
+usunięciu skojarzenia appka zapyta o ten kod ponownie przy następnym skanie.
+
 ## Wersjonowanie / wymuszanie aktualizacji
 
 Każda synchronizacja z serwerem przenosi też informację o wersji (patrz
