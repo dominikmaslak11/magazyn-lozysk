@@ -10,18 +10,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import pl.lozyska.offline.data.BearingEntity
+import pl.lozyska.offline.data.LookupResult
 import pl.lozyska.offline.data.ShelfWithCounts
 
 private val AUTO_SHELF: String? = null
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BearingEditSheet(vm: OfflineViewModel, bearing: BearingEntity?, onDismiss: () -> Unit, onSaved: () -> Unit) {
+fun BearingEditSheet(
+    vm: OfflineViewModel,
+    bearing: BearingEntity?,
+    initialSymbol: String? = null,
+    onDismiss: () -> Unit,
+    onSaved: () -> Unit,
+) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val shelves by vm.shelves.collectAsState()
 
     var typ by remember { mutableStateOf(bearing?.typ ?: vm.types.firstOrNull() ?: "") }
-    var symbol by remember { mutableStateOf(bearing?.symbol ?: "") }
+    var symbol by remember { mutableStateOf(bearing?.symbol ?: initialSymbol ?: "") }
     var d by remember { mutableStateOf(bearing?.d?.let { fmtInput(it) } ?: "") }
     var D by remember { mutableStateOf(bearing?.dZew?.let { fmtInput(it) } ?: "") }
     var B by remember { mutableStateOf(bearing?.b?.let { fmtInput(it) } ?: "") }
@@ -30,6 +37,24 @@ fun BearingEditSheet(vm: OfflineViewModel, bearing: BearingEntity?, onDismiss: (
     var source by remember { mutableStateOf(bearing?.zrodlo ?: "recznie") }
     var selectedShelf by remember { mutableStateOf(if (bearing?.recznyPrzydzial == true) bearing.regalId ?: AUTO_SHELF else AUTO_SHELF) }
     var note by remember { mutableStateOf<String?>(null) }
+
+    fun applyLookupResult(result: LookupResult) {
+        symbol = result.symbol ?: symbol
+        result.d?.let { d = fmtInput(it) }
+        result.dZew?.let { D = fmtInput(it) }
+        result.b?.let { B = fmtInput(it) }
+        result.typ?.let { typ = it }
+        source = result.source
+        note = result.note
+    }
+
+    // Symbol z zeskanowanego kodu QR/kreskowego (patrz BarcodeScannerScreen) - dociągnij
+    // wymiary automatycznie, tak jak przy ręcznym kliknięciu "Pobierz wymiary".
+    LaunchedEffect(initialSymbol) {
+        if (bearing == null && !initialSymbol.isNullOrBlank()) {
+            vm.lookupBySymbol(initialSymbol) { applyLookupResult(it) }
+        }
+    }
 
     fun sourceText() = when (source) {
         "offline" -> "Źródło danych: baza offline (pewne)"
@@ -58,17 +83,7 @@ fun BearingEditSheet(vm: OfflineViewModel, bearing: BearingEntity?, onDismiss: (
                 label = { Text("Symbol") }, singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            TextButton(onClick = {
-                vm.lookupBySymbol(symbol) { result ->
-                    symbol = result.symbol ?: symbol
-                    result.d?.let { d = fmtInput(it) }
-                    result.dZew?.let { D = fmtInput(it) }
-                    result.b?.let { B = fmtInput(it) }
-                    result.typ?.let { typ = it }
-                    source = result.source
-                    note = result.note
-                }
-            }) { Text("Pobierz wymiary") }
+            TextButton(onClick = { vm.lookupBySymbol(symbol) { applyLookupResult(it) } }) { Text("Pobierz wymiary") }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 6.dp)) {
                 OutlinedTextField(value = d, onValueChange = { d = it }, label = { Text("d [mm]") },

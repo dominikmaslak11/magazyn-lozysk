@@ -21,9 +21,21 @@ Lista pomysłów zebrana 2026-08-10. Nieoznaczone = do zrobienia, `[x]` = zrobio
 
 ## Funkcje aplikacji
 
-- [ ] **Skanowanie kodów kreskowych/QR** (CameraX + ML Kit) do szybkiego wyszukania łożyska po symbolu
+- [~] **Skanowanie kodów kreskowych/QR** (CameraX + ML Kit) do szybkiego wyszukania łożyska po symbolu
+  - [x] Ekran skanera w `android-offline` (`BarcodeScanner.kt`) — CameraX + ML Kit, rozpoznawanie w pełni
+    on-device (obraz nie opuszcza telefonu), uprawnienie do aparatu proszone dopiero przy pierwszym użyciu
+  - [x] Po zeskanowaniu otwiera się arkusz dodawania łożyska z wpisanym symbolem i automatycznie
+    dociągniętymi wymiarami — reużywa istniejącego `lookupBySymbol` (ta sama ścieżka co „Pobierz wymiary”)
+  - [x] Zbudowane i zweryfikowane (`assembleDebug`, uprawnienie CAMERA scalone w manifeście)
+  - [ ] **Nie przetestowane na fizycznym telefonie** — do zrobienia przy najbliższej okazji (czy odczyt
+    z realnych etykiet działa, czy autofocus daje radę z małym drukiem)
   - [ ] Dodać generowanie QR/kodu kreskowego do etykiet PDF (`pdf_labels.py`), żeby było co skanować
-  - [ ] Ekran skanera w `android-offline` (i ew. `android-klient`)
+    na własnych regałach (na razie skanujemy tylko kody producenta, jeśli są na opakowaniu)
+  - [ ] Rozważyć: skanowanie z poziomu wyszukiwarki (skanuj → od razu filtruj listę, zamiast dodawać nowe)
+  - Uwaga: rozmiar APK urósł z ~5 MB do ~40 MB (wbudowany model ML Kit). Alternatywa to wersja
+    „unbundled” przez Google Play Services (mniejsze APK, ale wymaga Play Services i pierwszego pobrania
+    modelu online) — świadomie wybrano wersję offline-first
+  - Nie dotyczy `android-klient` (appka wygaszona)
 - [x] **Mechanizm weryfikacji wersji / wymuszania aktualizacji** (zrobione 2026-08-10)
   - [x] Plik `VERSION` (root) + stałe `APP_VERSION`/`MIN_CLIENT_VERSION` i endpoint `GET /api/version` w `server.py`,
     `server_version`/`min_client_version` dołączone też do `/api/sync/state` i `/api/sync/push`

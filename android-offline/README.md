@@ -53,6 +53,25 @@ głównie addytywne) to uzasadniony wybór.
 Appka działa też w pełni bez serwera - lokalna baza jest zawsze dostępna,
 synchronizacja jest tylko wzbogaceniem/backupem na wypadek awarii komputera.
 
+## Skanowanie kodów QR / kreskowych
+
+W zakładce **Łożyska** obok przycisku „+” jest przycisk z ikoną skanera.
+Po zeskanowaniu kodu QR albo kreskowego (z etykiety, opakowania, pudełka)
+appka od razu otwiera okno dodawania łożyska z **wpisanym symbolem** i
+automatycznie dociąga do niego wymiary — dokładnie tą samą ścieżką, co
+ręczne kliknięcie „Pobierz wymiary” (najpierw wbudowany katalog offline,
+potem ewentualnie internet). Wystarczy uzupełnić ilość sztuk i zapisać.
+
+Rozpoznawanie kodów działa **w pełni offline** (ML Kit on-device) — obraz z
+aparatu nigdy nie opuszcza telefonu i nie jest nigdzie wysyłany. Kosztem
+tego wyboru jest rozmiar APK (model rozpoznawania jest wbudowany w appkę,
+~40 MB zamiast ~5 MB) — świadomy kompromis, spójny z offline-first
+charakterem appki.
+
+Uprawnienie do aparatu jest proszone dopiero przy pierwszym użyciu skanera i
+jest w pełni opcjonalne — bez niego appka działa normalnie, symbol po prostu
+wpisujesz ręcznie.
+
 ## Wersjonowanie / wymuszanie aktualizacji
 
 Każda synchronizacja z serwerem przenosi też informację o wersji (patrz

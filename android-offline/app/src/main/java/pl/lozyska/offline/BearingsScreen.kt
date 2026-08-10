@@ -1,5 +1,9 @@
 package pl.lozyska.offline
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -7,12 +11,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import pl.lozyska.offline.data.BearingEntity
 
 private fun sourceLabel(z: String) = when (z) {
@@ -30,11 +37,29 @@ fun BearingsScreen(vm: OfflineViewModel) {
 
     var editing by remember { mutableStateOf<BearingEntity?>(null) }
     var showAdd by remember { mutableStateOf(false) }
+    var addInitialSymbol by remember { mutableStateOf<String?>(null) }
+    var showScanner by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<BearingEntity?>(null) }
+
+    val context = LocalContext.current
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) showScanner = true
+    }
+    fun launchScanner() {
+        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        if (granted) showScanner = true else cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+    }
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAdd = true }) { Icon(Icons.Filled.Add, contentDescription = "Dodaj łożysko") }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                SmallFloatingActionButton(onClick = { launchScanner() }) {
+                    Icon(Icons.Filled.QrCodeScanner, contentDescription = "Skanuj kod QR/kreskowy")
+                }
+                FloatingActionButton(onClick = { addInitialSymbol = null; showAdd = true }) {
+                    Icon(Icons.Filled.Add, contentDescription = "Dodaj łożysko")
+                }
+            }
         }
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize().padding(horizontal = 12.dp)) {
@@ -65,8 +90,22 @@ fun BearingsScreen(vm: OfflineViewModel) {
         }
     }
 
+    if (showScanner) {
+        BarcodeScannerScreen(
+            onResult = { value ->
+                showScanner = false
+                addInitialSymbol = value.trim()
+                showAdd = true
+            },
+            onClose = { showScanner = false },
+        )
+    }
     if (showAdd) {
-        BearingEditSheet(vm = vm, bearing = null, onDismiss = { showAdd = false }, onSaved = { showAdd = false })
+        BearingEditSheet(
+            vm = vm, bearing = null, initialSymbol = addInitialSymbol,
+            onDismiss = { showAdd = false; addInitialSymbol = null },
+            onSaved = { showAdd = false; addInitialSymbol = null },
+        )
     }
     editing?.let { b ->
         BearingEditSheet(vm = vm, bearing = b, onDismiss = { editing = null }, onSaved = { editing = null })

@@ -34,6 +34,9 @@ licencji **[GPL-3.0](LICENSE)**.
   stożkowe, wahliwe kulkowe, wahliwe baryłkowe, wstawkowe UC) + doszukiwanie
   wymiarów w internecie, gdy symbolu nie ma w bazie offline.
 - Wyszukiwanie odwrotne: podajesz wymiary, appka podpowiada symbol.
+- Skanowanie kodów QR i kreskowych aparatem (appka Android) – po zeskanowaniu
+  otwiera się okno dodawania łożyska z automatycznie wypełnionym symbolem i
+  dociągniętymi wymiarami. Rozpoznawanie w pełni offline (ML Kit on-device).
 - Automatyczny przydział łożyska do regału na podstawie średnicy zewnętrznej
   (z możliwością ręcznego nadpisania).
 - Generowanie etykiet regałów do druku (PDF).
