@@ -9,6 +9,7 @@ import re
 from dataclasses import dataclass
 
 from bearing_data import BEARING_DB, BEARING_TYPE, SOURCE_OFFLINE, SOURCE_ONLINE, SOURCE_MANUAL
+from bearing_types import classify_symbol
 
 try:
     import requests
@@ -33,9 +34,20 @@ class LookupResult:
     note: str = ""
 
 
-# Przedrostki serii, które trzeba zachować w symbolu (nie same cyfry) -
-# np. łożyska wstawkowe UC206, UK, SB itd. Dopisz tu kolejne w razie potrzeby.
-_LETTER_PREFIXES = ("UC", "UK", "SB", "SA", "UCP", "UCF", "UCFL")
+# Przedrostki serii, które trzeba ZACHOWAĆ w symbolu (nie sprowadzać do samych cyfr).
+# Bez tego "NU205" stałoby się "205" i szukalibyśmy w internecie zupełnie innego łożyska
+# (realny przypadek: NU205 to 25x52x15, a wyszukiwarka na "205" zwracała 205x285x38).
+# Sortowane od najdłuższego, żeby "NUP" wygrało z "NU", a "NU" z "N".
+_LETTER_PREFIXES = tuple(sorted((
+    # wstawkowe / w oprawach
+    "UCFL", "UCFC", "UCP", "UCF", "UCT", "UC", "UK", "SB", "SA",
+    # walcowe
+    "NNU", "NNCF", "NCF", "NUP", "NN", "NU", "NJ", "NF",
+    # igiełkowe
+    "RNAO", "RNA", "NKIA", "NKI", "NAO", "NA", "NK", "HK", "BK", "IR",
+    # skośne czteropunktowe
+    "QJ",
+), key=len, reverse=True))
 
 
 def normalize_symbol(raw: str) -> str:
@@ -59,15 +71,22 @@ def lookup_by_symbol(raw_symbol: str) -> LookupResult:
         d, D, B = BEARING_DB[symbol]
         return LookupResult(symbol, d, D, B, SOURCE_OFFLINE, BEARING_TYPE.get(symbol))
 
+    # Symbolu nie ma w katalogu, ale TYP da się ustalić z samego oznaczenia (ISO 15/355),
+    # bez sieci - patrz bearing_types.py. Klasyfikujemy z SUROWEGO wejścia, bo
+    # normalize_symbol() obcina przedrostki literowe (NU/NA/HK...), które niosą typ.
+    rozpoznany_typ = classify_symbol(raw_symbol)
+
     if requests is not None:
         online = _online_lookup_by_symbol(symbol)
         if online:
             d, D, B = online
-            return LookupResult(symbol, d, D, B, SOURCE_ONLINE, None,
+            return LookupResult(symbol, d, D, B, SOURCE_ONLINE, rozpoznany_typ,
                                  note="Dane orientacyjne z internetu - zweryfikuj suwmiarką.")
 
-    return LookupResult(symbol, None, None, None, SOURCE_MANUAL, None,
-                         note="Nie znaleziono - wpisz wymiary ręcznie.")
+    note = "Nie znaleziono - wpisz wymiary ręcznie."
+    if rozpoznany_typ:
+        note = f"Nie znaleziono wymiarów - typ rozpoznany z oznaczenia ({rozpoznany_typ}). Wpisz wymiary ręcznie."
+    return LookupResult(symbol, None, None, None, SOURCE_MANUAL, rozpoznany_typ, note=note)
 
 
 def lookup_by_dimensions(d: float | None, D: float | None, B: float | None,

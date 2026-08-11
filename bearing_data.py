@@ -23,7 +23,19 @@ TYP_WAHLIWE_KULKOWE = "wahliwe kulkowe"
 TYP_WAHLIWE_BARYLKOWE = "wahliwe baryłkowe"
 TYP_WSTAWKOWE = "wstawkowe (UC)"
 
-ALL_TYPES = [TYP_KULKOWE, TYP_STOZKOWE, TYP_WAHLIWE_KULKOWE, TYP_WAHLIWE_BARYLKOWE, TYP_WSTAWKOWE]
+# Typy, dla których mamy wymiary w katalogu poniżej.
+_TYPY_Z_KATALOGIEM = [TYP_KULKOWE, TYP_STOZKOWE, TYP_WAHLIWE_KULKOWE, TYP_WAHLIWE_BARYLKOWE, TYP_WSTAWKOWE]
+
+# Typy bez wymiarów w katalogu, ale rozpoznawane z samego oznaczenia (bearing_types.py) -
+# muszą być na liście wyboru, inaczej automatycznie rozpoznanej kategorii nie dałoby się
+# ani pokazać, ani zapisać. Definicje trzymamy tutaj, żeby nie robić importu cyklicznego
+# (bearing_types importuje z tego pliku).
+TYP_SKOSNE = "skośne (kulkowe)"
+TYP_WALCOWE = "walcowe"
+TYP_OPOROWE = "oporowe"
+TYP_IGIELKOWE = "igiełkowe"
+
+ALL_TYPES = _TYPY_Z_KATALOGIEM + [TYP_SKOSNE, TYP_WALCOWE, TYP_OPOROWE, TYP_IGIELKOWE]
 
 # typ -> {symbol: (d, D, B)} w milimetrach
 SERIES: dict[str, dict[str, tuple[float, float, float]]] = {

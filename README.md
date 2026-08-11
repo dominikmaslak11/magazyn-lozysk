@@ -34,6 +34,9 @@ licencji **[GPL-3.0](LICENSE)**.
   stożkowe, wahliwe kulkowe, wahliwe baryłkowe, wstawkowe UC) + doszukiwanie
   wymiarów w internecie, gdy symbolu nie ma w bazie offline.
 - Wyszukiwanie odwrotne: podajesz wymiary, appka podpowiada symbol.
+- **Automatyczne rozpoznawanie typu łożyska z samego oznaczenia** (ISO 15 / ISO 355) –
+  działa offline i także dla oznaczeń spoza wbudowanego katalogu, np. `NU205` →
+  walcowe, `HK1010` → igiełkowe, `7205` → skośne.
 - Skanowanie kodów QR i kreskowych aparatem (appka Android) – po zeskanowaniu
   otwiera się okno dodawania łożyska z automatycznie wypełnionym symbolem i
   dociągniętymi wymiarami. Rozpoznawanie w pełni offline (ML Kit on-device).
@@ -172,6 +175,35 @@ tego samego modelu danych.
   i kliknij „Znajdź symbol na podstawie wymiarów”.
 
 Ilość sztuk zawsze wpisujesz ręcznie.
+
+### Rozpoznawanie typu (kategorii)
+
+Kategoria ustawia się sama na podstawie oznaczenia – oznaczenia łożysk nie są
+przypadkowe, tylko kodują konstrukcję zgodnie z ISO 15 / ISO 355. Działa to
+offline i również dla symboli, których nie ma we wbudowanym katalogu:
+
+| Oznaczenie | Rozpoznany typ |
+|---|---|
+| `6205`, `16005` | kulkowe zwykłe |
+| `7205`, `3204`, `QJ308` | skośne |
+| `30204`, `33006` | stożkowe |
+| `1205`, `2205` | wahliwe kulkowe |
+| `22205`, `23130` | wahliwe baryłkowe |
+| `NU205`, `NJ2308` | walcowe |
+| `HK1010`, `NA4900` | igiełkowe |
+| `51105` | oporowe |
+| `UC206` | wstawkowe |
+
+Uwaga na subtelność, która bywa myląca: o typie decyduje **także liczba cyfr** –
+`3204` (4 cyfry) to łożysko skośne, ale `30204` (5 cyfr) to już stożkowe.
+
+Jeśli oznaczenia nie da się rozpoznać, appka **nie zgaduje** – zostawia
+kategorię do ręcznego wyboru.
+
+**Z samych wymiarów typ nie jest wyznaczany** i jest to decyzja świadoma:
+różne konstrukcje mają te same gabaryty, więc automat dawałby pewnie
+brzmiące, ale czasem błędne kategorie. Zamiast tego wyszukiwanie po wymiarach
+pokazuje pasujące symbole wraz z ich typami, jako propozycję do wyboru.
 
 ### Przydział do regału
 

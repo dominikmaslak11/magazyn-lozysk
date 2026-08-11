@@ -7,11 +7,20 @@ package pl.lozyska.offline
  */
 
 enum class TypLozyska(val etykieta: String) {
+    // Typy, dla których mamy wymiary w katalogu niżej.
     KULKOWE("kulkowe zwykłe"),
     STOZKOWE("stożkowe"),
     WAHLIWE_KULKOWE("wahliwe kulkowe"),
     WAHLIWE_BARYLKOWE("wahliwe baryłkowe"),
     WSTAWKOWE("wstawkowe (UC)"),
+    // Typy bez wymiarów w katalogu, ale rozpoznawane z samego oznaczenia
+    // (patrz BearingTypeClassifier.kt). Etykiety MUSZĄ być identyczne jak w
+    // bearing_data.py na serwerze - inaczej ten sam łożysko dostałoby po
+    // synchronizacji dwie różne nazwy typu.
+    SKOSNE("skośne (kulkowe)"),
+    WALCOWE("walcowe"),
+    OPOROWE("oporowe"),
+    IGIELKOWE("igiełkowe"),
 }
 
 data class KatalogWpis(val symbol: String, val d: Double, val dZew: Double, val b: Double, val typ: TypLozyska)

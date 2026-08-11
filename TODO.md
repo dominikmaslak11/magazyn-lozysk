@@ -17,7 +17,80 @@ Lista pomysłów zebrana 2026-08-10. Nieoznaczone = do zrobienia, `[x]` = zrobio
 - [ ] Karta sklepu Google Play (opis, grafiki, polityka prywatności) — dopiero gdy appka będzie gotowa do publikacji
 - [ ] Konto dewelopera Google Play (użytkownik zakłada sam — wymaga płatności/danych osobowych)
 - [ ] Podpisany build AAB appki `android-offline` do uploadu
-- [ ] Uwaga: appka zależna od własnego serwera domowego (Wi-Fi/Tailscale) — do przemyślenia, jak to wygląda dla kogoś, kto ściągnie appkę z Play bez posiadania takiego serwera (tryb czysto offline musi działać sensownie sam z siebie)
+- [ ] **`targetSdk = 34` prawdopodobnie za niski dla Play** — sklep wymaga świeższego API dla nowych
+  aplikacji. Do zweryfikowania w Play Console PRZED pierwszym uploadem (progu nie da się sprawdzić z repo)
+- [ ] **Rozmiar APK 40 MB** przez wbudowany model ML Kit. Dla Play sensowniejsza wersja „unbundled”
+  (~5 MB) — Play Services są i tak na każdym telefonie ze sklepem. Dla prywatnego użytku Dominika lepsza
+  jest obecna, w pełni offline. Może to być różnica między buildami (flavor), nie zamiana
+- [ ] **Napięcie Play vs architektura**: appka jest dziś pomyślana wokół własnego serwera. Ktoś, kto pobierze
+  ją ze sklepu, nie ma żadnego serwera, a pierwsze co zobaczy to zakładka o adresie serwera i tokenie.
+  Żeby to miało sens w Play, tryb czysto offline musi być pełnoprawnym produktem, a synchronizacja —
+  opcją dla zaawansowanych. To zmiana w podejściu/UI, nie w silniku
+
+## Priorytety uzgodnione 2026-08-11
+
+Kolejność wynika z analizy „co realnie boli”, nie z tego, co najciekawsze do napisania:
+
+1. **Klasyfikator typu z oznaczenia** (w toku) — mały, samodzielny, wyraźny zysk
+2. **Wyszukiwanie własnego magazynu po wymiarach** — największy realny brak (patrz niżej)
+3. **Naprawa synchronizacji ilości** — cicha utrata danych, realna wada
+4. **Rozbudowa katalogu offline** zamiast polegania na scrapingu
+
+---
+
+- [x] **Klasyfikator typu łożyska z oznaczenia (ISO 15 / ISO 355)** — ZROBIONE 2026-08-11
+  - [x] `bearing_types.py` (serwer) + `BearingTypeClassifier.kt` (Android) — port 1:1, te same reguły
+  - [x] Wpięte w `lookup.py` i `Repository.lookupBySymbol` — typ ustawia się także wtedy, gdy wymiary
+    idą z internetu ALBO gdy w ogóle ich nie znaleziono
+  - [x] `ALL_TYPES` / `TypLozyska` rozszerzone o: skośne, walcowe, oporowe, igiełkowe
+  - [x] Testy po obu stronach (6/6 Python + 6/6 Kotlin), w tym **test zgodności ze wszystkimi 254 wpisami
+    katalogu** — klasyfikator zgadza się z każdym znanym typem co do jednego
+  - [x] Zwraca `None` zamiast zgadywać przy śmieciowym wejściu (min. 3 cyfry, jawna lista marek)
+  - [x] **Przy okazji naprawiony realny błąd**: `normalize_symbol` obcinało `NU205` → `205`, przez co
+    wyszukiwarka zwracała wymiary zupełnie innego łożyska (205×285×38 zamiast 25×52×15). Prefiksy
+    literowe (NU/NJ/NA/HK/QJ...) są teraz zachowywane po obu stronach
+  - [ ] **Nie przetestowane na fizycznym telefonie**
+  - Poprzedni opis zadania (zostawiony dla kontekstu decyzji):
+  - Problem: typ jest ustawiany automatycznie TYLKO gdy symbol trafi do wbudowanego katalogu (254 wpisy).
+    Gdy go tam nie ma, `lookup.py` zwraca wymiary z internetu z `typ=None` i kategoria zostaje ta, która
+    akurat była wybrana w formularzu.
+  - Rozwiązanie: reguły na wzorcach oznaczeń — działa dla tysięcy symboli spoza katalogu, offline,
+    deterministycznie (bez ML, bez internetu):
+    `6xxx`/`16xxx` kulkowe · `7xxx` skośne · `32xx`/`33xx` (4 cyfry) skośne dwurzędowe ·
+    `302xx`/`303xx`/`320xx`/`322xx` stożkowe · `12xx`/`13xx`/`22xx`/`23xx` (4 cyfry) wahliwe kulkowe ·
+    `222xx`/`223xx`/`240xx` (5 cyfr) wahliwe baryłkowe · `NU`/`NJ`/`N`/`NUP`/`NN` walcowe ·
+    `511xx`/`512xx` oporowe kulkowe · `HK`/`BK`/`NA`/`NKI` igiełkowe · `UC`/`UCP`/`UCF` wstawkowe
+  - **PUŁAPKA do obsłużenia jawnie**: `3200` (4 cyfry) = skośne dwurzędowe, ale `30200` (5 cyfr) =
+    stożkowe. Reguły muszą iść od najbardziej szczegółowej, inaczej `30204` zostanie źle zaklasyfikowane.
+  - Katalog offline pozostaje nadrzędny — reguły działają dopiero, gdy symbolu w nim nie ma
+  - Wymaga rozszerzenia `ALL_TYPES` o nowe kategorie (walcowe, skośne, oporowe, igiełkowe).
+    `typ` to zwykły tekst w bazie, więc dodanie kategorii jest wstecznie zgodne
+  - Ta sama logika musi trafić do appki Android (`Repository.lookupBySymbol`), nie tylko na serwer
+
+- [ ] **Wymiary → kategoria: świadomie NIE robimy automatycznego wyboru**
+  - Z samych trzech liczb NIE da się rzetelnie wyznaczyć typu — różne konstrukcje dzielą te same gabaryty.
+    Automat dawałby pewnie brzmiące, czasem błędne odpowiedzi, a zła kategoria jest gorsza niż jej brak.
+  - Co robimy zamiast: dopasowanie do katalogu + pokazanie typu **z widoczną niepewnością**
+    („pasuje 6205 — kulkowe; pasuje też 5 innych”), jako propozycja, nie ciche ustawienie pola
+
+- [ ] **Wyszukiwanie własnego magazynu po wymiarach** (największy brak w codziennym użyciu)
+  - Dziś `Daos.kt` szuka wyłącznie po symbolu (`symbol LIKE`). Appka potrafi przeszukać KATALOG po
+    wymiarach, ale nie potrafi przeszukać TWOJEGO magazynu.
+  - W warsztacie pytanie brzmi „potrzebuję czegoś 25×52, mam coś takiego?”, a nie „czy mam 6205”
+  - Dotyczy zarówno appki Android, jak i wersji webowej
+
+- [ ] **Naprawa synchronizacji ilości (realna, cicha utrata danych)**
+  - Reguła „ostatni wygrywa” jest OK dla nazwy czy uwag, ale NIE dla licznika. Gdy jedna osoba weźmie
+    offline 2 sztuki, a druga 1, po synchronizacji jedna ze zmian zniknie bez śladu — stan się nie zgodzi
+    i nie da się dojść dlaczego.
+  - Rozwiązanie: dla `ilosc` synchronizacja różnicowa (±2, ±1) zamiast nadpisania wartością
+  - Przy okazji warto rozważyć historię zmian ilości („kto, kiedy, ile wziął”) i alert niskiego stanu
+
+- [ ] **Rozbudowa katalogu offline zamiast scrapingu**
+  - `OnlineLookup` opiera się na regexie po HTML DuckDuckGo — to się zepsuje przy zmianie layoutu,
+    blokadzie albo CAPTCHA, a dla appki w Play jest dodatkowo ryzykowne regulaminowo
+  - Tablice wymiarów ISO są skończone i publiczne — 254 wpisy można rozbudować do kilku tysięcy
+  - Wolniej w przygotowaniu, ale odporne i naprawdę offline
 
 ## Funkcje aplikacji
 

@@ -1,6 +1,7 @@
 package pl.lozyska.offline.data
 
 import pl.lozyska.offline.BearingCatalog
+import pl.lozyska.offline.BearingTypeClassifier
 import pl.lozyska.offline.KatalogWpis
 import pl.lozyska.offline.OnlineLookup
 import java.util.UUID
@@ -17,7 +18,17 @@ data class LookupResult(
 
 data class DimensionCandidate(val symbol: String, val d: Double, val dZew: Double, val b: Double, val typ: String)
 
-private val LETTER_PREFIXES = listOf("UC", "UK", "SB", "SA", "UCP", "UCF", "UCFL")
+// Przedrostki serii, które trzeba ZACHOWAĆ (nie sprowadzać oznaczenia do samych cyfr).
+// Bez tego "NU205" stałoby się "205" i szukalibyśmy w sieci zupełnie innego łożyska
+// (realny przypadek: NU205 to 25x52x15, a wyszukiwarka na "205" zwracała 205x285x38).
+// Sortowane od najdłuższego, żeby "NUP" wygrało z "NU", a "NU" z "N".
+// Lista musi odpowiadać _LETTER_PREFIXES w lookup.py na serwerze.
+private val LETTER_PREFIXES = listOf(
+    "UCFL", "UCFC", "UCP", "UCF", "UCT", "UC", "UK", "SB", "SA",
+    "NNU", "NNCF", "NCF", "NUP", "NN", "NU", "NJ", "NF",
+    "RNAO", "RNA", "NKIA", "NKI", "NAO", "NA", "NK", "HK", "BK", "IR",
+    "QJ",
+).sortedByDescending { it.length }
 
 fun normalizeSymbol(raw: String): String {
     if (raw.isBlank()) return ""
@@ -92,12 +103,20 @@ class Repository(private val db: AppDatabase) {
         if (entry != null) {
             return LookupResult(entry.symbol, entry.d, entry.dZew, entry.b, SOURCE_OFFLINE, entry.typ.etykieta, null)
         }
+        // Symbolu nie ma w katalogu, ale TYP wynika wprost z oznaczenia (ISO 15/355) -
+        // bez katalogu i bez sieci. Klasyfikujemy z SUROWEGO wejścia, bo normalizeSymbol()
+        // potrafi obciąć przedrostek literowy, który niesie informację o typie.
+        val rozpoznanyTyp = BearingTypeClassifier.classify(raw)?.etykieta
+
         val online = OnlineLookup.lookupDimensionsBySymbol(symbol)
         if (online != null) {
-            return LookupResult(symbol, online.first, online.second, online.third, SOURCE_ONLINE, null,
-                "Dane orientacyjne z internetu - zweryfikuj suwmiarką.")
+            return LookupResult(symbol, online.first, online.second, online.third, SOURCE_ONLINE,
+                rozpoznanyTyp, "Dane orientacyjne z internetu - zweryfikuj suwmiarką.")
         }
-        return LookupResult(symbol, null, null, null, SOURCE_MANUAL, null, "Nie znaleziono - wpisz wymiary ręcznie.")
+        val note = if (rozpoznanyTyp != null)
+            "Nie znaleziono wymiarów - typ rozpoznany z oznaczenia ($rozpoznanyTyp). Wpisz wymiary ręcznie."
+        else "Nie znaleziono - wpisz wymiary ręcznie."
+        return LookupResult(symbol, null, null, null, SOURCE_MANUAL, rozpoznanyTyp, note)
     }
 
     suspend fun lookupByDimensions(d: Double?, dOut: Double?, b: Double?, tolerance: Double = 0.6): List<DimensionCandidate> {
