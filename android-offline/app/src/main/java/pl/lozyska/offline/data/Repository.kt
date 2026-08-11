@@ -1,5 +1,6 @@
 package pl.lozyska.offline.data
 
+import kotlinx.coroutines.flow.Flow
 import pl.lozyska.offline.BearingCatalog
 import pl.lozyska.offline.BearingTypeClassifier
 import pl.lozyska.offline.KatalogWpis
@@ -48,7 +49,18 @@ class Repository(private val db: AppDatabase) {
     private val shelfDao = db.shelfDao()
     private val aliasDao = db.barcodeAliasDao()
 
-    fun observeBearings(search: String) = bearingDao.observeAll(search)
+    /**
+     * Jedno pole wyszukiwania obsługuje dwa pytania: "czy mam 6205?" (po symbolu)
+     * i "czy mam coś 25x52?" (po wymiarach). O tym, które to jest, decyduje sam zapis -
+     * patrz SearchQuery.
+     */
+    fun observeBearings(search: String): Flow<List<BearingEntity>> {
+        val wymiary = SearchQuery.parseDimensions(search)
+        return if (wymiary != null)
+            bearingDao.observeByDimensions(wymiary.d, wymiary.dZew, wymiary.b, SearchQuery.TOLERANCE)
+        else
+            bearingDao.observeAll(search)
+    }
     fun observeShelvesWithCounts() = shelfDao.observeAllWithCounts()
 
     suspend fun getBearing(id: String) = bearingDao.getById(id)

@@ -73,11 +73,27 @@ Kolejność wynika z analizy „co realnie boli”, nie z tego, co najciekawsze 
   - Co robimy zamiast: dopasowanie do katalogu + pokazanie typu **z widoczną niepewnością**
     („pasuje 6205 — kulkowe; pasuje też 5 innych”), jako propozycja, nie ciche ustawienie pola
 
-- [ ] **Wyszukiwanie własnego magazynu po wymiarach** (największy brak w codziennym użyciu)
-  - Dziś `Daos.kt` szuka wyłącznie po symbolu (`symbol LIKE`). Appka potrafi przeszukać KATALOG po
-    wymiarach, ale nie potrafi przeszukać TWOJEGO magazynu.
-  - W warsztacie pytanie brzmi „potrzebuję czegoś 25×52, mam coś takiego?”, a nie „czy mam 6205”
-  - Dotyczy zarówno appki Android, jak i wersji webowej
+- [x] **Wyszukiwanie własnego magazynu po wymiarach** — ZROBIONE 2026-08-11
+  - [x] Jedno pole rozpoznaje intencję samo: `6205` → symbol, `25x52` → wymiary. Bez przełącznika w UI
+  - [x] Składnia: `25x52`, `25x52x15`, `x52` (samo D), `25x` (samo d), `25 52 15`; tolerancja ±0,6 mm
+  - [x] `SearchQuery.kt` (Android) + `search_query.py` (serwer) — port 1:1, 8 testów po każdej stronie
+  - [x] Zweryfikowana **równoważność wyników** serwer vs telefon na tym samym zbiorze danych (0 rozbieżności)
+  - [x] Przetestowane na fizycznym Samsungu (SM-M215F) — wpisanie `25x52` faktycznie zawęża listę,
+    podpowiedź pokazuje rozpoznane wymiary
+  - [x] Przy okazji: skrócona etykieta pola (zawijała się na dwie linie i zjadała miejsce na wyniki)
+  - [x] Przy okazji: pusty wynik filtra mówi teraz „Nic nie pasuje do…” zamiast mylącego
+    „Brak łożysk. Dodaj pierwsze przyciskiem +”
+
+- [x] **Automatyczne przypisanie kategorii podczas WPISYWANIA symbolu** — ZROBIONE 2026-08-11
+  - Klasyfikator istniał już od `fcde377`, ale uruchamiał się tylko przy „Pobierz wymiary” i przy skanie —
+    samo wpisanie `NU205` w pole symbolu nie zmieniało kategorii
+  - [x] Rozpoznawanie na bieżąco, przy każdym znaku (lokalne, bez sieci)
+  - [x] Ręczny wybór typu z listy wyłącza automat (jak przy ręcznym przydziale regału)
+  - [x] Przy edycji istniejącego łożyska zapisany typ inny niż wynikający z oznaczenia jest traktowany
+        jak świadoma decyzja i nie zostaje nadpisany przy poprawce literówki
+  - [x] Pole Symbol przeniesione NAD listę typów — czyta się naturalnie (najpierw przyczyna, potem skutek)
+  - [x] Przetestowane na Samsungu: `NU205`→walcowe, `3204`→skośne, `30204`→stożkowe, `22205`→baryłkowe,
+        `2205`→wahliwe kulkowe, `HK1010`→igiełkowe, `SKF 6205`→kulkowe, `nu 205 ecp`→walcowe
 
 - [ ] **Naprawa synchronizacji ilości (realna, cicha utrata danych)**
   - Reguła „ostatni wygrywa” jest OK dla nazwy czy uwag, ale NIE dla licznika. Gdy jedna osoba weźmie

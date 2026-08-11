@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import pl.lozyska.offline.data.BearingEntity
+import pl.lozyska.offline.data.SearchQuery
 
 private fun sourceLabel(z: String) = when (z) {
     "offline" -> "baza offline"
@@ -64,17 +65,39 @@ fun BearingsScreen(vm: OfflineViewModel) {
         }
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize().padding(horizontal = 12.dp)) {
+            val wymiarowe = remember(search) { SearchQuery.parseDimensions(search) }
             OutlinedTextField(
                 value = search,
                 onValueChange = { vm.setSearch(it) },
-                label = { Text("Szukaj po symbolu...") },
+                // Etykieta krótka celowo: dłuższa zawijała się na telefonie na dwie linie
+                // i zjadała miejsce na wyniki. Szczegóły składni są w podpowiedzi niżej.
+                label = { Text("Szukaj") },
+                supportingText = {
+                    Text(
+                        wymiarowe?.let { w ->
+                            "Wymiary: " + listOfNotNull(
+                                w.d?.let { "d=${fmt(it)}" },
+                                w.dZew?.let { "D=${fmt(it)}" },
+                                w.b?.let { "B=${fmt(it)}" },
+                            ).joinToString(" ") + " ±${SearchQuery.TOLERANCE}mm"
+                        } ?: "symbol (6205) albo wymiary (25x52)",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             )
 
             if (bearings.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Brak łożysk. Dodaj pierwsze przyciskiem +.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    // Rozróżnienie ma znaczenie: pusty magazyn to co innego niż filtr bez
+                    // trafień. Wcześniej oba przypadki mówiły "dodaj pierwsze łożysko",
+                    // co przy niepasującym wyszukiwaniu było zwyczajnie mylące.
+                    Text(
+                        if (search.isBlank()) "Brak łożysk. Dodaj pierwsze przyciskiem +."
+                        else "Nic nie pasuje do \"$search\".",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 90.dp)) {

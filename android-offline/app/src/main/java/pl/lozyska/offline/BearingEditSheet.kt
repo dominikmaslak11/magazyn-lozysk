@@ -38,6 +38,34 @@ fun BearingEditSheet(
     var selectedShelf by remember { mutableStateOf(if (bearing?.recznyPrzydzial == true) bearing.regalId ?: AUTO_SHELF else AUTO_SHELF) }
     var note by remember { mutableStateOf<String?>(null) }
 
+    // Gdy użytkownik sam wybierze typ z listy, przestajemy go nadpisywać rozpoznaniem
+    // z symbolu - ręczna decyzja ma pierwszeństwo nad automatem (ta sama zasada co przy
+    // ręcznym przydziale regału).
+    //
+    // Przy EDYCJI istniejącego łożyska zakładamy ręczny wybór wtedy, gdy zapisany typ
+    // różni się od tego, co wynika z oznaczenia - to ślad świadomej decyzji sprzed lat,
+    // której poprawka literówki w symbolu nie powinna po cichu skasować.
+    var typWybranyRecznie by remember {
+        mutableStateOf(
+            bearing != null && bearing.typ.isNotBlank() &&
+                BearingTypeClassifier.classify(bearing.symbol)?.etykieta.let { it != null && it != bearing.typ }
+        )
+    }
+    // Informacja "rozpoznano X z oznaczenia" pokazywana pod listą typów.
+    var typZOznaczenia by remember { mutableStateOf<String?>(null) }
+
+    /**
+     * Rozpoznaje kategorię na bieżąco, w trakcie wpisywania symbolu - bez czekania na
+     * "Pobierz wymiary" ani na skan. Klasyfikacja jest lokalna i natychmiastowa
+     * (patrz BearingTypeClassifier), więc nie ma tu żadnego ruchu sieciowego.
+     */
+    fun onSymbolChanged(nowy: String) {
+        symbol = nowy
+        val rozpoznany = BearingTypeClassifier.classify(nowy)?.etykieta
+        typZOznaczenia = rozpoznany
+        if (rozpoznany != null && !typWybranyRecznie) typ = rozpoznany
+    }
+
     fun applyLookupResult(result: LookupResult) {
         symbol = result.symbol ?: symbol
         result.d?.let { d = fmtInput(it) }
@@ -75,15 +103,31 @@ fun BearingEditSheet(
                 modifier = Modifier.padding(bottom = 14.dp),
             )
 
-            TypDropdown(selected = typ, options = vm.types, onSelected = { typ = it })
-            Spacer(Modifier.height(10.dp))
-
+            // Symbol PRZED typem: wpisanie oznaczenia samo ustawia kategorię poniżej,
+            // więc taka kolejność czyta się naturalnie (najpierw przyczyna, potem skutek).
             OutlinedTextField(
-                value = symbol, onValueChange = { symbol = it },
+                value = symbol, onValueChange = { onSymbolChanged(it) },
                 label = { Text("Symbol") }, singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             TextButton(onClick = { vm.lookupBySymbol(symbol) { applyLookupResult(it) } }) { Text("Pobierz wymiary") }
+
+            Spacer(Modifier.height(6.dp))
+            TypDropdown(
+                selected = typ,
+                options = vm.types,
+                onSelected = { typ = it; typWybranyRecznie = true },
+            )
+            typZOznaczenia?.let { rozpoznany ->
+                Text(
+                    if (typWybranyRecznie && typ != rozpoznany)
+                        "Z oznaczenia wynika: $rozpoznany (zostawiono Twój wybór)"
+                    else "Kategoria rozpoznana z oznaczenia",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 6.dp)) {
                 OutlinedTextField(value = d, onValueChange = { d = it }, label = { Text("d [mm]") },

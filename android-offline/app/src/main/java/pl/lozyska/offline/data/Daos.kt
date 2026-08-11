@@ -8,6 +8,19 @@ interface BearingDao {
     @Query("SELECT * FROM bearings WHERE deletedAt IS NULL AND symbol LIKE '%' || :search || '%' ORDER BY symbol")
     fun observeAll(search: String = ""): Flow<List<BearingEntity>>
 
+    /**
+     * Szukanie WŁASNEGO magazynu po wymiarach ("mam coś 25x52?"), z tolerancją.
+     * Każdy wymiar jest opcjonalny - null oznacza "dowolny" (patrz SearchQuery).
+     */
+    @Query("""
+        SELECT * FROM bearings WHERE deletedAt IS NULL
+          AND (:d    IS NULL OR (d    IS NOT NULL AND d    BETWEEN :d    - :tol AND :d    + :tol))
+          AND (:dZew IS NULL OR (dZew IS NOT NULL AND dZew BETWEEN :dZew - :tol AND :dZew + :tol))
+          AND (:b    IS NULL OR (b    IS NOT NULL AND b    BETWEEN :b    - :tol AND :b    + :tol))
+        ORDER BY symbol
+    """)
+    fun observeByDimensions(d: Double?, dZew: Double?, b: Double?, tol: Double): Flow<List<BearingEntity>>
+
     @Query("SELECT * FROM bearings WHERE id = :id AND deletedAt IS NULL")
     suspend fun getById(id: String): BearingEntity?
 

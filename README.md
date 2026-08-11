@@ -34,6 +34,8 @@ licencji **[GPL-3.0](LICENSE)**.
   stożkowe, wahliwe kulkowe, wahliwe baryłkowe, wstawkowe UC) + doszukiwanie
   wymiarów w internecie, gdy symbolu nie ma w bazie offline.
 - Wyszukiwanie odwrotne: podajesz wymiary, appka podpowiada symbol.
+- **Przeszukiwanie własnego magazynu po wymiarach** – jedno pole obsługuje oba
+  pytania: „czy mam 6205?" i „czy mam coś 25x52?".
 - **Automatyczne rozpoznawanie typu łożyska z samego oznaczenia** (ISO 15 / ISO 355) –
   działa offline i także dla oznaczeń spoza wbudowanego katalogu, np. `NU205` →
   walcowe, `HK1010` → igiełkowe, `7205` → skośne.
@@ -175,6 +177,23 @@ tego samego modelu danych.
   i kliknij „Znajdź symbol na podstawie wymiarów”.
 
 Ilość sztuk zawsze wpisujesz ręcznie.
+
+### Szukanie w magazynie
+
+To samo pole wyszukiwania rozumie dwa rodzaje pytań i samo rozpoznaje, o które
+chodzi – nie ma żadnego przełącznika:
+
+| Wpisujesz | Znaczenie |
+|---|---|
+| `6205` | szukanie po symbolu |
+| `25x52` | średnica wewn. 25 i zewn. 52, szerokość dowolna |
+| `25x52x15` | wszystkie trzy wymiary |
+| `x52` | tylko średnica zewnętrzna 52 |
+| `25x` | tylko średnica wewnętrzna 25 |
+| `25 52 15` | to samo co `25x52x15` (spacje zamiast `x`) |
+
+Wymiary dopasowywane są z tolerancją ±0,6 mm. Pojedyncza liczba (`6205`) jest
+zawsze traktowana jak symbol – inaczej nie dałoby się jej odróżnić od wymiaru.
 
 ### Rozpoznawanie typu (kategorii)
 

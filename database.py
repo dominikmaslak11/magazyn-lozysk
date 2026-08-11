@@ -31,6 +31,8 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+from search_query import TOLERANCE, parse_dimensions
+
 # Lokalizacja danych - domyślnie w katalogu domowym użytkownika, poza kodem
 # aplikacji, żeby `git pull` / podmiana plików nigdy nie ruszyły bazy.
 # Można nadpisać zmienną środowiskową LOZYSKA_DATA_DIR (przydatne np. przy
@@ -306,8 +308,22 @@ def reassign_all_auto() -> int:
 # --------------------------------------------------------------- łożyska ----
 
 def get_bearings(search: str = "") -> list[Bearing]:
+    """Jedno pole wyszukiwania obsługuje dwa pytania: "czy mam 6205?" (po symbolu)
+    i "czy mam coś 25x52?" (po wymiarach). O tym, które to jest, decyduje sam zapis -
+    patrz search_query.py (i SearchQuery.kt po stronie appki)."""
     conn = get_connection()
-    if search:
+    wymiary = parse_dimensions(search) if search else None
+
+    if wymiary is not None:
+        rows = conn.execute(
+            "SELECT * FROM bearings WHERE deleted_at IS NULL"
+            "  AND (:d IS NULL OR (d IS NOT NULL AND d BETWEEN :d - :tol AND :d + :tol))"
+            "  AND (:D IS NULL OR (D_out IS NOT NULL AND D_out BETWEEN :D - :tol AND :D + :tol))"
+            "  AND (:B IS NULL OR (B IS NOT NULL AND B BETWEEN :B - :tol AND :B + :tol))"
+            " ORDER BY symbol",
+            {"d": wymiary.d, "D": wymiary.D, "B": wymiary.B, "tol": TOLERANCE},
+        ).fetchall()
+    elif search:
         rows = conn.execute(
             "SELECT * FROM bearings WHERE deleted_at IS NULL AND symbol LIKE ? ORDER BY symbol",
             (f"%{search}%",),
