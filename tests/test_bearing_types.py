@@ -77,6 +77,46 @@ def test_uczciwe_nie_wiem():
     assert classify_symbol("5") is None
 
 
+def test_srednica_z_oznaczenia_zgodna_z_katalogiem():
+    """Dla każdego wpisu katalogu znamy prawdziwe d - reguła kodu otworu (ISO 15)
+    musi się z nim zgadzać wszędzie tam, gdzie w ogóle obowiązuje."""
+    from bearing_types import bore_from_symbol
+    bledy = []
+    for typ, tabela in SERIES.items():
+        for symbol, (d, _D, _B) in tabela.items():
+            wyliczone = bore_from_symbol(symbol)
+            if wyliczone is not None and abs(wyliczone - d) > 1.0:
+                bledy.append(f"{symbol}: katalog d={d}, z oznaczenia={wyliczone}")
+    assert not bledy, "Rozbieżności otworu:\n  " + "\n  ".join(bledy)
+
+
+def test_srednica_z_oznaczenia_spoza_katalogu():
+    from bearing_types import bore_from_symbol
+    assert bore_from_symbol("6204") == 20.0
+    assert bore_from_symbol("NU205") == 25.0
+    assert bore_from_symbol("UC206") == 30.0
+    assert bore_from_symbol("30204") == 20.0
+    assert bore_from_symbol("22210") == 50.0
+    assert bore_from_symbol("6000") == 10.0     # wyjątek: kod 00
+    assert bore_from_symbol("6003") == 17.0     # wyjątek: kod 03
+    # Serie, w których reguła NIE obowiązuje - lepiej nie sprawdzać niż sprawdzić źle
+    assert bore_from_symbol("HK1010") is None
+    assert bore_from_symbol("126") is None      # gołe 3 cyfry są niejednoznaczne
+    assert bore_from_symbol("") is None
+
+
+def test_odsiewanie_blednych_wymiarow_z_internetu():
+    """Realny przypadek: dla 6204 wyszukiwarka zwracała 60x80 zamiast 20x47."""
+    from bearing_types import dimensions_are_plausible
+    assert dimensions_are_plausible("6204", 20, 47, 14) is True
+    assert dimensions_are_plausible("6204", 60, 80, 0) is False     # zły otwór i B=0
+    assert dimensions_are_plausible("6204", 60, 80, 18) is False    # zły otwór
+    assert dimensions_are_plausible("6205", 52, 25, 15) is False    # d >= D
+    assert dimensions_are_plausible("6205", 25, 52, 0) is False     # zerowa szerokość
+    # Tam, gdzie reguły otworu nie ma, sprawdzamy tylko geometrię
+    assert dimensions_are_plausible("HK1010", 10, 14, 10) is True
+
+
 if __name__ == "__main__":
     testy = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     niepowodzenia = 0

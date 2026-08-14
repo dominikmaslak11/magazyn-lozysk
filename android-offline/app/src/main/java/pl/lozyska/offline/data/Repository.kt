@@ -19,6 +19,10 @@ data class LookupResult(
 
 data class DimensionCandidate(val symbol: String, val d: Double, val dZew: Double, val b: Double, val typ: String)
 
+/** 25.0 -> "25", 15.25 -> "15.25" (bez zbędnego ".0" w komunikatach). */
+private fun fmtMm(v: Double): String =
+    if (v == v.toLong().toDouble()) v.toLong().toString() else v.toString()
+
 // Przedrostki serii, które trzeba ZACHOWAĆ (nie sprowadzać oznaczenia do samych cyfr).
 // Bez tego "NU205" stałoby się "205" i szukalibyśmy w sieci zupełnie innego łożyska
 // (realny przypadek: NU205 to 25x52x15, a wyszukiwarka na "205" zwracała 205x285x38).
@@ -121,13 +125,30 @@ class Repository(private val db: AppDatabase) {
         val rozpoznanyTyp = BearingTypeClassifier.classify(raw)?.etykieta
 
         val online = OnlineLookup.lookupDimensionsBySymbol(symbol)
+        var odrzuconeZSieci = false
         if (online != null) {
-            return LookupResult(symbol, online.first, online.second, online.third, SOURCE_ONLINE,
-                rozpoznanyTyp, "Dane orientacyjne z internetu - zweryfikuj suwmiarką.")
+            // Wyszukiwarka potrafi zwrócić wymiary ZUPEŁNIE innego łożyska (realny przypadek:
+            // dla 6204 przyszło 60x80 zamiast 20x47). Oznaczenie samo mówi, jaki powinien być
+            // otwór, więc taki wynik odrzucamy zamiast zapisywać bzdurę.
+            if (BearingTypeClassifier.dimensionsArePlausible(raw, online.first, online.second, online.third)) {
+                return LookupResult(symbol, online.first, online.second, online.third, SOURCE_ONLINE,
+                    rozpoznanyTyp, "Dane orientacyjne z internetu - zweryfikuj suwmiarką.")
+            }
+            odrzuconeZSieci = true
         }
-        val note = if (rozpoznanyTyp != null)
-            "Nie znaleziono wymiarów - typ rozpoznany z oznaczenia ($rozpoznanyTyp). Wpisz wymiary ręcznie."
-        else "Nie znaleziono - wpisz wymiary ręcznie."
+
+        val note = when {
+            odrzuconeZSieci -> {
+                val oczekiwane = BearingTypeClassifier.boreFromSymbol(raw)
+                if (oczekiwane != null)
+                    "Wynik z internetu nie pasuje do tego oznaczenia (otwór powinien mieć ok. " +
+                        "${fmtMm(oczekiwane)} mm) i został odrzucony. Wpisz wymiary ręcznie."
+                else "Wynik z internetu nie pasuje do tego oznaczenia i został odrzucony. Wpisz wymiary ręcznie."
+            }
+            rozpoznanyTyp != null ->
+                "Nie znaleziono wymiarów - typ rozpoznany z oznaczenia ($rozpoznanyTyp). Wpisz wymiary ręcznie."
+            else -> "Nie znaleziono - wpisz wymiary ręcznie."
+        }
         return LookupResult(symbol, null, null, null, SOURCE_MANUAL, rozpoznanyTyp, note)
     }
 

@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass
 
 from bearing_data import BEARING_DB, BEARING_TYPE, SOURCE_OFFLINE, SOURCE_ONLINE, SOURCE_MANUAL
-from bearing_types import classify_symbol
+from bearing_types import bore_from_symbol, classify_symbol, dimensions_are_plausible
 
 try:
     import requests
@@ -76,16 +76,31 @@ def lookup_by_symbol(raw_symbol: str) -> LookupResult:
     # normalize_symbol() obcina przedrostki literowe (NU/NA/HK...), które niosą typ.
     rozpoznany_typ = classify_symbol(raw_symbol)
 
+    odrzucone_z_sieci = False
     if requests is not None:
         online = _online_lookup_by_symbol(symbol)
         if online:
             d, D, B = online
-            return LookupResult(symbol, d, D, B, SOURCE_ONLINE, rozpoznany_typ,
-                                 note="Dane orientacyjne z internetu - zweryfikuj suwmiarką.")
+            # Wyszukiwarka potrafi zwrócić wymiary ZUPEŁNIE innego łożyska (realny przypadek:
+            # dla 6204 przyszło 60x80 zamiast 20x47). Oznaczenie samo w sobie mówi, jaki
+            # powinien być otwór, więc taki wynik odrzucamy zamiast zapisywać bzdurę, która
+            # w magazynie wygląda potem na prawdziwą.
+            if dimensions_are_plausible(raw_symbol, d, D, B):
+                return LookupResult(symbol, d, D, B, SOURCE_ONLINE, rozpoznany_typ,
+                                     note="Dane orientacyjne z internetu - zweryfikuj suwmiarką.")
+            odrzucone_z_sieci = True
 
-    note = "Nie znaleziono - wpisz wymiary ręcznie."
-    if rozpoznany_typ:
-        note = f"Nie znaleziono wymiarów - typ rozpoznany z oznaczenia ({rozpoznany_typ}). Wpisz wymiary ręcznie."
+    if odrzucone_z_sieci:
+        oczekiwane = bore_from_symbol(raw_symbol)
+        note = ("Znaleziony w internecie wynik nie pasuje do tego oznaczenia i został odrzucony. "
+                "Wpisz wymiary ręcznie.")
+        if oczekiwane is not None:
+            note = (f"Znaleziony w internecie wynik nie pasuje do tego oznaczenia (otwór powinien mieć "
+                    f"ok. {oczekiwane:g} mm) i został odrzucony. Wpisz wymiary ręcznie.")
+    else:
+        note = "Nie znaleziono - wpisz wymiary ręcznie."
+        if rozpoznany_typ:
+            note = f"Nie znaleziono wymiarów - typ rozpoznany z oznaczenia ({rozpoznany_typ}). Wpisz wymiary ręcznie."
     return LookupResult(symbol, None, None, None, SOURCE_MANUAL, rozpoznany_typ, note=note)
 
 

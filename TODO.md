@@ -102,6 +102,22 @@ Kolejność wynika z analizy „co realnie boli”, nie z tego, co najciekawsze 
   - Rozwiązanie: dla `ilosc` synchronizacja różnicowa (±2, ±1) zamiast nadpisania wartością
   - Przy okazji warto rozważyć historię zmian ilości („kto, kiedy, ile wziął”) i alert niskiego stanu
 
+- [x] **Odsiewanie błędnych wymiarów z internetu** — ZROBIONE 2026-08-12
+  - Problem realny, nie teoretyczny: w bazie Dominika łożysko `6204` miało zapisane 60×80×0 mm
+    zamiast prawdziwych 20×47×14 — wynik scrapingu wyglądający w magazynie na prawdziwe dane
+  - Rozwiązanie: oznaczenie samo koduje otwór (ISO 15) — dwie ostatnie cyfry to kod otworu,
+    d = kod × 5 mm (wyjątki 00/01/02/03 = 10/12/15/17). `6204` → 20 mm, `NU205` → 25, `UC206` → 30
+  - `bore_from_symbol()` + `dimensions_are_plausible()` po obu stronach (Python + Kotlin, port 1:1);
+    wynik z sieci niezgodny z oznaczeniem jest ODRZUCANY, a użytkownik dostaje komunikat
+    „otwór powinien mieć ok. X mm” zamiast cichego zapisania bzdury
+  - Sprawdzana też podstawowa geometria: 0 < d < D oraz B > 0
+  - Reguła zweryfikowana na **251 z 254 wpisów katalogu, 0 niezgodności**; pomijane są wyłącznie
+    3 rzeczywiście niejednoznaczne (gołe 3-cyfrowe `126`/`127`/`129`, gdzie kod otworu nie obowiązuje)
+  - Świadomie NIE stosujemy reguły do serii igiełkowych (HK/BK/NA) i calowych — lepiej nie sprawdzać
+    niż sprawdzić źle
+  - [x] Poprawiony rekord `6204` w bazie Dominika (20×47×14, regał przydzielony automatycznie),
+        poprawka rozsynchronizowana na telefony
+
 - [ ] **Rozbudowa katalogu offline zamiast scrapingu**
   - `OnlineLookup` opiera się na regexie po HTML DuckDuckGo — to się zepsuje przy zmianie layoutu,
     blokadzie albo CAPTCHA, a dla appki w Play jest dodatkowo ryzykowne regulaminowo

@@ -65,6 +65,41 @@ class BearingTypeClassifierTest {
     }
 
     @Test
+    fun `srednica z oznaczenia zgodna z katalogiem`() {
+        // Dla każdego wpisu katalogu znamy prawdziwe d - reguła kodu otworu musi się zgadzać.
+        val bledy = BearingCatalog.ENTRIES.mapNotNull { w ->
+            val wyliczone = BearingTypeClassifier.boreFromSymbol(w.symbol)
+            if (wyliczone != null && kotlin.math.abs(wyliczone - w.d) > 1.0)
+                "${w.symbol}: katalog d=${w.d}, z oznaczenia=$wyliczone" else null
+        }
+        assertEquals("Rozbieżności otworu: $bledy", emptyList<String>(), bledy)
+    }
+
+    @Test
+    fun `srednica z oznaczenia spoza katalogu`() {
+        assertEquals(20.0, BearingTypeClassifier.boreFromSymbol("6204"))
+        assertEquals(25.0, BearingTypeClassifier.boreFromSymbol("NU205"))
+        assertEquals(30.0, BearingTypeClassifier.boreFromSymbol("UC206"))
+        assertEquals(50.0, BearingTypeClassifier.boreFromSymbol("22210"))
+        assertEquals(10.0, BearingTypeClassifier.boreFromSymbol("6000"))
+        assertEquals(17.0, BearingTypeClassifier.boreFromSymbol("6003"))
+        assertNull(BearingTypeClassifier.boreFromSymbol("HK1010"))
+        assertNull(BearingTypeClassifier.boreFromSymbol("126"))
+        assertNull(BearingTypeClassifier.boreFromSymbol(""))
+    }
+
+    @Test
+    fun `odsiewanie blednych wymiarow z internetu`() {
+        // Realny przypadek: dla 6204 wyszukiwarka zwracała 60x80 zamiast 20x47.
+        val p = BearingTypeClassifier::dimensionsArePlausible
+        assertEquals(true, p("6204", 20.0, 47.0, 14.0, 1.0))
+        assertEquals(false, p("6204", 60.0, 80.0, 0.0, 1.0))
+        assertEquals(false, p("6204", 60.0, 80.0, 18.0, 1.0))
+        assertEquals(false, p("6205", 52.0, 25.0, 15.0, 1.0))
+        assertEquals(true, p("HK1010", 10.0, 14.0, 10.0, 1.0))
+    }
+
+    @Test
     fun `uczciwe nie wiem zamiast zgadywania`() {
         listOf("", "   ", "ABC", "ABC123", "xyz", "??", "-", "SKF", "12", "5").forEach {
             assertNull("$it nie powinno dostać typu", BearingTypeClassifier.classify(it))

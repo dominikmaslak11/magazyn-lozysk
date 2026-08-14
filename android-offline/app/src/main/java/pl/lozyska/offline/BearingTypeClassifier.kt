@@ -62,6 +62,61 @@ object BearingTypeClassifier {
 
     private val SEPARATORS = Regex("[\\s\\-_/]")
     private val LEADING_DIGITS = Regex("^(\\d+)")
+    private val PREFIX_AND_DIGITS = Regex("^([A-Z]*)(\\d+)")
+
+    /** Serie, w których dwie ostatnie cyfry NIE są kodem otworu. */
+    private val NO_BORE_CODE = Regex("^(RNAO|RNA|NKIA|NKIB|NKI|NKX|NKS|NAO|NA|NK|HK|BK|IR|TA|AXK|AX)\\d")
+
+    /** Kody otworu odbiegające od reguły "kod x 5 mm" (ISO 15). */
+    private val BORE_EXCEPTIONS = mapOf("00" to 10.0, "01" to 12.0, "02" to 15.0, "03" to 17.0)
+
+    private fun normalized(raw: String?): String {
+        if (raw.isNullOrBlank()) return ""
+        val text = SEPARATORS.replace(raw.trim().uppercase(), "")
+        for (brand in BRANDS) {
+            if (text.startsWith(brand) && text.length > brand.length) return text.substring(brand.length)
+        }
+        return text
+    }
+
+    /**
+     * Średnica wewnętrzna wyliczona z samego oznaczenia (ISO 15), albo null gdy reguła
+     * nie obowiązuje. Port 1:1 z bore_from_symbol() w bearing_types.py.
+     *
+     * 6204 -> 20, 30204 -> 20, 22210 -> 50, NU205 -> 25, UC206 -> 30.
+     */
+    fun boreFromSymbol(raw: String?): Double? {
+        val text = normalized(raw)
+        if (text.isEmpty()) return null
+        if (NO_BORE_CODE.containsMatchIn(text)) return null
+
+        val m = PREFIX_AND_DIGITS.find(text) ?: return null
+        val prefiks = m.groupValues[1]
+        val digits = m.groupValues[2]
+
+        // Gołe 3 cyfry są niejednoznaczne ("126" to otwór 6 mm, nie 130 mm), z przedrostkiem
+        // literowym już nie (UC206 -> 30 mm).
+        val dozwolone = if (prefiks.isNotEmpty()) setOf(3, 4, 5) else setOf(4, 5)
+        if (digits.length !in dozwolone) return null
+
+        val kod = digits.takeLast(2)
+        BORE_EXCEPTIONS[kod]?.let { return it }
+        val wartosc = kod.toIntOrNull() ?: return null
+        return if (wartosc < 4) null else wartosc * 5.0
+    }
+
+    /**
+     * Czy wymiary mogą należeć do łożyska o tym oznaczeniu? Służy do odsiewania błędnych
+     * wyników z internetu (realny przypadek: dla 6204 wyszukiwarka zwracała 60x80).
+     */
+    fun dimensionsArePlausible(rawSymbol: String?, d: Double?, dZew: Double?, b: Double?,
+                                tolerance: Double = 1.0): Boolean {
+        if (d != null && dZew != null && !(d > 0 && d < dZew)) return false
+        if (b != null && b <= 0) return false
+        val oczekiwane = boreFromSymbol(rawSymbol)
+        if (oczekiwane != null && d != null && kotlin.math.abs(d - oczekiwane) > tolerance) return false
+        return true
+    }
 
     /**
      * Typ rozpoznany z oznaczenia albo null, gdy nie da się ustalić.

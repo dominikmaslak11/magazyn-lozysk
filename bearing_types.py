@@ -98,6 +98,89 @@ _BRANDS = (
 )
 
 
+def _normalized(raw: str) -> str:
+    """Wielkie litery, bez separatorów, bez nazwy producenta z przodu."""
+    text = re.sub(r"[\s\-_/]", "", (raw or "").strip().upper())
+    for brand in _BRANDS:
+        if text.startswith(brand) and len(text) > len(brand):
+            return text[len(brand):]
+    return text
+
+
+# Kod średnicy wewnętrznej (dwie ostatnie cyfry części numerycznej) wg ISO 15.
+# Od 04 w górę obowiązuje reguła "kod x 5 mm"; cztery pierwsze kody są wyjątkami.
+_BORE_CODE_EXCEPTIONS = {"00": 10.0, "01": 12.0, "02": 15.0, "03": 17.0}
+
+
+def bore_from_symbol(raw: str) -> float | None:
+    """Średnica wewnętrzna (d) wyliczona z samego oznaczenia, albo None gdy się nie da.
+
+    Oznaczenia znormalizowanych łożysk kodują otwór: dwie ostatnie cyfry to "kod otworu",
+    a d = kod x 5 mm (z wyjątkiem 00/01/02/03 = 10/12/15/17 mm). Działa to dla serii
+    metrycznych: 6204 -> 20, 6205 -> 25, 30204 -> 20, 22210 -> 50, NU205 -> 25, UC206 -> 30.
+
+    Po co: to niezależne od katalogu i od internetu sprawdzenie sensowności wymiarów.
+    Wyszukiwarka potrafi zwrócić wymiary ZUPEŁNIE innego łożyska (realny przypadek:
+    dla 6204 przyszło 60x80 zamiast 20x47) - taki wynik odrzucamy, zamiast zapisywać
+    bzdurę, która potem wygląda w magazynie na prawdziwą.
+
+    Świadomie zwracamy None dla serii, w których ta reguła NIE obowiązuje (igiełkowe
+    HK/BK/NA, miniatury 6xx, wymiary calowe) - lepiej nie sprawdzać niż sprawdzić źle.
+    """
+    text = _normalized(raw)
+    if not text:
+        return None
+
+    # Serie, w których dwie ostatnie cyfry NIE są kodem otworu.
+    if re.match(r"^(RNAO|RNA|NKIA|NKIB|NKI|NKX|NKS|NAO|NA|NK|HK|BK|IR|TA|AXK|AX)\d", text):
+        return None
+
+    # Część numeryczna: pomijamy przedrostek literowy serii (NU, UC, QJ...).
+    m = re.match(r"^([A-Z]*)(\d+)", text)
+    if not m:
+        return None
+    prefiks, digits = m.group(1), m.group(2)
+
+    # Bez przedrostka reguła dotyczy oznaczeń 4- i 5-cyfrowych (6204, 30204, 22210).
+    # Gołe 3 cyfry są niejednoznaczne: "126" to łożysko o otworze 6 mm, a nie 130 mm
+    # (kod "26"), więc takich celowo nie sprawdzamy.
+    # Z przedrostkiem literowym 3 cyfry są już jednoznaczne i reguła obowiązuje:
+    # UC206 -> 06 -> 30 mm, NU205 -> 05 -> 25 mm.
+    dozwolone = (3, 4, 5) if prefiks else (4, 5)
+    if len(digits) not in dozwolone:
+        return None
+
+    kod = digits[-2:]
+    if kod in _BORE_CODE_EXCEPTIONS:
+        return _BORE_CODE_EXCEPTIONS[kod]
+    wartosc = int(kod)
+    if wartosc < 4:
+        return None
+    return float(wartosc * 5)
+
+
+def dimensions_are_plausible(raw_symbol: str, d: float | None, D: float | None,
+                              B: float | None, tolerance: float = 1.0) -> bool:
+    """Czy wymiary w ogóle mogą należeć do łożyska o tym oznaczeniu?
+
+    Sprawdza dwie rzeczy, obie niezależne od internetu:
+      1. podstawową geometrię (0 < d < D, B > 0),
+      2. zgodność d z kodem otworu wyliczonym z oznaczenia (jeśli da się go ustalić).
+
+    Używane do odsiewania błędnych wyników wyszukiwania w sieci - patrz lookup.py.
+    """
+    if d is not None and D is not None and not (0 < d < D):
+        return False
+    if B is not None and B <= 0:
+        return False
+
+    oczekiwane_d = bore_from_symbol(raw_symbol)
+    if oczekiwane_d is not None and d is not None:
+        if abs(d - oczekiwane_d) > tolerance:
+            return False
+    return True
+
+
 def classify_symbol(raw: str) -> str | None:
     """Zwraca typ łożyska rozpoznany z oznaczenia albo None, gdy nie da się ustalić.
 

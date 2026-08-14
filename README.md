@@ -224,6 +224,21 @@ różne konstrukcje mają te same gabaryty, więc automat dawałby pewnie
 brzmiące, ale czasem błędne kategorie. Zamiast tego wyszukiwanie po wymiarach
 pokazuje pasujące symbole wraz z ich typami, jako propozycję do wyboru.
 
+### Odsiewanie błędnych wymiarów z internetu
+
+Oznaczenie łożyska koduje nie tylko typ, ale i **średnicę otworu**: dwie
+ostatnie cyfry to „kod otworu”, a `d = kod × 5 mm` (wyjątki: `00`/`01`/`02`/`03`
+= 10/12/15/17 mm). Dzięki temu wiadomo, że `6204` musi mieć otwór 20 mm,
+`NU205` – 25 mm, a `UC206` – 30 mm.
+
+Program wykorzystuje tę regułę do sprawdzania wyników znalezionych w sieci.
+Jeśli wymiary nie pasują do oznaczenia (albo łamią geometrię: `d ≥ D`, `B ≤ 0`),
+wynik zostaje **odrzucony** zamiast zapisany – zamiast cichej bzdury zobaczysz
+komunikat w stylu „otwór powinien mieć ok. 20 mm, wpisz wymiary ręcznie”.
+
+Reguła stosowana jest tylko tam, gdzie na pewno obowiązuje – serie igiełkowe
+(`HK`, `BK`, `NA`) oraz oznaczenia calowe są z niej świadomie wyłączone.
+
 ### Przydział do regału
 
 Regał dobierany jest automatycznie na podstawie **średnicy zewnętrznej D**:
