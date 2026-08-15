@@ -44,7 +44,7 @@ BACKUP_DIR = DB_DIR / "backups"
 BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 MAX_AUTO_BACKUPS = 20
 
-SCHEMA_VERSION = 3  # v3 = tabela barcode_aliases (kod z opakowania -> symbol łożyska)
+SCHEMA_VERSION = 4  # v4 = tabela stock_moves (ruchy magazynowe zamiast nadpisywania ilości)
 
 # Domyślne, edytowalne w GUI zakresy średnicy zewnętrznej (mm) dla 9 regałów.
 # poziom 1 = regał najniższy (duże łożyska), poziom 9 = najwyższy (małe łożyska).
@@ -140,6 +140,10 @@ def init_db() -> None:
         existing_tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         if "barcode_aliases" not in existing_tables:
             _create_barcode_aliases_table(conn)
+        # v3 -> v4: dziennik ruchów magazynowych. Tabela jest pusta i niezależna od reszty,
+        # więc migracja niczego nie rusza w istniejących danych.
+        if "stock_moves" not in existing_tables:
+            _create_stock_moves_table(conn)
     conn.close()
 
 
@@ -187,6 +191,30 @@ def _create_barcode_aliases_table(conn: sqlite3.Connection) -> None:
     """)
     # Jeden aktywny alias na kod - powtórne przypisanie nadpisuje poprzednie (patrz set_barcode_alias).
     conn.execute("CREATE UNIQUE INDEX idx_barcode_aliases_kod ON barcode_aliases(kod) WHERE deleted_at IS NULL")
+
+
+def _create_stock_moves_table(conn: sqlite3.Connection) -> None:
+    """Dziennik ruchów magazynowych (przyjęcia/wydania sztuk).
+
+    Po co osobna tabela, skoro ilość jest już w `bearings`: ilość to LICZNIK, a licznika
+    nie wolno synchronizować regułą "kto ostatni, ten lepszy". Gdy jedna osoba weźmie
+    offline 2 sztuki, a druga 1, nadpisywanie wartością bezwzględną gubi jedną ze zmian
+    bez śladu. Dlatego telefony wysyłają RÓŻNICE (-2, -1), a serwer je sumuje.
+
+    `id` jest nadawane przez urządzenie i służy do DEDUPLIKACJI: jeśli odpowiedź serwera
+    zginie po drodze i telefon wyśle ten sam ruch ponownie, drugi raz go nie zastosujemy.
+    Bez tego naprawa jednego błędu (gubienie zmian) wprowadziłaby drugi (podwójne liczenie).
+    """
+    conn.execute("""
+        CREATE TABLE stock_moves (
+            id TEXT PRIMARY KEY,
+            bearing_id TEXT NOT NULL,
+            delta INTEGER NOT NULL,
+            zrodlo TEXT DEFAULT '',
+            applied_at TEXT NOT NULL
+        )
+    """)
+    conn.execute("CREATE INDEX idx_stock_moves_bearing ON stock_moves(bearing_id, applied_at)")
 
 
 def _seed_default_shelves(conn: sqlite3.Connection) -> None:
@@ -399,6 +427,48 @@ def _row_to_shelf(row: sqlite3.Row) -> Shelf:
     )
 
 
+@dataclass
+class StockMove:
+    """Pojedynczy ruch magazynowy: ile sztuk przybyło (+) albo ubyło (-)."""
+    id: str
+    bearing_id: str
+    delta: int
+    zrodlo: str
+    applied_at: str
+
+
+def get_stock_moves(bearing_id: str | None = None, limit: int = 200) -> list[StockMove]:
+    """Historia ruchów - dla całego magazynu albo jednego łożyska, od najnowszych."""
+    conn = get_connection()
+    if bearing_id:
+        rows = conn.execute(
+            "SELECT * FROM stock_moves WHERE bearing_id=? ORDER BY applied_at DESC, rowid DESC LIMIT ?",
+            (bearing_id, limit),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM stock_moves ORDER BY applied_at DESC, rowid DESC LIMIT ?", (limit,)
+        ).fetchall()
+    conn.close()
+    return [StockMove(r["id"], r["bearing_id"], r["delta"], r["zrodlo"] or "", r["applied_at"])
+            for r in rows]
+
+
+def apply_local_move(bearing_id: str, delta: int, zrodlo: str = "web") -> None:
+    """Zmiana stanu z poziomu serwera (wersja webowa) - też przez dziennik ruchów,
+    żeby historia była kompletna niezależnie od tego, gdzie zmieniono ilość."""
+    conn = get_connection()
+    with conn:
+        ts = now_iso()
+        conn.execute(
+            "INSERT INTO stock_moves (id, bearing_id, delta, zrodlo, applied_at) VALUES (?, ?, ?, ?, ?)",
+            (new_id(), bearing_id, int(delta), zrodlo, ts),
+        )
+        conn.execute("UPDATE bearings SET ilosc = MAX(0, ilosc + ?), updated_at=? WHERE id=?",
+                      (int(delta), ts, bearing_id))
+    conn.close()
+
+
 def _row_to_alias(row: sqlite3.Row) -> BarcodeAlias:
     return BarcodeAlias(
         id=row["id"], kod=row["kod"], symbol=row["symbol"],
@@ -504,7 +574,8 @@ def sync_state() -> dict:
 
 
 def apply_sync_push(shelves_in: list[dict], bearings_in: list[dict],
-                     aliases_in: list[dict] | None = None) -> None:
+                     aliases_in: list[dict] | None = None,
+                     moves_in: list[dict] | None = None) -> None:
     """Przyjmuje rekordy zmienione lokalnie na urządzeniu klienckim i bezwarunkowo
     je zapisuje (upsert po id), stemplując je czasem serwera."""
     conn = get_connection()
@@ -525,23 +596,51 @@ def apply_sync_push(shelves_in: list[dict], bearings_in: list[dict],
                 )
         for b in bearings_in:
             exists = conn.execute("SELECT 1 FROM bearings WHERE id=?", (b["id"],)).fetchone()
-            values_common = (
-                b["symbol"], b.get("typ", ""), b.get("d"), b.get("D"), b.get("B"), b.get("ilosc", 0),
-                b.get("regal_id"), int(b.get("reczny_przydzial", False)), b.get("zrodlo", "recznie"),
-                b.get("uwagi", ""), ts, b.get("deleted_at"),
-            )
             if exists:
+                # UWAGA: celowo NIE nadpisujemy `ilosc`. Ilość to licznik i zmienia się
+                # wyłącznie przez ruchy magazynowe (patrz moves_in niżej) - inaczej dwie
+                # osoby edytujące offline gubiłyby sobie nawzajem zmiany stanu.
                 conn.execute(
-                    "UPDATE bearings SET symbol=?, typ=?, d=?, D_out=?, B=?, ilosc=?, regal_id=?, "
+                    "UPDATE bearings SET symbol=?, typ=?, d=?, D_out=?, B=?, regal_id=?, "
                     "reczny_przydzial=?, zrodlo=?, uwagi=?, updated_at=?, deleted_at=? WHERE id=?",
-                    values_common + (b["id"],),
+                    (b["symbol"], b.get("typ", ""), b.get("d"), b.get("D"), b.get("B"),
+                     b.get("regal_id"), int(b.get("reczny_przydzial", False)), b.get("zrodlo", "recznie"),
+                     b.get("uwagi", ""), ts, b.get("deleted_at"), b["id"]),
                 )
             else:
+                # Nowe łożysko startuje od zera - jego stan początkowy przyjdzie jako ruch
+                # magazynowy, dzięki czemu wszystkie zmiany ilości idą jedną, spójną drogą.
                 conn.execute(
                     "INSERT INTO bearings (symbol, typ, d, D_out, B, ilosc, regal_id, reczny_przydzial, "
-                    "zrodlo, uwagi, updated_at, deleted_at, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    values_common + (b["id"],),
+                    "zrodlo, uwagi, updated_at, deleted_at, id) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)",
+                    (b["symbol"], b.get("typ", ""), b.get("d"), b.get("D"), b.get("B"),
+                     b.get("regal_id"), int(b.get("reczny_przydzial", False)), b.get("zrodlo", "recznie"),
+                     b.get("uwagi", ""), ts, b.get("deleted_at"), b["id"]),
                 )
+
+        # Ruchy magazynowe stosujemy PO wstawieniu łożysk, żeby ruch dotyczący nowo
+        # utworzonej pozycji miał już do czego się odnieść.
+        for m in (moves_in or []):
+            move_id = m.get("id")
+            if not move_id:
+                continue
+            # Deduplikacja: ten sam ruch wysłany ponownie (np. po zerwanym połączeniu)
+            # nie może zostać policzony drugi raz.
+            if conn.execute("SELECT 1 FROM stock_moves WHERE id=?", (move_id,)).fetchone():
+                continue
+            delta = int(m.get("delta", 0))
+            bearing_id = m.get("bearing_id")
+            if not bearing_id:
+                continue
+            conn.execute(
+                "INSERT INTO stock_moves (id, bearing_id, delta, zrodlo, applied_at) VALUES (?, ?, ?, ?, ?)",
+                (move_id, bearing_id, delta, m.get("zrodlo", ""), ts),
+            )
+            # Stan nie schodzi poniżej zera - to magazyn, nie konto bankowe.
+            conn.execute(
+                "UPDATE bearings SET ilosc = MAX(0, ilosc + ?), updated_at=? WHERE id=?",
+                (delta, ts, bearing_id),
+            )
         for a in (aliases_in or []):
             exists = conn.execute("SELECT 1 FROM barcode_aliases WHERE id=?", (a["id"],)).fetchone()
             if exists:

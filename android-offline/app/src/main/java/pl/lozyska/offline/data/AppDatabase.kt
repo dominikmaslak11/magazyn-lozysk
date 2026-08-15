@@ -25,15 +25,32 @@ private val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
+/**
+ * v3 -> v4: dziennik ruchów magazynowych (zmiany ilości jako różnice, nie wartości bezwzględne).
+ * Znowu PRAWDZIWA migracja, nie czyszczenie bazy - telefon może mieć zmiany zrobione offline,
+ * których jeszcze nie wypchnął na serwer.
+ */
+private val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `stock_moves` (" +
+                "`id` TEXT NOT NULL, `bearingId` TEXT NOT NULL, `delta` INTEGER NOT NULL, " +
+                "`createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_stock_moves_bearingId` ON `stock_moves` (`bearingId`)")
+    }
+}
+
 @Database(
-    entities = [BearingEntity::class, ShelfEntity::class, BarcodeAliasEntity::class],
-    version = 3,
+    entities = [BearingEntity::class, ShelfEntity::class, BarcodeAliasEntity::class, StockMoveEntity::class],
+    version = 4,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun bearingDao(): BearingDao
     abstract fun shelfDao(): ShelfDao
     abstract fun barcodeAliasDao(): BarcodeAliasDao
+    abstract fun stockMoveDao(): StockMoveDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null
@@ -49,7 +66,7 @@ abstract class AppDatabase : RoomDatabase() {
                     // v2 -> v3 ma już prawdziwą migrację (nie chcemy tracić zmian zrobionych
                     // offline), więc jest zarejestrowana PO fallbacku - Room użyje jej zamiast
                     // czyszczenia bazy.
-                    .addMigrations(MIGRATION_2_3)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { INSTANCE = it }
             }

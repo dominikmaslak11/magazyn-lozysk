@@ -139,6 +139,18 @@ class OfflineViewModel(application: Application) : AndroidViewModel(application)
         onDone()
     }
 
+    /**
+     * Wydanie/przyjęcie sztuk jednym tapnięciem (przyciski +/- na liście).
+     * Zapisuje RÓŻNICĘ jako ruch magazynowy, nie ustawia wartości bezwzględnej -
+     * dzięki temu równoległa zmiana z innego urządzenia nie zostaje nadpisana.
+     */
+    fun changeQuantity(bearing: BearingEntity, delta: Int) = viewModelScope.launch {
+        val nowa = repo.changeQuantity(bearing, delta)
+        if (nowa == bearing.ilosc && delta < 0) {
+            _message.value = "${bearing.symbol}: stan już wynosi 0."
+        }
+    }
+
     fun deleteBearing(bearing: BearingEntity, onDone: () -> Unit) = viewModelScope.launch {
         repo.deleteBearing(bearing)
         onDone()

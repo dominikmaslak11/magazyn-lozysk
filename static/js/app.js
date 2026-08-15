@@ -51,7 +51,7 @@ function showView(name) {
   $$(".view").forEach((v) => v.classList.toggle("active", v.id === `view-${name}`));
   $("#addBearingBtn").style.display = name === "bearings" ? "flex" : "none";
   if (name === "shelves") loadShelves();
-  if (name === "data") { loadBackups(); loadAliases(); }
+  if (name === "data") { loadBackups(); loadAliases(); loadMoves(); }
 }
 
 // --------------------------------------------------------------- API -----
@@ -357,6 +357,22 @@ async function deleteAlias(id) {
   await api(`/api/barcode-aliases/${id}`, { method: "DELETE" });
   toast("Skojarzenie usunięte.");
   await loadAliases();
+}
+
+async function loadMoves() {
+  const moves = await api("/api/stock-moves");
+  const list = $("#movesList");
+  if (!moves.length) {
+    list.innerHTML = '<div class="row"><span>Brak ruchów.</span></div>';
+    return;
+  }
+  list.innerHTML = moves.slice(0, 50).map((m) => {
+    const znak = m.delta > 0 ? `+${m.delta}` : `${m.delta}`;
+    const kiedy = (m.applied_at || "").slice(0, 16).replace("T", " ");
+    const skad = m.zrodlo === "web" ? "komputer" : "telefon";
+    return `<div class="row"><span><strong>${esc(m.symbol)}</strong> ${znak} szt.</span>` +
+           `<span>${kiedy} · ${skad}</span></div>`;
+  }).join("");
 }
 
 async function importDbFile() {

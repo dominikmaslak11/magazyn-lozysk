@@ -44,12 +44,17 @@ class SyncEngine(private val context: Context) {
         return try {
             val (localShelves, localBearings) = repo.getLocalChangesSince(lastSyncAt)
             val localAliases = repo.getLocalAliasChangesSince(lastSyncAt)
+            // Ruchy magazynowe wysyłamy WSZYSTKIE oczekujące, niezależnie od znacznika
+            // czasu - kasujemy je dopiero po potwierdzeniu, więc zerwane połączenie nie
+            // gubi zmiany stanu. Serwer deduplikuje po id, więc powtórka nic nie psuje.
+            val pendingMoves = repo.getPendingMoves()
             val api = SyncApiClient.forBaseUrl(baseUrl, settings.authToken.first())
             val serverState = api.pushSync(
                 SyncPushRequest(
                     shelves = localShelves.map { it.toSyncDto() },
                     bearings = localBearings.map { it.toSyncDto() },
                     barcode_aliases = localAliases.map { it.toSyncDto() },
+                    stock_moves = pendingMoves.map { it.toSyncDto() },
                 )
             )
 
@@ -70,6 +75,13 @@ class SyncEngine(private val context: Context) {
                 // lokalne skojarzenia w spokoju zamiast kasować je pustą listą.
                 serverState.barcode_aliases?.map { it.toEntity(syncStartedAt) } ?: repo.getLocalAliasChangesSince(0L),
             )
+
+            // Serwer potwierdził przyjęcie tych ruchów (są już wliczone w odesłany stan),
+            // więc dopiero teraz można je skasować lokalnie.
+            repo.clearMoves(pendingMoves.map { it.id })
+            // Gdyby w międzyczasie doszedł nowy ruch, nakładamy go na świeży stan -
+            // inaczej zniknąłby z ekranu do następnej synchronizacji.
+            repo.reapplyPendingMoves()
 
             settings.setLastSyncAt(syncStartedAt)
             settings.setLastSyncStatus("ok")

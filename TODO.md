@@ -239,3 +239,29 @@ Kolejność wynika z analizy „co realnie boli”, nie z tego, co najciekawsze 
     i przeżywa wylogowanie (bez tego usługi użytkownika giną po zamknięciu sesji)
   - Logi: `journalctl --user -u magazyn-lozysk -f`
   - Token przetrwał restart (leży w pliku), więc telefony nie wymagały przekonfigurowania
+
+- [x] **Ruchy magazynowe zamiast nadpisywania ilości** — ZROBIONE 2026-08-15 (priorytet #3)
+  - Problem: ilość to LICZNIK, a reguła „ostatni wygrywa” po cichu gubiła zmiany. Gdy jedna osoba
+    wzięła offline 2 szt., a druga 1, jedna z tych zmian znikała bez śladu i stan się nie zgadzał.
+  - Rozwiązanie: każda zmiana ilości to RUCH (delta) z własnym id; serwer je sumuje
+  - [x] Serwer: tabela `stock_moves` + migracja v3→v4, stosowanie delt w `apply_sync_push`
+  - [x] **Idempotencja**: serwer deduplikuje po id ruchu, więc ponowna wysyłka po zerwanym
+        połączeniu nie policzy zmiany dwa razy (bez tego naprawa jednego błędu wprowadziłaby drugi)
+  - [x] Android: `StockMoveEntity` + DAO + prawdziwa migracja Room 3→4; ruchy kasowane dopiero
+        PO potwierdzeniu synchronizacji, więc zerwane połączenie nie gubi zmiany stanu
+  - [x] Ruch dodany w trakcie synchronizacji jest ponownie nakładany na świeży stan
+        (`reapplyPendingMoves`), żeby nie zniknął z ekranu do następnej rundy
+  - [x] Edycja ilości w przeglądarce też idzie przez dziennik — reguła „ilość zmienia się
+        WYŁĄCZNIE ruchami” nie ma wyjątków, więc historia jest kompletna
+  - [x] Stan nie schodzi poniżej zera
+  - [x] `MIN_CLIENT_VERSION` podniesiona do 1.2.0 — stara appka (1.1.0) wysyła ilość jako wartość
+        bezwzględną, którą serwer teraz ignoruje, więc lepiej żeby ODMÓWIŁA synchronizacji
+        (baner „zaktualizuj”) niż miała po cichu gubić zmiany
+  - [x] Historia ruchów widoczna w wersji webowej (Dane → „Historia ruchów magazynowych”)
+  - [x] Przetestowane na fizycznym Samsungu: +3 z telefonu i -1 z przeglądarki dały 3 (nie 4),
+        telefon i serwer zbiegły do tej samej wartości
+
+- [x] **Szybkie +/- na liście łożysk** — ZROBIONE 2026-08-15
+  - Wydanie/przyjęcie sztuki to najczęstsza czynność w warsztacie — teraz jedno tapnięcie
+    zamiast otwierania arkusza edycji, zmiany pól i zapisu
+  - Przycisk „-” jest wyłączony przy stanie 0

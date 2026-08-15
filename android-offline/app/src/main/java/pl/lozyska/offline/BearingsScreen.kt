@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import pl.lozyska.offline.data.BearingEntity
@@ -107,6 +109,7 @@ fun BearingsScreen(vm: OfflineViewModel) {
                             shelfName = b.regalId?.let { shelfNames[it] },
                             onEdit = { editing = b },
                             onDelete = { pendingDelete = b },
+                            onChangeQuantity = { delta -> vm.changeQuantity(b, delta) },
                         )
                     }
                 }
@@ -212,7 +215,13 @@ private fun UnknownBarcodeDialog(kod: String, onDismiss: () -> Unit, onConfirm: 
 }
 
 @Composable
-private fun BearingCard(bearing: BearingEntity, shelfName: String?, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun BearingCard(
+    bearing: BearingEntity,
+    shelfName: String?,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onChangeQuantity: (Int) -> Unit,
+) {
     ElevatedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -226,10 +235,7 @@ private fun BearingCard(bearing: BearingEntity, shelfName: String?, onEdit: () -
                 Text("B ${fmt(bearing.b)} mm", style = MaterialTheme.typography.bodySmall)
             }
             Spacer(Modifier.height(2.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(bearing.typ, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("Ilość: ${bearing.ilosc}", fontWeight = FontWeight.Medium)
-            }
+            Text(bearing.typ, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
                 (shelfName ?: "—") + if (bearing.recznyPrzydzial) " (ręcznie)" else "",
                 style = MaterialTheme.typography.bodySmall,
@@ -238,9 +244,41 @@ private fun BearingCard(bearing: BearingEntity, shelfName: String?, onEdit: () -
             if (bearing.uwagi.isNotBlank()) {
                 Text(bearing.uwagi, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onEdit) { Icon(Icons.Filled.Edit, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("Edytuj") }
-                TextButton(onClick = onDelete) { Icon(Icons.Filled.Delete, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("Usuń") }
+
+            // Wydanie/przyjęcie sztuki to NAJCZĘSTSZA czynność w warsztacie - ma być
+            // jednym tapnięciem, bez otwierania arkusza edycji.
+            Row(
+                Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    FilledTonalIconButton(
+                        onClick = { onChangeQuantity(-1) },
+                        enabled = bearing.ilosc > 0,
+                        modifier = Modifier.size(38.dp),
+                    ) { Icon(Icons.Filled.Remove, contentDescription = "Wydaj jedną sztukę") }
+
+                    Text(
+                        bearing.ilosc.toString(),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.widthIn(min = 52.dp).padding(horizontal = 6.dp),
+                        textAlign = TextAlign.Center,
+                    )
+
+                    FilledTonalIconButton(
+                        onClick = { onChangeQuantity(+1) },
+                        modifier = Modifier.size(38.dp),
+                    ) { Icon(Icons.Filled.Add, contentDescription = "Przyjmij jedną sztukę") }
+
+                    Text(" szt.", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Row {
+                    IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, contentDescription = "Edytuj") }
+                    IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, contentDescription = "Usuń") }
+                }
             }
         }
     }

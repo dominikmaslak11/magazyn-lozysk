@@ -52,6 +52,7 @@ class Repository(private val db: AppDatabase) {
     private val bearingDao = db.bearingDao()
     private val shelfDao = db.shelfDao()
     private val aliasDao = db.barcodeAliasDao()
+    private val stockMoveDao = db.stockMoveDao()
 
     /**
      * Jedno pole wyszukiwania obsługuje dwa pytania: "czy mam 6205?" (po symbolu)
@@ -74,12 +75,36 @@ class Repository(private val db: AppDatabase) {
         ilosc: Int, zrodlo: String, uwagi: String, regalId: String?, recznyPrzydzial: Boolean,
     ) {
         val finalRegalId = if (recznyPrzydzial) regalId else suggestShelfId(dZew)
+        val bearingId = id ?: newLocalId()
+        // Ilość NIGDY nie jedzie na serwer jako wartość bezwzględna - liczy się różnica
+        // względem stanu sprzed edycji, zapisana jako ruch magazynowy. Dzięki temu
+        // równoległa zmiana z drugiego telefonu nie zostaje po cichu nadpisana.
+        val poprzedniaIlosc = if (id == null) 0 else bearingDao.getById(id)?.ilosc ?: 0
         val entity = BearingEntity(
-            id = id ?: newLocalId(), symbol = symbol, typ = typ, d = d, dZew = dZew, b = b, ilosc = ilosc,
+            id = bearingId, symbol = symbol, typ = typ, d = d, dZew = dZew, b = b, ilosc = ilosc,
             regalId = finalRegalId, recznyPrzydzial = recznyPrzydzial, zrodlo = zrodlo, uwagi = uwagi,
             updatedAt = System.currentTimeMillis(),
         )
         if (id == null) bearingDao.insert(entity) else bearingDao.update(entity)
+        if (ilosc != poprzedniaIlosc) zapiszRuch(bearingId, ilosc - poprzedniaIlosc)
+    }
+
+    /**
+     * Zmiana stanu o podaną liczbę sztuk (np. +1 / -1 z listy). Zwraca nowy stan.
+     * Stan lokalny aktualizujemy od razu (żeby UI reagował natychmiast), a różnicę
+     * zapisujemy jako ruch do wysłania przy najbliższej synchronizacji.
+     */
+    suspend fun changeQuantity(bearing: BearingEntity, delta: Int): Int {
+        val nowaIlosc = (bearing.ilosc + delta).coerceAtLeast(0)
+        val rzeczywistaZmiana = nowaIlosc - bearing.ilosc
+        if (rzeczywistaZmiana == 0) return bearing.ilosc     // próba zejścia poniżej zera
+        bearingDao.update(bearing.copy(ilosc = nowaIlosc, updatedAt = System.currentTimeMillis()))
+        zapiszRuch(bearing.id, rzeczywistaZmiana)
+        return nowaIlosc
+    }
+
+    private suspend fun zapiszRuch(bearingId: String, delta: Int) {
+        stockMoveDao.insert(StockMoveEntity(id = newLocalId(), bearingId = bearingId, delta = delta))
     }
 
     /** Miękkie kasowanie - patrz komentarz przy BearingEntity.deletedAt (propagacja przy synchronizacji). */
@@ -208,6 +233,13 @@ class Repository(private val db: AppDatabase) {
     suspend fun getLocalAliasChangesSince(sinceLocalMillis: Long): List<BarcodeAliasEntity> =
         aliasDao.getChangedSince(sinceLocalMillis)
 
+    /** Ruchy magazynowe czekające na wysłanie (kasowane dopiero po potwierdzeniu). */
+    suspend fun getPendingMoves(): List<StockMoveEntity> = stockMoveDao.getPending()
+
+    suspend fun clearMoves(ids: List<String>) {
+        if (ids.isNotEmpty()) stockMoveDao.deleteByIds(ids)
+    }
+
     /** Podmienia CAŁĄ lokalną bazę na stan otrzymany z serwera (serwer jest źródłem prawdy). */
     suspend fun replaceAllFromServer(
         shelves: List<ShelfEntity>,
@@ -221,6 +253,23 @@ class Repository(private val db: AppDatabase) {
         shelfDao.insertAll(shelves.filter { it.deletedAt == null })
         bearingDao.insertAll(bearings.filter { it.deletedAt == null })
         aliasDao.insertAll(aliases.filter { it.deletedAt == null })
+    }
+
+    /**
+     * Nakłada na świeżo pobrany stan te ruchy, które nadal czekają na wysłanie.
+     *
+     * Potrzebne, gdy użytkownik zmieni stan W TRAKCIE synchronizacji: taki ruch nie
+     * zdążył pojechać w tej rundzie, więc stan z serwera go nie zawiera. Bez tego
+     * zmiana zniknęłaby z ekranu aż do następnej synchronizacji, choć nie jest zgubiona.
+     */
+    suspend fun reapplyPendingMoves() {
+        val oczekujace = stockMoveDao.getPending()
+        if (oczekujace.isEmpty()) return
+        for ((bearingId, ruchy) in oczekujace.groupBy { it.bearingId }) {
+            val bearing = bearingDao.getById(bearingId) ?: continue
+            val suma = ruchy.sumOf { it.delta }
+            bearingDao.update(bearing.copy(ilosc = (bearing.ilosc + suma).coerceAtLeast(0)))
+        }
     }
 
     // ------------------------------------- aliasy kodów kreskowych (opakowania) ----

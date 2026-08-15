@@ -66,6 +66,27 @@ data class BarcodeAliasEntity(
     val deletedAt: Long? = null,
 )
 
+/**
+ * Ruch magazynowy: ile sztuk przybyło (+) albo ubyło (-) - patrz stock_moves w database.py.
+ *
+ * Po co, skoro ilość jest już w BearingEntity: ilość to LICZNIK, a licznika nie wolno
+ * synchronizować regułą "kto ostatni, ten lepszy". Gdy jedna osoba weźmie offline 2 sztuki,
+ * a druga 1, nadpisywanie wartością bezwzględną gubi jedną ze zmian bez śladu. Dlatego
+ * telefon wysyła RÓŻNICE, a serwer je sumuje.
+ *
+ * `id` jest nadawane tutaj i służy serwerowi do DEDUPLIKACJI: jeśli odpowiedź zginie po
+ * drodze i ten sam ruch pojedzie ponownie, drugi raz nie zostanie policzony.
+ *
+ * Rekordy kasujemy dopiero po potwierdzonej synchronizacji (patrz SyncEngine).
+ */
+@Entity(tableName = "stock_moves", indices = [Index(value = ["bearingId"])])
+data class StockMoveEntity(
+    @PrimaryKey val id: String,
+    val bearingId: String,
+    val delta: Int,
+    val createdAt: Long = System.currentTimeMillis(),
+)
+
 data class ShelfWithCounts(
     val id: String,
     val nazwa: String,

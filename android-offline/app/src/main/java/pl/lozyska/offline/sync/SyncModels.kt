@@ -4,6 +4,7 @@ import com.google.gson.annotations.SerializedName
 import pl.lozyska.offline.data.BarcodeAliasEntity
 import pl.lozyska.offline.data.BearingEntity
 import pl.lozyska.offline.data.ShelfEntity
+import pl.lozyska.offline.data.StockMoveEntity
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -42,10 +43,14 @@ data class SyncStateDto(
     val barcode_aliases: List<SyncBarcodeAliasDto>? = null,
 )
 
+/** Ruch magazynowy wysyłany na serwer. `id` służy serwerowi do deduplikacji. */
+data class SyncStockMoveDto(val id: String, val bearing_id: String, val delta: Int)
+
 data class SyncPushRequest(
     val shelves: List<SyncShelfDto>,
     val bearings: List<SyncBearingDto>,
     val barcode_aliases: List<SyncBarcodeAliasDto> = emptyList(),
+    val stock_moves: List<SyncStockMoveDto> = emptyList(),
 )
 
 interface SyncApiService {
@@ -82,6 +87,8 @@ fun SyncShelfDto.toEntity(localTimestamp: Long) = ShelfEntity(
     id = id, nazwa = nazwa, poziom = poziom, dMin = d_min, dMax = d_max,
     updatedAt = localTimestamp, deletedAt = tombstone(deleted_at, localTimestamp),
 )
+
+fun StockMoveEntity.toSyncDto() = SyncStockMoveDto(id = id, bearing_id = bearingId, delta = delta)
 
 fun BarcodeAliasEntity.toSyncDto() = SyncBarcodeAliasDto(
     id = id, kod = kod, symbol = symbol,

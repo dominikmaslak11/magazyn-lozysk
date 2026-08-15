@@ -114,3 +114,21 @@ interface BarcodeAliasDao {
     @Query("SELECT * FROM barcode_aliases WHERE updatedAt > :since")
     suspend fun getChangedSince(since: Long): List<BarcodeAliasEntity>
 }
+
+@Dao
+interface StockMoveDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(move: StockMoveEntity)
+
+    /** Ruchy czekające na wysłanie do serwera. */
+    @Query("SELECT * FROM stock_moves ORDER BY createdAt")
+    suspend fun getPending(): List<StockMoveEntity>
+
+    /** Kasujemy dopiero po POTWIERDZONEJ synchronizacji - inaczej zerwane połączenie
+     *  oznaczałoby bezpowrotną utratę zmiany stanu. */
+    @Query("DELETE FROM stock_moves WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<String>)
+
+    @Query("SELECT COALESCE(SUM(delta), 0) FROM stock_moves WHERE bearingId = :bearingId")
+    suspend fun pendingDeltaFor(bearingId: String): Int
+}

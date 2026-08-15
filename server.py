@@ -132,7 +132,7 @@ def logout():
 # synchronizacji i blokuje zapis lokalny, jeśli jest za stara (patrz
 # android-offline/.../sync/VersionCheck.kt).
 APP_VERSION = (Path(__file__).parent / "VERSION").read_text().strip()
-MIN_CLIENT_VERSION = "1.1.0"
+MIN_CLIENT_VERSION = "1.2.0"
 
 
 def _with_version(payload: dict) -> dict:
@@ -196,15 +196,22 @@ def api_bearings_add():
 @app.route("/api/bearings/<bearing_id>", methods=["PUT"])
 def api_bearings_update(bearing_id):
     payload = request.get_json(force=True)
-    if db.get_bearing(bearing_id) is None:
+    biezace = db.get_bearing(bearing_id)
+    if biezace is None:
         abort(404)
+    nowa_ilosc = int(payload.get("ilosc", 0))
+    # Ilość zmieniamy przez dziennik ruchów, nie wartością bezwzględną - dzięki temu
+    # historia jest kompletna niezależnie od tego, czy zmiana przyszła z przeglądarki,
+    # czy z telefonu, a reguła "ilość zmienia się WYŁĄCZNIE ruchami" nie ma wyjątków.
     db.update_bearing(
         bearing_id, symbol=payload["symbol"], typ=payload.get("typ", ""),
         d=payload.get("d"), D=payload.get("D"), B=payload.get("B"),
-        ilosc=int(payload.get("ilosc", 0)), zrodlo=payload.get("zrodlo", SOURCE_MANUAL),
+        ilosc=biezace.ilosc, zrodlo=payload.get("zrodlo", SOURCE_MANUAL),
         uwagi=payload.get("uwagi", ""), regal_id=payload.get("regal_id"),
         reczny_przydzial=bool(payload.get("reczny_przydzial", False)),
     )
+    if nowa_ilosc != biezace.ilosc:
+        db.apply_local_move(bearing_id, nowa_ilosc - biezace.ilosc, zrodlo="web")
     return jsonify({"ok": True})
 
 
@@ -275,11 +282,23 @@ def api_sync_push():
     (patrz opis algorytmu w database.py nad sync_state/apply_sync_push)."""
     payload = request.get_json(force=True)
     db.apply_sync_push(payload.get("shelves", []), payload.get("bearings", []),
-                        payload.get("barcode_aliases", []))
+                        payload.get("barcode_aliases", []), payload.get("stock_moves", []))
     return jsonify(_with_version(db.sync_state()))
 
 
 # --------------------------------------- aliasy kodów kreskowych (opakowania) ----
+
+@app.route("/api/stock-moves")
+def api_stock_moves():
+    """Historia ruchów magazynowych (przyjęcia/wydania). Bez parametru - cały magazyn."""
+    bearing_id = request.args.get("bearing_id")
+    shelves = {sh.id: sh for sh in db.get_shelves()}
+    symbole = {b.id: b.symbol for b in db.get_bearings()}
+    return jsonify([
+        {**asdict(m), "symbol": symbole.get(m.bearing_id, "(usunięte)")}
+        for m in db.get_stock_moves(bearing_id)
+    ])
+
 
 @app.route("/api/barcode-aliases")
 def api_barcode_aliases():
