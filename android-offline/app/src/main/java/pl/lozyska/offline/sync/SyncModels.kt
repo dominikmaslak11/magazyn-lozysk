@@ -67,9 +67,20 @@ fun BearingEntity.toSyncDto() = SyncBearingDto(
     deleted_at = deletedAt?.let { "deleted" },
 )
 
+/**
+ * Znacznik skasowania z serwera -> lokalny "nagrobek".
+ *
+ * UWAGA - tu był błąd, przez który skasowane rekordy WRACAŁY na telefon: konwersja
+ * ustawiała deletedAt zawsze na null, więc nagrobek z serwera stawał się zwykłym,
+ * aktywnym rekordem i przechodził przez filtr w Repository.replaceAllFromServer.
+ * Objaw: łożysko skasowane na jednym urządzeniu nadal widniało na liście na drugim.
+ */
+private fun tombstone(deletedAt: String?, localTimestamp: Long): Long? =
+    if (deletedAt != null) localTimestamp else null
+
 fun SyncShelfDto.toEntity(localTimestamp: Long) = ShelfEntity(
     id = id, nazwa = nazwa, poziom = poziom, dMin = d_min, dMax = d_max,
-    updatedAt = localTimestamp, deletedAt = null,
+    updatedAt = localTimestamp, deletedAt = tombstone(deleted_at, localTimestamp),
 )
 
 fun BarcodeAliasEntity.toSyncDto() = SyncBarcodeAliasDto(
@@ -79,11 +90,11 @@ fun BarcodeAliasEntity.toSyncDto() = SyncBarcodeAliasDto(
 
 fun SyncBarcodeAliasDto.toEntity(localTimestamp: Long) = BarcodeAliasEntity(
     id = id, kod = kod, symbol = symbol,
-    updatedAt = localTimestamp, deletedAt = null,
+    updatedAt = localTimestamp, deletedAt = tombstone(deleted_at, localTimestamp),
 )
 
 fun SyncBearingDto.toEntity(localTimestamp: Long) = BearingEntity(
     id = id, symbol = symbol, typ = typ, d = d, dZew = dZew, b = B, ilosc = ilosc,
     regalId = regal_id, recznyPrzydzial = reczny_przydzial, zrodlo = zrodlo, uwagi = uwagi ?: "",
-    updatedAt = localTimestamp, deletedAt = null,
+    updatedAt = localTimestamp, deletedAt = tombstone(deleted_at, localTimestamp),
 )

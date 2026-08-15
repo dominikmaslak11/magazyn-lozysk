@@ -218,3 +218,24 @@ Kolejność wynika z analizy „co realnie boli”, nie z tego, co najciekawsze 
   przed przypadkowym dostępem z tej samej sieci, nie przed podsłuchem nieszyfrowanego połączenia.
 - Token jest współdzielony (jeden dla wszystkich urządzeń) — nie da się odebrać dostępu jednemu telefonowi
   bez zmiany tokenu na wszystkich. Świadomy kompromis; wystarczający dla prywatnego magazynu.
+
+- [x] **BŁĄD: skasowane łożyska wracały na telefon** — naprawione 2026-08-15
+  - Objaw: łożyska `6008` i `UC211` skasowane 8 sierpnia nadal widniały na liście w telefonie,
+    mimo że na serwerze były prawidłowo oznaczone jako nagrobki (`deleted_at`)
+  - Przyczyna: `SyncModels.kt` przy konwersji DTO → encja ustawiał `deletedAt` **zawsze na null**,
+    więc nagrobek z serwera stawał się zwykłym, aktywnym rekordem i przechodził przez filtr
+    w `Repository.replaceAllFromServer`
+  - Dotyczyło wszystkich trzech typów rekordów: łożysk, regałów i aliasów kodów kreskowych
+  - Test regresyjny `SyncModelsTest.kt` (4 przypadki) — bez niego łatwo to przywrócić
+  - Potwierdzone na fizycznym Samsungu: po poprawce lista pokazuje wyłącznie `6204`
+  - Uwaga na przyszłość: dane NIE ginęły — serwer przez cały czas trzymał poprawny stan,
+    błąd był wyłącznie po stronie odczytu na telefonie
+
+## Autostart serwera
+
+- [x] **Usługa systemd użytkownika** — skonfigurowana 2026-08-14
+  - `~/.config/systemd/user/magazyn-lozysk.service`, `enable --now`, `Restart=on-failure`
+  - Włączony `loginctl enable-linger` — serwer startuje po restarcie laptopa BEZ logowania
+    i przeżywa wylogowanie (bez tego usługi użytkownika giną po zamknięciu sesji)
+  - Logi: `journalctl --user -u magazyn-lozysk -f`
+  - Token przetrwał restart (leży w pliku), więc telefony nie wymagały przekonfigurowania
