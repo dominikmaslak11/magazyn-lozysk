@@ -397,6 +397,14 @@ def _spis_magazynu(limit: int = 400) -> str:
         tekst += "\n".join(
             f"{s.symbol}: {' + '.join(str(w['ilosc']) + ' szt. w ' + w['lokalizacja'] for w in s.wpisy)}"
             f" -> razem {s.lacznie} szt. w {s.cel}" for s in scalenia)
+    try:
+        niezgodne = db.niezgodnosci_stanu()[:5]
+    except Exception:
+        niezgodne = []
+    if niezgodne:
+        tekst += ("\n\nWYMAGAJĄ PRZELICZENIA (stan bez pokrycia w dzienniku ruchów - "
+                   "poinformuj o tym, ale NIE zgaduj, która liczba jest prawdziwa):\n")
+        tekst += "\n".join(n.komunikat for n in niezgodne)
     return tekst
 
 

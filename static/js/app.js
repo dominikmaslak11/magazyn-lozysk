@@ -81,6 +81,7 @@ async function loadBearings() {
     state.sugestie = Object.fromEntries(lista.map((s) => [s.bearing_id, s]));
   } catch (_) { state.sugestie = {}; }
   try { renderScalenia(await api("/api/consolidation")); } catch (_) {}
+  try { renderNiezgodnosci(await api("/api/inconsistencies")); } catch (_) {}
   renderBearings();
 }
 
@@ -142,6 +143,36 @@ function renderBearings() {
     btn.addEventListener("click", () => deleteBearing(btn.dataset.del)));
   grid.querySelectorAll("[data-move]").forEach((btn) =>
     btn.addEventListener("click", () => przeniesLozysko(btn.dataset.move, btn.dataset.cel)));
+}
+
+function renderNiezgodnosci(lista) {
+  const box = $("#niezgodnosciBox");
+  if (!lista || !lista.length) { box.innerHTML = ""; return; }
+  box.innerHTML = lista.map((n) => `
+    <div class="card" style="border-left:5px solid #c1402e">
+      <div class="row1"><span><b>⚠ Potrzebne przeliczenie: ${esc(n.symbol)}</b></span>
+        <span>różnica ${n.roznica > 0 ? "+" : ""}${n.roznica} szt.</span></div>
+      <div class="meta-row"><span>${esc(n.komunikat)}</span></div>
+      <div class="card-actions">
+        <input type="number" min="0" class="policzona" data-for="${n.bearing_id}"
+               placeholder="ile faktycznie?" style="width:150px">
+        <button class="btn small primary" data-count="${n.bearing_id}">Zatwierdź przeliczenie</button>
+      </div>
+    </div>`).join("");
+  box.querySelectorAll("[data-count]").forEach((b) =>
+    b.addEventListener("click", () => zatwierdzPrzeliczenie(b.dataset.count)));
+}
+
+async function zatwierdzPrzeliczenie(id) {
+  const pole = document.querySelector(`.policzona[data-for="${id}"]`);
+  const ile = parseInt(pole.value, 10);
+  if (isNaN(ile) || ile < 0) { toast("Wpisz policzoną liczbę sztuk."); return; }
+  const r = await api("/api/inconsistencies/confirm", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ bearing_id: id, ilosc: ile }),
+  });
+  toast(`Zapisano ${r.ilosc} szt. (korekta ${r.korekta > 0 ? "+" : ""}${r.korekta} w dzienniku).`);
+  loadBearings();
 }
 
 function renderScalenia(lista) {

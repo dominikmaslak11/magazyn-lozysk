@@ -646,6 +646,88 @@ def scal_lozyska(symbol: str, cel_id: str | None = None) -> dict:
             "id": zachowany.id, "lokalizacja": shelf_path(docelowa)}
 
 
+@dataclass
+class Niezgodnosc:
+    """Stan w bazie nie zgadza się z sumą zapisanych ruchów magazynowych."""
+    bearing_id: str
+    symbol: str
+    lokalizacja: str
+    ilosc: int              # co mówi rekord
+    suma_ruchow: int        # co wynika z dziennika
+    roznica: int
+    komunikat: str
+
+
+def niezgodnosci_stanu() -> list[Niezgodnosc]:
+    """Pozycje, których stan nie ma pokrycia w dzienniku ruchów.
+
+    NIEZMIENNIK: ilość każdego łożyska powinna równać się sumie jego ruchów
+    (bilans otwarcia + wszystkie przyjęcia i wydania). Jeśli się rozjeżdża, znaczy
+    to, że gdzieś ilość została zmieniona z pominięciem dziennika - np. przez
+    starszą wersję appki, przerwaną synchronizację albo ręczną ingerencję w bazę.
+
+    Taka pozycja wymaga FIZYCZNEGO PRZELICZENIA - program nie wie, która liczba
+    jest prawdziwa, i celowo nie zgaduje: samo "naprawienie" bazy zamaskowałoby
+    problem, zamiast go pokazać.
+    """
+    conn = get_connection()
+    wezly = {s.id: s for s in get_shelves()}
+    wyniki: list[Niezgodnosc] = []
+    for b in get_bearings():
+        suma = conn.execute(
+            "SELECT COALESCE(SUM(delta), 0) FROM stock_moves WHERE bearing_id=?", (b.id,)
+        ).fetchone()[0]
+        if suma == b.ilosc:
+            continue
+        roznica = b.ilosc - suma
+        wyniki.append(Niezgodnosc(
+            bearing_id=b.id, symbol=b.symbol,
+            lokalizacja=shelf_path(b.regal_id, wezly) or "bez lokalizacji",
+            ilosc=b.ilosc, suma_ruchow=suma, roznica=roznica,
+            komunikat=(f"Przelicz ponownie {b.symbol} w lokalizacji "
+                        f"{shelf_path(b.regal_id, wezly) or 'bez lokalizacji'}: baza mówi {b.ilosc} szt., "
+                        f"a z historii ruchów wychodzi {suma} szt. "
+                        f"(różnica {roznica:+d})."),
+        ))
+    conn.close()
+    wyniki.sort(key=lambda n: abs(n.roznica), reverse=True)
+    return wyniki
+
+
+def potwierdz_stan(bearing_id: str, policzona_ilosc: int) -> dict:
+    """Zatwierdza wynik fizycznego przeliczenia: dopisuje ruch korygujący.
+
+    Świadomie NIE nadpisujemy po cichu - różnica trafia do dziennika jako ruch
+    "inwentaryzacja", więc widać kiedy i o ile stan skorygowano.
+
+    UWAGA na pułapkę, w którą sam wpadłem: korekta liczy się względem SUMY RUCHÓW,
+    ale ilość w rekordzie jest wtedy inna (na tym polega niezgodność). Dlatego nie
+    da się tu użyć zwykłego apply_local_move, który dodaje deltę do rekordu -
+    trzeba ustawić obie wartości na policzoną, w jednej transakcji.
+    """
+    b = get_bearing(bearing_id)
+    if b is None:
+        return {"ok": False}
+    policzona = max(0, int(policzona_ilosc))
+    conn = get_connection()
+    with conn:
+        suma = conn.execute("SELECT COALESCE(SUM(delta), 0) FROM stock_moves WHERE bearing_id=?",
+                             (bearing_id,)).fetchone()[0]
+        korekta = policzona - suma
+        ts = now_iso()
+        if korekta:
+            conn.execute(
+                "INSERT INTO stock_moves (id, bearing_id, delta, zrodlo, applied_at) VALUES (?, ?, ?, ?, ?)",
+                (new_id(), bearing_id, korekta, "inwentaryzacja", ts),
+            )
+        # Rekord ustawiamy WPROST na policzoną wartość - po tej operacji suma ruchów
+        # i ilość muszą być równe, inaczej niezgodność zgłosiłaby się ponownie.
+        conn.execute("UPDATE bearings SET ilosc=?, updated_at=? WHERE id=?",
+                      (policzona, ts, bearing_id))
+    conn.close()
+    return {"ok": True, "ilosc": policzona, "korekta": korekta}
+
+
 def reassign_all_auto() -> int:
     """Przelicza regał_id dla wszystkich łożysk BEZ ręcznej ingerencji. Zwraca liczbę zmienionych."""
     conn = get_connection()

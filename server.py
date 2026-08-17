@@ -406,6 +406,25 @@ def api_consolidation_merge():
     return jsonify(db.scal_lozyska(symbol, payload.get("cel_id")))
 
 
+@app.route("/api/inconsistencies")
+def api_inconsistencies():
+    """Pozycje wymagające fizycznego przeliczenia (stan bez pokrycia w dzienniku)."""
+    return jsonify([asdict(n) for n in db.niezgodnosci_stanu()])
+
+
+@app.route("/api/inconsistencies/confirm", methods=["POST"])
+def api_inconsistencies_confirm():
+    """Zatwierdza wynik przeliczenia - różnica idzie do dziennika jako inwentaryzacja."""
+    payload = request.get_json(force=True)
+    bid = payload.get("bearing_id")
+    if not bid or payload.get("ilosc") is None:
+        abort(400, "Podaj bearing_id i ilosc.")
+    wynik = db.potwierdz_stan(bid, int(payload["ilosc"]))
+    if not wynik.get("ok"):
+        abort(404)
+    return jsonify(wynik)
+
+
 @app.route("/api/stock-moves")
 def api_stock_moves():
     """Historia ruchów magazynowych (przyjęcia/wydania). Bez parametru - cały magazyn."""

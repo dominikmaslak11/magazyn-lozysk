@@ -367,3 +367,22 @@ Kolejność wynika z analizy „co realnie boli”, nie z tego, co najciekawsze 
       fizycznie leżały gdzie indziej). Duplikat zostaje TAM, GDZIE LEŻY
 - [x] Na prawdziwych danych: 6203 (1+10 → 11 szt.) i 6208 (2+2 → 4 szt.), suma 15=15
 - [ ] Brak wykrywania/scalania w appce Android (na razie wersja webowa)
+
+## Wykrywanie niezgodności stanu (2026-08-17)
+
+- [x] **Ustanowiony niezmiennik**: ilość łożyska == suma jego ruchów magazynowych.
+      Wcześniej były DWIE ścieżki tworzenia — dodanie z telefonu zapisywało ruch,
+      a z przeglądarki ustawiało liczbę wprost — więc suma nigdy się nie zgadzała
+      i alert byłby bezużyteczny. `add_bearing` zapisuje teraz „bilans otwarcia"
+- [x] `niezgodnosci_stanu()` + `/api/inconsistencies`: pozycje, których stan nie ma
+      pokrycia w dzienniku (starsza appka, przerwana synchronizacja, ręczna zmiana w bazie)
+- [x] Komunikat wprost: „Przelicz ponownie 6005 w Regał 9: baza mówi 7 szt., a z historii
+      ruchów wychodzi 10 szt. (różnica -3)"
+- [x] Zatwierdzenie przeliczenia dopisuje ruch „inwentaryzacja" — korekta jest widoczna
+      w historii, nie nadpisuje się po cichu
+- [x] **Program NIE zgaduje, która liczba jest prawdziwa** — wymaga fizycznego przeliczenia.
+      Automatyczne „naprawienie" bazy zamaskowałoby problem zamiast go pokazać
+- [x] Naprawiony własny błąd: korekta liczona względem sumy ruchów była nakładana na
+      (błędną) ilość w rekordzie — a te wartości różnią się dokładnie wtedy, gdy ta
+      funkcja się uruchamia. Zatwierdzenie 7 szt. dawało 4
+- [ ] Brak w appce Android (wersja webowa + kontekst asystenta AI)
