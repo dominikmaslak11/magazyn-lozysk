@@ -388,6 +388,15 @@ def _spis_magazynu(limit: int = 400) -> str:
         tekst += "\n".join(
             f"{s.symbol} ({s.ilosc} szt.): {s.obecna} -> {s.sugerowana} [{s.powod}]"
             for s in sugestie)
+    try:
+        scalenia = db.sugestie_scalenia()[:5]
+    except Exception:
+        scalenia = []
+    if scalenia:
+        tekst += "\n\nDO SCALENIA (to samo łożysko w kilku wpisach/miejscach):\n"
+        tekst += "\n".join(
+            f"{s.symbol}: {' + '.join(str(w['ilosc']) + ' szt. w ' + w['lokalizacja'] for w in s.wpisy)}"
+            f" -> razem {s.lacznie} szt. w {s.cel}" for s in scalenia)
     return tekst
 
 

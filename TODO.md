@@ -352,3 +352,18 @@ Kolejność wynika z analizy „co realnie boli”, nie z tego, co najciekawsze 
 - [ ] Brak podświetlenia i dymka w appce Android (na razie tylko wersja webowa)
 - [ ] Brak „odrzuć tę sugestię na stałe" — pozycja świadomie zostawiona gdzie indziej
       będzie się podświetlać w kółko
+
+## Scalanie zdublowanych i rozproszonych pozycji (2026-08-17)
+
+- [x] **Wykrywanie dwóch RÓŻNYCH problemów** (`sugestie_scalenia`, `/api/consolidation`):
+  - `duplikat` — ten sam symbol kilka razy w TEJ SAMEJ lokalizacji (błąd ewidencji)
+  - `rozproszone` — ten sam symbol w RÓŻNYCH miejscach (błąd układu; patrząc na jedną
+    półkę widzisz zaniżony stan i zamawiasz niepotrzebnie)
+- [x] **Scalanie przez dziennik ruchów** (`scal_lozyska`) — sztuki nie są nadpisywane,
+      tylko przenoszone ruchami, więc historia pozostaje kompletna i suma się zgadza
+- [x] Czerwony baner nad listą + przycisk „Scal w jeden wpis"
+- [x] **Naprawiony własny błąd**: pierwsza wersja przenosiła zduplikowany wpis do
+      lokalizacji sugerowanej regułami, rozjeżdżając bazę z rzeczywistością (łożyska
+      fizycznie leżały gdzie indziej). Duplikat zostaje TAM, GDZIE LEŻY
+- [x] Na prawdziwych danych: 6203 (1+10 → 11 szt.) i 6208 (2+2 → 4 szt.), suma 15=15
+- [ ] Brak wykrywania/scalania w appce Android (na razie wersja webowa)

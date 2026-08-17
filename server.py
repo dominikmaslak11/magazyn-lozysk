@@ -390,6 +390,22 @@ def api_suggestions():
     return jsonify([asdict(s) for s in sugestie])
 
 
+@app.route("/api/consolidation")
+def api_consolidation():
+    """Łożyska rozbite na kilka wpisów lub kilka lokalizacji - deterministycznie."""
+    return jsonify([asdict(s) for s in db.sugestie_scalenia()])
+
+
+@app.route("/api/consolidation/merge", methods=["POST"])
+def api_consolidation_merge():
+    """Scala wszystkie wpisy danego symbolu w jeden. Sztuki idą przez dziennik ruchów."""
+    payload = request.get_json(force=True)
+    symbol = (payload.get("symbol") or "").strip()
+    if not symbol:
+        abort(400, "Podaj symbol.")
+    return jsonify(db.scal_lozyska(symbol, payload.get("cel_id")))
+
+
 @app.route("/api/stock-moves")
 def api_stock_moves():
     """Historia ruchów magazynowych (przyjęcia/wydania). Bez parametru - cały magazyn."""

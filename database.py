@@ -543,6 +543,109 @@ def sugestie_przeniesien(min_sztuk: int = 1) -> list[SugestiaPrzeniesienia]:
     return wyniki
 
 
+@dataclass
+class SugestiaScalenia:
+    """To samo łożysko figuruje w kilku wpisach albo leży w kilku miejscach."""
+    symbol: str
+    rodzaj: str            # "duplikat" (ten sam wpis dwa razy) albo "rozproszone"
+    lacznie: int
+    wpisy: list[dict]      # [{bearing_id, ilosc, lokalizacja_id, lokalizacja}]
+    cel_id: str | None
+    cel: str
+    powod: str
+
+
+def sugestie_scalenia() -> list[SugestiaScalenia]:
+    """Wykrywa łożyska rozbite na kilka wpisów lub kilka lokalizacji.
+
+    Dwa RÓŻNE problemy, bo wymagają innej reakcji:
+
+      * "duplikat"     - kilka wpisów tego samego symbolu w TEJ SAMEJ lokalizacji.
+                          To błąd ewidencji: powinien być jeden wpis z sumą sztuk.
+      * "rozproszone"  - ten sam symbol leży w RÓŻNYCH miejscach. To błąd układu:
+                          patrząc na jedną półkę widzisz zaniżony stan i zamawiasz
+                          niepotrzebnie.
+
+    Cel scalenia: lokalizacja wskazana przez reguły doboru (typ + średnica), a gdy
+    jej nie ma - to miejsce, gdzie już leży najwięcej sztuk (najmniej przenoszenia).
+    """
+    wezly = {s.id: s for s in get_shelves()}
+    grupy: dict[str, list[Bearing]] = {}
+    for b in get_bearings():
+        grupy.setdefault(b.symbol.strip().casefold(), []).append(b)
+
+    wyniki: list[SugestiaScalenia] = []
+    for _, pozycje in grupy.items():
+        if len(pozycje) < 2:
+            continue
+        lokalizacje = {b.regal_id for b in pozycje}
+        rodzaj = "duplikat" if len(lokalizacje) == 1 else "rozproszone"
+
+        wzorzec = pozycje[0]
+        cel_id = suggest_shelf_id(wzorzec.D, wzorzec.typ)
+        if cel_id and cel_id in wezly:
+            powod = "lokalizacja wskazana przez reguły doboru"
+        else:
+            # najwięcej sztuk już na miejscu = najmniej przenoszenia
+            najliczniejszy = max(pozycje, key=lambda b: b.ilosc)
+            cel_id = najliczniejszy.regal_id
+            powod = "tam leży już najwięcej sztuk"
+        if rodzaj == "duplikat":
+            # KLUCZOWE: duplikat zostaje TAM, GDZIE LEŻY. Scalanie porządkuje ewidencję,
+            # a nie układ fizyczny - przeniesienie wpisu na inny regał rozjechałoby bazę
+            # z rzeczywistością, skoro łożyska nikt fizycznie nie ruszył.
+            cel_id = pozycje[0].regal_id
+            powod = "te same wpisy w jednej lokalizacji - scal w jeden (bez przenoszenia)"
+
+        wyniki.append(SugestiaScalenia(
+            symbol=wzorzec.symbol, rodzaj=rodzaj,
+            lacznie=sum(b.ilosc for b in pozycje),
+            wpisy=[{"bearing_id": b.id, "ilosc": b.ilosc, "lokalizacja_id": b.regal_id,
+                    "lokalizacja": shelf_path(b.regal_id, wezly) or "bez lokalizacji"}
+                   for b in pozycje],
+            cel_id=cel_id, cel=shelf_path(cel_id, wezly) if cel_id else "bez lokalizacji",
+            powod=powod,
+        ))
+    wyniki.sort(key=lambda s: s.lacznie, reverse=True)
+    return wyniki
+
+
+def scal_lozyska(symbol: str, cel_id: str | None = None) -> dict:
+    """Scala wszystkie wpisy danego symbolu w jeden, w jednej lokalizacji.
+
+    Przenoszenie sztuk idzie przez DZIENNIK RUCHÓW (apply_local_move), a nie przez
+    nadpisanie liczby - dzięki temu historia magazynu pozostaje kompletna i zgadza
+    się z regułą "ilość zmienia się wyłącznie ruchami".
+
+    Zachowujemy wpis z największą liczbą sztuk (najmniej ruchów do zapisania),
+    resztę kasujemy miękko, żeby skasowanie propagowało się na telefony.
+    """
+    pozycje = [b for b in get_bearings() if b.symbol.strip().casefold() == symbol.strip().casefold()]
+    if len(pozycje) < 2:
+        return {"scalono": 0, "lacznie": pozycje[0].ilosc if pozycje else 0}
+
+    zachowany = max(pozycje, key=lambda b: b.ilosc)
+    docelowa = cel_id or zachowany.regal_id
+    scalone = 0
+    for b in pozycje:
+        if b.id == zachowany.id:
+            continue
+        if b.ilosc:
+            apply_local_move(b.id, -b.ilosc, zrodlo="scalanie")
+            apply_local_move(zachowany.id, +b.ilosc, zrodlo="scalanie")
+        delete_bearing(b.id)
+        scalone += 1
+
+    aktualny = get_bearing(zachowany.id)
+    if aktualny and docelowa != aktualny.regal_id:
+        update_bearing(aktualny.id, symbol=aktualny.symbol, typ=aktualny.typ, d=aktualny.d,
+                        D=aktualny.D, B=aktualny.B, ilosc=aktualny.ilosc, zrodlo=aktualny.zrodlo,
+                        uwagi=aktualny.uwagi, regal_id=docelowa, reczny_przydzial=True)
+    koncowy = get_bearing(zachowany.id)
+    return {"scalono": scalone, "lacznie": koncowy.ilosc if koncowy else 0,
+            "id": zachowany.id, "lokalizacja": shelf_path(docelowa)}
+
+
 def reassign_all_auto() -> int:
     """Przelicza regał_id dla wszystkich łożysk BEZ ręcznej ingerencji. Zwraca liczbę zmienionych."""
     conn = get_connection()

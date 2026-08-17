@@ -80,6 +80,7 @@ async function loadBearings() {
     const lista = await api("/api/suggestions");
     state.sugestie = Object.fromEntries(lista.map((s) => [s.bearing_id, s]));
   } catch (_) { state.sugestie = {}; }
+  try { renderScalenia(await api("/api/consolidation")); } catch (_) {}
   renderBearings();
 }
 
@@ -141,6 +142,37 @@ function renderBearings() {
     btn.addEventListener("click", () => deleteBearing(btn.dataset.del)));
   grid.querySelectorAll("[data-move]").forEach((btn) =>
     btn.addEventListener("click", () => przeniesLozysko(btn.dataset.move, btn.dataset.cel)));
+}
+
+function renderScalenia(lista) {
+  const box = $("#scaleniaBox");
+  if (!lista || !lista.length) { box.innerHTML = ""; return; }
+  box.innerHTML = lista.map((s) => {
+    const gdzie = s.wpisy.map((w) => `${w.ilosc} szt. w ${esc(w.lokalizacja)}`).join(" + ");
+    const etykieta = s.rodzaj === "duplikat" ? "Zdublowany wpis" : "Rozproszone po lokalizacjach";
+    return `<div class="card" style="border-left:5px solid #c1402e">
+      <div class="row1"><span><b>⚠ ${etykieta}: ${esc(s.symbol)}</b></span>
+        <span>${s.lacznie} szt. łącznie</span></div>
+      <div class="meta-row"><span>${gdzie} — ${esc(s.powod)}</span></div>
+      <div class="card-actions">
+        <button class="btn small primary" data-merge="${esc(s.symbol)}" data-cel="${s.cel_id || ""}">
+          Scal w jeden wpis${s.rodzaj === "rozproszone" ? " (" + esc(s.cel) + ")" : ""}</button>
+      </div>
+    </div>`;
+  }).join("");
+  box.querySelectorAll("[data-merge]").forEach((b) =>
+    b.addEventListener("click", () => scalLozyska(b.dataset.merge, b.dataset.cel)));
+}
+
+async function scalLozyska(symbol, celId) {
+  if (!confirm(`Scalić wszystkie wpisy "${symbol}" w jeden?\n\n` +
+               "Sztuki zostaną zsumowane przez dziennik ruchów - nic nie zniknie.")) return;
+  const r = await api("/api/consolidation/merge", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ symbol, cel_id: celId || null }),
+  });
+  toast(`Scalono ${symbol}: ${r.lacznie} szt. w ${r.lokalizacja}.`);
+  loadBearings();
 }
 
 async function przeniesLozysko(id, celId) {
