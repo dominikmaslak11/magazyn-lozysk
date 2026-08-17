@@ -317,3 +317,21 @@ Kolejność wynika z analizy „co realnie boli”, nie z tego, co najciekawsze 
   - Android: wybór lokalizacji pokazuje pełną ścieżkę „Regał 3 › Półka 2 › Skrytka A"
 - [ ] Etykiety PDF nadal drukują samą nazwę węzła, nie pełną ścieżkę
 - [ ] Brak przenoszenia węzła między rodzicami (trzeba skasować i utworzyć na nowo)
+
+## Dobór lokalizacji po typie + widok drzewa (2026-08-17)
+
+- [x] **Typ ma pierwszeństwo przed średnicą** przy automatycznym doborze lokalizacji
+  - Nowe pole `typy` w lokalizacji: przypisujesz np. „wstawkowe (UC)" i wszystkie UC/ES
+    trafiają tam **niezależnie od średnicy** (sprawdzone: UC206 D=62, ES205 D=52,
+    UCP211 D=100 → ta sama półka, a 6205 dalej sortuje się po średnicy)
+  - Kolejność: typ+średnica → sam typ (najgłębsza lokalizacja) → ogólna wg średnicy →
+    skrajna ogólna. Puste `typy` = lokalizacja ogólna, zachowanie jak dotąd
+  - Klasyfikator poznaje serię **ES/ESP** (wstawkowe) — wcześniej zwracał „nie wiem"
+  - Migracje v5→v6 po obu stronach
+- [x] **Widok drzewa per regał**: wybór regału z listy, zwijanie gałęzi, stan zapamiętany
+      w przeglądarce
+- [x] **Sumy zbiorcze**: regał pokazuje ile leży w CAŁEJ gałęzi, nie tylko wprost na nim
+      (bez tego regał ze wszystkim w skrytkach pokazywał 0 szt.)
+- [x] Zakładka Dane rozbita na 7 składanych sekcji — świadoma alternatywa dla hamburgera
+      (przy 4 zakładkach hamburger chowałby nawigację za dodatkowym tapnięciem)
+- [ ] Brak UI do przypisywania typów w appce Android (jest w wersji webowej)

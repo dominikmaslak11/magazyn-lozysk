@@ -32,6 +32,9 @@ data class ShelfEntity(
     val deletedAt: Long? = null,
     val parentId: String? = null,
     val poziomTyp: String = "regał",
+    /** Typy łożysk, dla których ta lokalizacja jest przeznaczona (po przecinku).
+     *  Puste = ogólna, dobierana po średnicy. Typ ma pierwszeństwo przed średnicą. */
+    val typy: String = "",
 )
 
 @Entity(
@@ -107,4 +110,7 @@ data class ShelfWithCounts(
     val sztuki: Int,
     val parentId: String? = null,
     val poziomTyp: String = "regał",
+    /** Typy łożysk, dla których ta lokalizacja jest przeznaczona (po przecinku).
+     *  Puste = ogólna, dobierana po średnicy. Typ ma pierwszeństwo przed średnicą. */
+    val typy: String = "",
 )

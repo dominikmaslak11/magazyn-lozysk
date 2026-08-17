@@ -390,48 +390,114 @@ async function deleteShelfNode(id, nazwa) {
   loadShelves();
 }
 
+// Który regał jest pokazany i które gałęzie są zwinięte - zapamiętane między wizytami.
+const widokRegalow = {
+  wybrany: localStorage.getItem("wybranyRegal") || "",
+  zwiniete: new Set(JSON.parse(localStorage.getItem("zwinieteWezly") || "[]")),
+};
+
+function zapiszWidok() {
+  localStorage.setItem("wybranyRegal", widokRegalow.wybrany);
+  localStorage.setItem("zwinieteWezly", JSON.stringify([...widokRegalow.zwiniete]));
+}
+
+/** Sumy Z CAŁEJ GAŁĘZI - regał ma pokazywać ile leży w nim łącznie, także w skrytkach. */
+function sumyGalezi(wezel, wszystkie) {
+  let pozycje = wezel.pozycje, sztuki = wezel.sztuki;
+  for (const dziecko of wszystkie.filter((w) => w.parent_id === wezel.id)) {
+    const s = sumyGalezi(dziecko, wszystkie);
+    pozycje += s.pozycje; sztuki += s.sztuki;
+  }
+  return { pozycje, sztuki };
+}
+
+function maDzieci(id, wszystkie) {
+  return wszystkie.some((w) => w.parent_id === id);
+}
+
 function renderShelves() {
   const list = $("#shelvesList");
+  const wszystkie = state.shelves;
+  const korzenie = wszystkie.filter((w) => !w.parent_id).sort((a, b) => b.poziom - a.poziom);
+
+  // Lista wyboru regału; "" = wszystkie.
+  const picker = $("#shelfPicker");
+  if (picker) {
+    if (widokRegalow.wybrany && !wszystkie.some((w) => w.id === widokRegalow.wybrany)) {
+      widokRegalow.wybrany = "";      // wybrany regał zniknął (skasowany)
+    }
+    picker.innerHTML = `<option value="">— wszystkie regały —</option>` +
+      korzenie.map((r) => {
+        const s = sumyGalezi(r, wszystkie);
+        return `<option value="${r.id}" ${r.id === widokRegalow.wybrany ? "selected" : ""}>` +
+               `${esc(r.nazwa)} (${s.pozycje} poz. / ${s.sztuki} szt.)</option>`;
+      }).join("");
+  }
+
   list.innerHTML = "";
-  // Drzewo renderujemy rekurencyjnie, ale każdy węzeł to wciąż .shelf-card z polami
-  // .s-nazwa/.s-poziom/.s-dmin/.s-dmax - dzięki temu zapis (saveShelves) działa bez zmian.
-  const rysuj = (parentId, glebokosc) => {
-    state.shelves
-      .filter((w) => (w.parent_id || null) === parentId)
-      .sort((a, b) => b.poziom - a.poziom)
-      .forEach((s) => {
-        const podrzedny = POZIOMY_PODRZEDNE[s.poziom_typ] || "skrytka";
-        const card = document.createElement("div");
-        card.className = "card shelf-card";
-        card.dataset.id = s.id;
-        card.style.marginLeft = (glebokosc * 24) + "px";
-        card.innerHTML = `
-          <div class="row1">
-            <span class="badge">${esc(s.poziom_typ)}</span>
-            <span class="shelf-counts"><span>Pozycje: <b>${s.pozycje}</b></span>
-              <span>Sztuki: <b>${s.sztuki}</b></span></span>
-          </div>
-          <div class="fields">
-            <label>Kolejność</label><input class="s-poziom" type="number" value="${s.poziom}">
-            <label>Nazwa</label><input class="s-nazwa" value="${esc(s.nazwa)}">
-            <label>D od [mm]</label><input class="s-dmin" inputmode="decimal" value="${s.d_min == null ? "" : s.d_min}" placeholder="—">
-            <label>D do [mm]</label><input class="s-dmax" inputmode="decimal" value="${s.d_max == null ? "" : s.d_max}" placeholder="bez limitu">
-          </div>
-          <div class="card-actions">
-            <button class="btn small" data-add="${s.id}" data-typ="${esc(podrzedny)}">+ ${esc(podrzedny)}</button>
-            <button class="btn small danger" data-delnode="${s.id}" data-nazwa="${esc(s.nazwa)}">Usuń</button>
-          </div>
-        `;
-        list.appendChild(card);
-        rysuj(s.id, glebokosc + 1);
-      });
+  const doPokazania = widokRegalow.wybrany
+    ? korzenie.filter((r) => r.id === widokRegalow.wybrany)
+    : korzenie;
+
+  if (!doPokazania.length) {
+    list.innerHTML = '<div class="row"><span>Brak regałów. Dodaj pierwszy przyciskiem „+ Nowy regał”.</span></div>';
+    return;
+  }
+
+  const rysuj = (wezel, glebokosc) => {
+    const dzieci = wszystkie.filter((w) => w.parent_id === wezel.id).sort((a, b) => b.poziom - a.poziom);
+    const zwiniety = widokRegalow.zwiniete.has(wezel.id);
+    const podrzedny = POZIOMY_PODRZEDNE[wezel.poziom_typ] || "skrytka";
+    const suma = sumyGalezi(wezel, wszystkie);
+    const wlasne = wezel.sztuki;
+
+    const card = document.createElement("div");
+    card.className = "card shelf-card";
+    card.dataset.id = wezel.id;
+    card.style.marginLeft = (glebokosc * 24) + "px";
+    // Sumy z gałęzi pokazujemy tylko wtedy, gdy różnią się od własnych - inaczej
+    // przy liściach byłaby to ta sama liczba dwa razy.
+    const licznik = dzieci.length && suma.sztuki !== wlasne
+      ? `<span>W tej gałęzi: <b>${suma.pozycje}</b> poz. / <b>${suma.sztuki}</b> szt.</span>` +
+        `<span>Wprost tutaj: <b>${wezel.pozycje}</b> / <b>${wlasne}</b></span>`
+      : `<span>Pozycje: <b>${wezel.pozycje}</b></span><span>Sztuki: <b>${wlasne}</b></span>`;
+
+    card.innerHTML = `
+      <div class="row1">
+        <span>
+          ${dzieci.length ? `<button class="btn small" data-toggle="${wezel.id}">${zwiniety ? "▸" : "▾"}</button>` : ""}
+          <span class="badge">${esc(wezel.poziom_typ)}</span>
+        </span>
+        <span class="shelf-counts">${licznik}</span>
+      </div>
+      <div class="fields">
+        <label>Kolejność</label><input class="s-poziom" type="number" value="${wezel.poziom}">
+        <label>Nazwa</label><input class="s-nazwa" value="${esc(wezel.nazwa)}">
+        <label>D od [mm]</label><input class="s-dmin" inputmode="decimal" value="${wezel.d_min == null ? "" : wezel.d_min}" placeholder="—">
+        <label>D do [mm]</label><input class="s-dmax" inputmode="decimal" value="${wezel.d_max == null ? "" : wezel.d_max}" placeholder="bez limitu">
+        <label title="Puste = lokalizacja ogólna, dobierana po średnicy. Wpisany typ ma pierwszeństwo przed średnicą.">Tylko typy</label>
+        <input class="s-typy" value="${esc(wezel.typy || "")}" placeholder="np. wstawkowe (UC)" list="listaTypow">
+      </div>
+      <div class="card-actions">
+        <button class="btn small" data-add="${wezel.id}" data-typ="${esc(podrzedny)}">+ ${esc(podrzedny)}</button>
+        <button class="btn small danger" data-delnode="${wezel.id}" data-nazwa="${esc(wezel.nazwa)}">Usuń</button>
+      </div>
+    `;
+    list.appendChild(card);
+    if (!zwiniety) dzieci.forEach((d) => rysuj(d, glebokosc + 1));
   };
-  rysuj(null, 0);
+  doPokazania.forEach((r) => rysuj(r, 0));
 
   list.querySelectorAll("[data-add]").forEach((b) =>
     b.addEventListener("click", () => addShelfNode(b.dataset.add, b.dataset.typ)));
   list.querySelectorAll("[data-delnode]").forEach((b) =>
     b.addEventListener("click", () => deleteShelfNode(b.dataset.delnode, b.dataset.nazwa)));
+  list.querySelectorAll("[data-toggle]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const id = b.dataset.toggle;
+      widokRegalow.zwiniete.has(id) ? widokRegalow.zwiniete.delete(id) : widokRegalow.zwiniete.add(id);
+      zapiszWidok(); renderShelves();
+    }));
 }
 
 async function saveShelves() {
@@ -444,6 +510,7 @@ async function saveShelves() {
         poziom: parseInt(card.querySelector(".s-poziom").value, 10),
         d_min: numOrNull(card.querySelector(".s-dmin").value),
         d_max: numOrNull(card.querySelector(".s-dmax").value),
+        typy: card.querySelector(".s-typy").value.trim(),
       };
       await api(`/api/shelves/${id}`, {
         method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
@@ -567,6 +634,10 @@ async function init() {
   initTabs();
 
   state.types = await api("/api/types");
+  const dl = document.createElement("datalist");
+  dl.id = "listaTypow";
+  dl.innerHTML = state.types.map((t) => `<option value="${esc(t)}">`).join("");
+  document.body.appendChild(dl);
 
   $("#searchInput").addEventListener("input", debounce(loadBearings, 250));
   $("#addBearingBtn").addEventListener("click", () => openBearingModal(null));
@@ -585,6 +656,16 @@ async function init() {
   $("#saveShelvesBtn").addEventListener("click", saveShelves);
   $("#reassignBtn").addEventListener("click", reassignAll);
   $("#btnAddRoot").addEventListener("click", () => addShelfNode(null, "regał"));
+  $("#shelfPicker").addEventListener("change", (e) => {
+    widokRegalow.wybrany = e.target.value; zapiszWidok(); renderShelves();
+  });
+  $("#btnExpandAll").addEventListener("click", () => {
+    widokRegalow.zwiniete.clear(); zapiszWidok(); renderShelves();
+  });
+  $("#btnCollapseAll").addEventListener("click", () => {
+    state.shelves.forEach((w) => widokRegalow.zwiniete.add(w.id));
+    zapiszWidok(); renderShelves();
+  });
 
   $("#importDbFile").addEventListener("change", importDbFile);
   $("#importJsonReplace").addEventListener("click", () => importJsonFile("zastap"));

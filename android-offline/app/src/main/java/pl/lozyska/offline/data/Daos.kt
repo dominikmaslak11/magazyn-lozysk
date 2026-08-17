@@ -57,7 +57,7 @@ interface BearingDao {
 @Dao
 interface ShelfDao {
     @Query("""
-        SELECT s.id, s.nazwa, s.poziom, s.dMin, s.dMax, s.parentId, s.poziomTyp,
+        SELECT s.id, s.nazwa, s.poziom, s.dMin, s.dMax, s.parentId, s.poziomTyp, s.typy,
                COUNT(b.id) AS pozycje, COALESCE(SUM(b.ilosc), 0) AS sztuki
         FROM shelves s LEFT JOIN bearings b ON b.regalId = s.id AND b.deletedAt IS NULL
         WHERE s.deletedAt IS NULL

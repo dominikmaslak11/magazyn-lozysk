@@ -52,7 +52,16 @@
       mieć żadnych - łożysko można położyć wprost na regale albo w konkretnej skrytce.
       Zakresy średnicy D (do automatycznego przydziału) ustawiaj na tym poziomie, na
       którym faktycznie kładziesz łożyska.
+      W polu <b>„Tylko typy”</b> możesz przypisać lokalizację do konkretnych rodzajów
+      (np. <code>wstawkowe (UC)</code>) - wtedy wszystkie UC i ES trafią tam niezależnie
+      od średnicy. Typ ma pierwszeństwo przed średnicą; puste pole = lokalizacja ogólna.
     </p>
+    <div class="toolbar" style="margin-bottom:6px">
+      <label for="shelfPicker" style="align-self:center">Pokaż regał:</label>
+      <select id="shelfPicker" style="max-width:280px"></select>
+      <button class="btn small" id="btnExpandAll">Rozwiń wszystko</button>
+      <button class="btn small" id="btnCollapseAll">Zwiń wszystko</button>
+    </div>
     <div id="shelvesList"></div>
   </section>
 
@@ -78,8 +87,8 @@
 
   <!-- ================= DANE ================= -->
   <section id="view-data" class="view">
-    <div class="card">
-      <h2 style="margin-top:0;font-size:16px;">Kopia zapasowa i eksport</h2>
+    <details class="card" open>
+      <summary style="cursor:pointer;font-size:16px;font-weight:600;list-style:revert">Kopia zapasowa i eksport</summary>
       <p class="help-text" style="margin-top:-6px">
         Plik bazy (.db) to pełna, dokładna kopia - najlepszy sposób na backup i przenoszenie
         danych między urządzeniami. Plik JSON jest czytelny dla człowieka.
@@ -88,10 +97,10 @@
         <a class="btn" href="/api/export/db">Pobierz kopię bazy (.db)</a>
         <a class="btn" href="/api/export/json">Pobierz eksport (.json)</a>
       </div>
-    </div>
+    </details>
 
-    <div class="card">
-      <h2 style="margin-top:0;font-size:16px;">Etykiety regałów</h2>
+    <details class="card" open>
+      <summary style="cursor:pointer;font-size:16px;font-weight:600;list-style:revert">Etykiety regałów</summary>
       <p class="help-text" style="margin-top:-6px">
         PDF do wydruku - jedna strona na regał, z listą przypisanych łożysk (symbol, typ,
         wymiary, ilość, uwagi). Przyklej kartkę na regale, żeby od razu było widać co gdzie leży.
@@ -99,10 +108,10 @@
       <div class="inline-btn-row">
         <a class="btn primary" href="/api/export/shelf-labels-pdf">Pobierz etykiety regałów (PDF)</a>
       </div>
-    </div>
+    </details>
 
-    <div class="card">
-      <h2 style="margin-top:0;font-size:16px;">Naklejki QR łożysk</h2>
+    <details class="card">
+      <summary style="cursor:pointer;font-size:16px;font-weight:600;list-style:revert">Naklejki QR łożysk</summary>
       <p class="help-text" style="margin-top:-6px">
         Arkusz małych naklejek do wycięcia - jedna na łożysko, z kodem QR, symbolem i wymiarami.
         Zeskanowanie takiej naklejki aparatem w appce Android od razu otwiera łożysko z gotowym
@@ -111,10 +120,10 @@
       <div class="inline-btn-row">
         <a class="btn primary" href="/api/export/bearing-qr-labels-pdf">Pobierz naklejki QR (PDF)</a>
       </div>
-    </div>
+    </details>
 
-    <div class="card">
-      <h2 style="margin-top:0;font-size:16px;">Import</h2>
+    <details class="card">
+      <summary style="cursor:pointer;font-size:16px;font-weight:600;list-style:revert">Import</summary>
       <p class="help-text" style="margin-top:-6px">
         Import bazy (.db) CAŁKOWICIE zastępuje bieżące dane (przed importem robiony jest
         automatyczny backup). Import JSON pozwala wybrać: zastąp albo dopisz.
@@ -131,19 +140,19 @@
           <button class="btn small" id="importJsonAppend">Dopisz jako nowe</button>
         </div>
       </div>
-    </div>
+    </details>
 
-    <div class="card">
-      <h2 style="margin-top:0;font-size:16px;">Automatyczne kopie zapasowe</h2>
+    <details class="card">
+      <summary style="cursor:pointer;font-size:16px;font-weight:600;list-style:revert">Automatyczne kopie zapasowe</summary>
       <p class="help-text" style="margin-top:-6px">
         Robione automatycznie przy starcie serwera oraz przed każdym importem (ostatnie 20).
         Leżą na komputerze, na którym działa serwer, w folderze <code>~/.lozyska_data/backups</code>.
       </p>
       <div id="backupsList" class="data-list"></div>
-    </div>
+    </details>
 
-    <div class="card">
-      <h2 style="margin-top:0;font-size:16px;">Zapamiętane kody z opakowań</h2>
+    <details class="card">
+      <summary style="cursor:pointer;font-size:16px;font-weight:600;list-style:revert">Zapamiętane kody z opakowań</summary>
       <p class="help-text" style="margin-top:-6px">
         Kody kreskowe (EAN) z pudełek nie zawierają oznaczenia łożyska, tylko numer handlowy
         producenta. Gdy zeskanujesz nieznany kod w appce na telefonie, appka pyta raz, co to za
@@ -151,17 +160,17 @@
         a przy następnym skanie appka zapyta ponownie.
       </p>
       <div id="aliasesList" class="data-list"></div>
-    </div>
+    </details>
 
-    <div class="card">
-      <h2 style="margin-top:0;font-size:16px;">Historia ruchów magazynowych</h2>
+    <details class="card">
+      <summary style="cursor:pointer;font-size:16px;font-weight:600;list-style:revert">Historia ruchów magazynowych</summary>
       <p class="help-text" style="margin-top:-6px">
         Każde przyjęcie i wydanie sztuk - z komputera i z telefonów. Ilość zmienia się wyłącznie
         przez takie ruchy, dzięki czemu równoległe zmiany z dwóch urządzeń sumują się, zamiast
         nadpisywać jedna drugą.
       </p>
       <div id="movesList" class="data-list"></div>
-    </div>
+    </details>
   </section>
 </main>
 

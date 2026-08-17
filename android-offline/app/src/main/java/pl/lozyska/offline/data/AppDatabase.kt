@@ -53,9 +53,16 @@ private val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
+/** v5 -> v6: lokalizacja może być dedykowana konkretnym typom łożysk. */
+private val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `shelves` ADD COLUMN `typy` TEXT NOT NULL DEFAULT ''")
+    }
+}
+
 @Database(
     entities = [BearingEntity::class, ShelfEntity::class, BarcodeAliasEntity::class, StockMoveEntity::class],
-    version = 5,
+    version = 6,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -78,7 +85,7 @@ abstract class AppDatabase : RoomDatabase() {
                     // v2 -> v3 ma już prawdziwą migrację (nie chcemy tracić zmian zrobionych
                     // offline), więc jest zarejestrowana PO fallbacku - Room użyje jej zamiast
                     // czyszczenia bazy.
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .build()
                     .also { INSTANCE = it }
             }

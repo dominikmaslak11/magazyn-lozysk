@@ -259,7 +259,8 @@ def api_shelves_list():
 def api_shelves_update(shelf_id):
     payload = request.get_json(force=True)
     db.update_shelf(shelf_id, payload["nazwa"], int(payload["poziom"]),
-                     _to_float(payload.get("d_min")), _to_float(payload.get("d_max")))
+                     _to_float(payload.get("d_min")), _to_float(payload.get("d_max")),
+                     typy=payload.get("typy"))
     return jsonify({"ok": True})
 
 
@@ -277,6 +278,7 @@ def api_shelves_add():
         nazwa=nazwa, parent_id=parent_id,
         poziom_typ=(payload.get("poziom_typ") or "regał"),
         d_min=payload.get("d_min"), d_max=payload.get("d_max"),
+        typy=payload.get("typy", ""),
     )
     return jsonify({"id": node_id}), 201
 
@@ -509,7 +511,7 @@ def _shelf_to_dict(s: db.Shelf, counts: dict[int, tuple[int, int]]) -> dict:
     return {
         "id": s.id, "nazwa": s.nazwa, "poziom": s.poziom,
         "d_min": s.d_min, "d_max": s.d_max, "pozycje": pozycje, "sztuki": sztuki,
-        "parent_id": s.parent_id, "poziom_typ": s.poziom_typ,
+        "parent_id": s.parent_id, "poziom_typ": s.poziom_typ, "typy": s.typy,
     }
 
 

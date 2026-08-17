@@ -18,7 +18,7 @@ data class SyncShelfDto(
     val d_min: Double?, val d_max: Double?,
     val updated_at: String? = null, val deleted_at: String? = null,
     // Hierarchia lokalizacji - null u starszego serwera, wtedy węzeł jest korzeniem.
-    val parent_id: String? = null, val poziom_typ: String? = null,
+    val parent_id: String? = null, val poziom_typ: String? = null, val typy: String? = null,
 )
 
 data class SyncBearingDto(
@@ -90,7 +90,7 @@ interface SyncApiService {
 fun ShelfEntity.toSyncDto() = SyncShelfDto(
     id = id, nazwa = nazwa, poziom = poziom, d_min = dMin, d_max = dMax,
     deleted_at = deletedAt?.let { "deleted" },
-    parent_id = parentId, poziom_typ = poziomTyp,
+    parent_id = parentId, poziom_typ = poziomTyp, typy = typy,
 )
 
 fun BearingEntity.toSyncDto() = SyncBearingDto(
@@ -113,7 +113,7 @@ private fun tombstone(deletedAt: String?, localTimestamp: Long): Long? =
 fun SyncShelfDto.toEntity(localTimestamp: Long) = ShelfEntity(
     id = id, nazwa = nazwa, poziom = poziom, dMin = d_min, dMax = d_max,
     updatedAt = localTimestamp, deletedAt = tombstone(deleted_at, localTimestamp),
-    parentId = parent_id, poziomTyp = poziom_typ ?: "regał",
+    parentId = parent_id, poziomTyp = poziom_typ ?: "regał", typy = typy ?: "",
 )
 
 fun StockMoveEntity.toSyncDto() = SyncStockMoveDto(id = id, bearing_id = bearingId, delta = delta)

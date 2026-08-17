@@ -44,7 +44,7 @@ BACKUP_DIR = DB_DIR / "backups"
 BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 MAX_AUTO_BACKUPS = 20
 
-SCHEMA_VERSION = 5  # v5 = hierarchia lokalizacji (parent_id + poziom_typ w shelves)
+SCHEMA_VERSION = 6  # v6 = przypisanie typów łożysk do lokalizacji (kolumna typy)
 
 # Domyślne, edytowalne w GUI zakresy średnicy zewnętrznej (mm) dla 9 regałów.
 # poziom 1 = regał najniższy (duże łożyska), poziom 9 = najwyższy (małe łożyska).
@@ -104,6 +104,11 @@ class Shelf:
     deleted_at: str | None = None
     parent_id: str | None = None
     poziom_typ: str = "regał"
+    # Typy łożysk, dla których ta lokalizacja jest przeznaczona (oddzielone przecinkami).
+    # Puste = lokalizacja ogólna, dobierana wyłącznie po średnicy zewnętrznej.
+    # Po co: średnica to nie jedyne kryterium - wstawkowe UC/ES mają duże obudowy i
+    # w praktyce trzyma się je razem, niezależnie od D.
+    typy: str = ""
 
 
 @dataclass
@@ -167,6 +172,10 @@ def init_db() -> None:
         shelf_cols = {r["name"] for r in conn.execute("PRAGMA table_info(shelves)")}
         if "parent_id" not in shelf_cols:
             _migrate_v4_to_v5(conn)
+            shelf_cols.add("parent_id")
+        # v5 -> v6: lokalizacja może być dedykowana konkretnym typom łożysk.
+        if "typy" not in shelf_cols:
+            conn.execute("ALTER TABLE shelves ADD COLUMN typy TEXT NOT NULL DEFAULT ''")
     conn.close()
 
 
@@ -181,7 +190,8 @@ def _create_v2_schema(conn: sqlite3.Connection) -> None:
             updated_at TEXT NOT NULL,
             deleted_at TEXT,
             parent_id TEXT REFERENCES shelves(id) ON DELETE SET NULL,
-            poziom_typ TEXT NOT NULL DEFAULT 'regał'
+            poziom_typ TEXT NOT NULL DEFAULT 'regał',
+            typy TEXT NOT NULL DEFAULT ''
         )
     """)
     # UWAGA: celowo BEZ unikalnego indeksu na `poziom`. Przy hierarchii numer poziomu
@@ -323,7 +333,7 @@ def get_shelf(shelf_id: str) -> Shelf | None:
 
 
 def add_shelf(nazwa: str, parent_id: str | None = None, poziom_typ: str = "regał",
-               d_min: float | None = None, d_max: float | None = None) -> str:
+               d_min: float | None = None, d_max: float | None = None, typy: str = "") -> str:
     """Dodaje węzeł lokalizacji. `parent_id=None` tworzy nowy regał (korzeń).
 
     Poziom (liczba) służy już tylko do sortowania w obrębie rodzeństwa - przy
@@ -337,8 +347,8 @@ def add_shelf(nazwa: str, parent_id: str | None = None, poziom_typ: str = "rega�
         node_id = new_id()
         conn.execute(
             "INSERT INTO shelves (id, nazwa, poziom, d_min, d_max, updated_at, deleted_at, "
-            "parent_id, poziom_typ) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?)",
-            (node_id, nazwa, nastepny, d_min, d_max, now_iso(), parent_id, poziom_typ),
+            "parent_id, poziom_typ, typy) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)",
+            (node_id, nazwa, nastepny, d_min, d_max, now_iso(), parent_id, poziom_typ, (typy or "").strip()),
         )
     conn.close()
     return node_id
@@ -385,13 +395,20 @@ def shelf_path(shelf_id: str | None, wezly: dict[str, Shelf] | None = None) -> s
     return " › ".join(reversed(czesci))
 
 
-def update_shelf(shelf_id: str, nazwa: str, poziom: int, d_min: float | None, d_max: float | None) -> None:
+def update_shelf(shelf_id: str, nazwa: str, poziom: int, d_min: float | None,
+                  d_max: float | None, typy: str | None = None) -> None:
     conn = get_connection()
     with conn:
-        conn.execute(
-            "UPDATE shelves SET nazwa=?, poziom=?, d_min=?, d_max=?, updated_at=? WHERE id=?",
-            (nazwa, poziom, d_min, d_max, now_iso(), shelf_id),
-        )
+        if typy is None:
+            conn.execute(
+                "UPDATE shelves SET nazwa=?, poziom=?, d_min=?, d_max=?, updated_at=? WHERE id=?",
+                (nazwa, poziom, d_min, d_max, now_iso(), shelf_id),
+            )
+        else:
+            conn.execute(
+                "UPDATE shelves SET nazwa=?, poziom=?, d_min=?, d_max=?, typy=?, updated_at=? WHERE id=?",
+                (nazwa, poziom, d_min, d_max, typy.strip(), now_iso(), shelf_id),
+            )
     conn.close()
 
 
@@ -406,34 +423,78 @@ def shelf_counts() -> dict[str, tuple[int, int]]:
     return {r["regal_id"]: (r["pozycje"], r["sztuki"]) for r in rows}
 
 
-def suggest_shelf_id(outer_diameter: float | None) -> str | None:
-    """Dobiera regał na podstawie średnicy zewnętrznej D wg bieżących zakresów."""
+def suggest_shelf_id(outer_diameter: float | None, typ: str | None = None) -> str | None:
+    """Dobiera lokalizację dla łożyska.
+
+    Kolejność kryteriów - typ jest WAŻNIEJSZY niż średnica, bo w praktyce trzyma się
+    razem całe rodziny (wstawkowe UC/ES mają duże obudowy i leżą osobno niezależnie
+    od D, tak samo bywa z igiełkowymi czy oporowymi):
+
+      1. lokalizacja dedykowana temu typowi ORAZ pasująca zakresem D,
+      2. lokalizacja dedykowana temu typowi (bez zakresu D albo D nieznane),
+      3. lokalizacja ogólna (bez przypisanych typów) pasująca zakresem D,
+      4. skrajna lokalizacja ogólna, gdy średnica wypada poza wszystkie zakresy.
+
+    Dzięki temu wystarczy oznaczyć jedną półkę jako "wstawkowe (UC)", żeby wszystkie
+    UC i ES lądowały razem, a reszta magazynu dalej sortowała się po średnicy.
+    """
+    wszystkie = get_shelves()
+    if not wszystkie:
+        return None
+
+    def w_zakresie(s: Shelf) -> bool:
+        if outer_diameter is None:
+            return False
+        lo = s.d_min if s.d_min is not None else float("-inf")
+        hi = s.d_max if s.d_max is not None else float("inf")
+        return lo <= outer_diameter < hi
+
+    def ma_typ(s: Shelf) -> bool:
+        if not typ or not s.typy:
+            return False
+        chciane = {t.strip().casefold() for t in s.typy.split(",") if t.strip()}
+        return typ.strip().casefold() in chciane
+
+    dedykowane = [s for s in wszystkie if ma_typ(s)]
+    # 1) typ + średnica
+    for s in dedykowane:
+        if w_zakresie(s):
+            return s.id
+    # 2) sam typ - najgłębsza lokalizacja wygrywa (skrytka jest konkretniejsza niż regał)
+    if dedykowane:
+        wgId = {x.id: x for x in wszystkie}
+        def glebokosc(s: Shelf) -> int:
+            g, b, krok = 0, s.parent_id, 0
+            while b and krok < 10:
+                g += 1; b = wgId.get(b).parent_id if wgId.get(b) else None; krok += 1
+            return g
+        return max(dedykowane, key=glebokosc).id
+
+    ogolne = [s for s in wszystkie if not s.typy]
     if outer_diameter is None:
         return None
-    shelves = get_shelves()  # posortowane poziom malejąco: od największego do najmniejszego
-    for shelf in shelves:
-        lo = shelf.d_min if shelf.d_min is not None else float("-inf")
-        hi = shelf.d_max if shelf.d_max is not None else float("inf")
-        if lo <= outer_diameter < hi:
-            return shelf.id
-    # poza zdefiniowanymi zakresami: przypnij do skrajnego regału
-    if not shelves:
+    # 3) ogólna w zakresie
+    for s in ogolne:
+        if w_zakresie(s):
+            return s.id
+    # 4) poza zakresami - przypnij do skrajnej ogólnej
+    if not ogolne:
         return None
-    biggest = max(shelves, key=lambda s: s.poziom)
-    smallest = min(shelves, key=lambda s: s.poziom)
-    return biggest.id if outer_diameter >= (biggest.d_min or 0) else smallest.id
+    najwiekszy = max(ogolne, key=lambda s: s.poziom)
+    najmniejszy = min(ogolne, key=lambda s: s.poziom)
+    return najwiekszy.id if outer_diameter >= (najwiekszy.d_min or 0) else najmniejszy.id
 
 
 def reassign_all_auto() -> int:
     """Przelicza regał_id dla wszystkich łożysk BEZ ręcznej ingerencji. Zwraca liczbę zmienionych."""
     conn = get_connection()
     rows = conn.execute(
-        "SELECT id, D_out FROM bearings WHERE reczny_przydzial = 0 AND deleted_at IS NULL"
+        "SELECT id, D_out, typ FROM bearings WHERE reczny_przydzial = 0 AND deleted_at IS NULL"
     ).fetchall()
     changed = 0
     with conn:
         for row in rows:
-            new_shelf = suggest_shelf_id(row["D_out"])
+            new_shelf = suggest_shelf_id(row["D_out"], row["typ"])
             conn.execute("UPDATE bearings SET regal_id=?, updated_at=? WHERE id=?",
                          (new_shelf, now_iso(), row["id"]))
             changed += 1
@@ -481,7 +542,7 @@ def add_bearing(symbol: str, typ: str, d: float | None, D: float | None, B: floa
                  ilosc: int, zrodlo: str, uwagi: str = "",
                  regal_id: str | None = None, reczny_przydzial: bool = False) -> str:
     if regal_id is None and not reczny_przydzial:
-        regal_id = suggest_shelf_id(D)
+        regal_id = suggest_shelf_id(D, typ)
     bearing_id = new_id()
     conn = get_connection()
     with conn:
@@ -499,7 +560,7 @@ def update_bearing(bearing_id: str, symbol: str, typ: str, d: float | None, D: f
                     ilosc: int, zrodlo: str, uwagi: str,
                     regal_id: str | None, reczny_przydzial: bool) -> None:
     if not reczny_przydzial:
-        regal_id = suggest_shelf_id(D)
+        regal_id = suggest_shelf_id(D, typ)
     conn = get_connection()
     with conn:
         conn.execute(
@@ -535,6 +596,7 @@ def _row_to_shelf(row: sqlite3.Row) -> Shelf:
         updated_at=row["updated_at"], deleted_at=row["deleted_at"],
         parent_id=row["parent_id"] if "parent_id" in klucze else None,
         poziom_typ=(row["poziom_typ"] if "poziom_typ" in klucze else None) or "regał",
+        typy=(row["typy"] if "typy" in klucze else None) or "",
     )
 
 
@@ -700,9 +762,10 @@ def apply_sync_push(shelves_in: list[dict], bearings_in: list[dict],
                 if "parent_id" in s or "poziom_typ" in s:
                     conn.execute(
                         "UPDATE shelves SET nazwa=?, poziom=?, d_min=?, d_max=?, updated_at=?, "
-                        "deleted_at=?, parent_id=?, poziom_typ=? WHERE id=?",
+                        "deleted_at=?, parent_id=?, poziom_typ=?, typy=? WHERE id=?",
                         (s["nazwa"], s["poziom"], s.get("d_min"), s.get("d_max"), ts,
-                         s.get("deleted_at"), s.get("parent_id"), s.get("poziom_typ") or "regał", s["id"]),
+                         s.get("deleted_at"), s.get("parent_id"), s.get("poziom_typ") or "regał",
+                         s.get("typy") or "", s["id"]),
                     )
                 else:
                     conn.execute(
@@ -712,9 +775,10 @@ def apply_sync_push(shelves_in: list[dict], bearings_in: list[dict],
             else:
                 conn.execute(
                     "INSERT INTO shelves (id, nazwa, poziom, d_min, d_max, updated_at, deleted_at, "
-                    "parent_id, poziom_typ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "parent_id, poziom_typ, typy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (s["id"], s["nazwa"], s["poziom"], s.get("d_min"), s.get("d_max"), ts,
-                     s.get("deleted_at"), s.get("parent_id"), s.get("poziom_typ") or "regał"),
+                     s.get("deleted_at"), s.get("parent_id"), s.get("poziom_typ") or "regał",
+                     s.get("typy") or ""),
                 )
         for b in bearings_in:
             exists = conn.execute("SELECT 1 FROM bearings WHERE id=?", (b["id"],)).fetchone()

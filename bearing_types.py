@@ -38,7 +38,7 @@ from bearing_data import (TYP_IGIELKOWE, TYP_KULKOWE, TYP_OPOROWE, TYP_SKOSNE,
 # (N/NU/NJ), bo inaczej reguła na "N" połknęłaby "NA4900".
 _PREFIX_RULES: list[tuple[str, str]] = [
     # łożyska wstawkowe / w oprawach
-    (r"^(UCFL|UCFC|UCPH|UCP|UCF|UCT|UCX|UC|UK|SB|SA|CSA)\d", TYP_WSTAWKOWE),
+    (r"^(UCFL|UCFC|UCPH|UCP|UCF|UCT|UCX|UC|UK|SB|SA|CSA|ESP|ES)\d", TYP_WSTAWKOWE),
     # igiełkowe - PRZED walcowymi
     (r"^(RNAO|RNA|NKIA|NKIB|NKI|NKX|NKS|NAO|NA|NK|HK|BK|IR|TA)\d", TYP_IGIELKOWE),
     # walcowe
