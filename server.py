@@ -425,6 +425,23 @@ def api_inconsistencies_confirm():
     return jsonify(wynik)
 
 
+@app.route("/api/stock-alerts")
+def api_stock_alerts():
+    """Pozycje poniżej minimum albo ponad stan optymalny."""
+    return jsonify([asdict(a) for a in db.alerty_stanu()])
+
+
+@app.route("/api/bearings/<bearing_id>/progi", methods=["POST"])
+def api_set_thresholds(bearing_id):
+    """Ustawia progi magazynowe. Osobno od edycji łożyska - to decyzja zaopatrzeniowa."""
+    if db.get_bearing(bearing_id) is None:
+        abort(404)
+    p = request.get_json(force=True)
+    db.ustaw_progi(bearing_id, int(p.get("stan_min", 0)), int(p.get("stan_opt", 0)),
+                    int(p.get("zapotrzebowanie", 0)))
+    return jsonify({"ok": True})
+
+
 @app.route("/api/stock-moves")
 def api_stock_moves():
     """Historia ruchów magazynowych (przyjęcia/wydania). Bez parametru - cały magazyn."""
@@ -545,6 +562,7 @@ def _bearing_to_dict(b: db.Bearing, shelves: dict[int, db.Shelf]) -> dict:
         "ilosc": b.ilosc, "regal_id": b.regal_id,
         "regal_nazwa": shelf.nazwa if shelf else None,
         "sciezka": db.shelf_path(b.regal_id, shelves) if b.regal_id else None,
+        "stan_min": b.stan_min, "stan_opt": b.stan_opt, "zapotrzebowanie": b.zapotrzebowanie,
         "reczny_przydzial": b.reczny_przydzial, "zrodlo": b.zrodlo, "uwagi": b.uwagi,
     }
 

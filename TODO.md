@@ -386,3 +386,21 @@ Kolejność wynika z analizy „co realnie boli”, nie z tego, co najciekawsze 
       (błędną) ilość w rekordzie — a te wartości różnią się dokładnie wtedy, gdy ta
       funkcja się uruchamia. Zatwierdzenie 7 szt. dawało 4
 - [ ] Brak w appce Android (wersja webowa + kontekst asystenta AI)
+
+## Progi magazynowe i wyszukiwanie po uwagach (2026-08-17)
+
+- [x] **Progi na łożysku**: `stan_min`, `stan_opt`, `zapotrzebowanie` (roczne zużycie).
+      Wystarczy podać samo roczne zużycie — progi wyliczą się same (opt = zużycie,
+      min = połowa) — albo ustawić je ręcznie
+- [x] **Trzy poziomy alertu** zamiast jednego, bo znaczą co innego:
+      `brak` (0 szt., czerwony) · `pilne` (poniżej minimum, żółty) ·
+      `nadmiar` (ponad optymalny, szary — to nie awaria, tylko zamrożone pieniądze)
+- [x] Komunikat wprost: „Konieczne uzupełnienie jak najszybciej: 6205 (wał corncrackera)
+      — zostało 1 szt. przy minimum 5. Domów 9 szt. do stanu optymalnego (10)."
+- [x] Pilnowane są TYLKO pozycje z ustawionymi progami — inaczej cały magazyn
+      krzyczałby od pierwszego dnia
+- [x] **Wyszukiwanie obejmuje teraz uwagi** — wpisanie „corncracker" znajduje 6205.
+      Pole uwag istniało od dawna, ale wyszukiwarka go nie przeszukiwała
+- [x] Progi zapisywane osobnym wywołaniem (`/api/bearings/<id>/progi`) — to decyzja
+      zaopatrzeniowa, oddzielona od danych technicznych łożyska
+- [ ] Progi i alerty nie są jeszcze w appce Android ani w synchronizacji

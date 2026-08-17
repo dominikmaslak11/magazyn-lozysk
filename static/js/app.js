@@ -82,6 +82,7 @@ async function loadBearings() {
   } catch (_) { state.sugestie = {}; }
   try { renderScalenia(await api("/api/consolidation")); } catch (_) {}
   try { renderNiezgodnosci(await api("/api/inconsistencies")); } catch (_) {}
+  try { renderAlerty(await api("/api/stock-alerts")); } catch (_) {}
   renderBearings();
 }
 
@@ -143,6 +144,24 @@ function renderBearings() {
     btn.addEventListener("click", () => deleteBearing(btn.dataset.del)));
   grid.querySelectorAll("[data-move]").forEach((btn) =>
     btn.addEventListener("click", () => przeniesLozysko(btn.dataset.move, btn.dataset.cel)));
+}
+
+const KOLOR_ALERTU = { brak: "#c1402e", pilne: "#e0a92b", nadmiar: "#6b7280" };
+
+function renderAlerty(lista) {
+  const box = $("#alertyBox");
+  if (!lista || !lista.length) { box.innerHTML = ""; return; }
+  box.innerHTML = lista.map((a) => `
+    <div class="card" style="border-left:5px solid ${KOLOR_ALERTU[a.poziom]}">
+      <div class="row1">
+        <span><b>${a.poziom === "nadmiar" ? "ℹ" : "⚠"} ${esc(a.symbol)}</b>
+          <span class="badge">${a.poziom === "brak" ? "brak na stanie"
+            : a.poziom === "pilne" ? "poniżej minimum" : "nadmiar"}</span></span>
+        <span>${a.ilosc} szt. (min ${a.stan_min} / opt ${a.stan_opt})</span>
+      </div>
+      <div class="meta-row"><span>${esc(a.komunikat)}</span>
+        <span>${esc(a.lokalizacja)}</span></div>
+    </div>`).join("");
 }
 
 function renderNiezgodnosci(lista) {
@@ -261,6 +280,9 @@ function openBearingModal(id) {
   $("#f_B").value = b && b.B != null ? b.B : "";
   $("#f_ilosc").value = b ? b.ilosc : 1;
   $("#f_uwagi").value = b ? b.uwagi || "" : "";
+  $("#f_stan_min").value = b && b.stan_min ? b.stan_min : "";
+  $("#f_stan_opt").value = b && b.stan_opt ? b.stan_opt : "";
+  $("#f_zapotrzebowanie").value = b && b.zapotrzebowanie ? b.zapotrzebowanie : "";
 
   state.chosenSource = b ? b.zrodlo : "recznie";
   setSourceNote(state.chosenSource);
@@ -442,16 +464,31 @@ async function saveBearing() {
     reczny_przydzial: reczny,
   };
 
+  // Progi zapisujemy osobnym wywołaniem - to decyzja zaopatrzeniowa, oddzielona od
+  // danych technicznych łożyska (patrz ustaw_progi w database.py).
+  const progi = {
+    stan_min: parseInt($("#f_stan_min").value || "0", 10),
+    stan_opt: parseInt($("#f_stan_opt").value || "0", 10),
+    zapotrzebowanie: parseInt($("#f_zapotrzebowanie").value || "0", 10),
+  };
+
+  let bearingId = state.editingId;
   if (state.editingId) {
     await api(`/api/bearings/${state.editingId}`, {
       method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
     });
     toast("Zapisano zmiany.");
   } else {
-    await api("/api/bearings", {
+    const r = await api("/api/bearings", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
     });
+    bearingId = r.id;
     toast("Dodano łożysko.");
+  }
+  if (bearingId) {
+    await api(`/api/bearings/${bearingId}/progi`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(progi),
+    });
   }
   closeBearingModal();
   loadBearings();

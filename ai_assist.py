@@ -405,6 +405,13 @@ def _spis_magazynu(limit: int = 400) -> str:
         tekst += ("\n\nWYMAGAJĄ PRZELICZENIA (stan bez pokrycia w dzienniku ruchów - "
                    "poinformuj o tym, ale NIE zgaduj, która liczba jest prawdziwa):\n")
         tekst += "\n".join(n.komunikat for n in niezgodne)
+    try:
+        alerty = db.alerty_stanu()[:8]
+    except Exception:
+        alerty = []
+    if alerty:
+        tekst += "\n\nSTANY POZA PROGAMI (wyliczone regułami):\n"
+        tekst += "\n".join(a.komunikat for a in alerty)
     return tekst
 
 

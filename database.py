@@ -44,7 +44,7 @@ BACKUP_DIR = DB_DIR / "backups"
 BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 MAX_AUTO_BACKUPS = 20
 
-SCHEMA_VERSION = 6  # v6 = przypisanie typów łożysk do lokalizacji (kolumna typy)
+SCHEMA_VERSION = 7  # v7 = progi magazynowe (stan_min, stan_opt, zapotrzebowanie roczne)
 
 # Domyślne, edytowalne w GUI zakresy średnicy zewnętrznej (mm) dla 9 regałów.
 # poziom 1 = regał najniższy (duże łożyska), poziom 9 = najwyższy (małe łożyska).
@@ -76,6 +76,10 @@ class Bearing:
     uwagi: str
     updated_at: str = ""
     deleted_at: str | None = None
+    # Progi magazynowe. 0 = nie pilnujemy tej pozycji.
+    stan_min: int = 0        # poniżej tego trzeba pilnie uzupełnić
+    stan_opt: int = 0        # docelowy stan; powyżej to zamrożone pieniądze
+    zapotrzebowanie: int = 0 # szacowane roczne zużycie (podpowiada progi)
 
 
 # Poziomy hierarchii. Każdy jest OPCJONALNY - regał może mieć od razu skrytki albo
@@ -176,6 +180,11 @@ def init_db() -> None:
         # v5 -> v6: lokalizacja może być dedykowana konkretnym typom łożysk.
         if "typy" not in shelf_cols:
             conn.execute("ALTER TABLE shelves ADD COLUMN typy TEXT NOT NULL DEFAULT ''")
+        # v6 -> v7: progi magazynowe na łożysku.
+        bearing_cols = {r["name"] for r in conn.execute("PRAGMA table_info(bearings)")}
+        for kolumna in ("stan_min", "stan_opt", "zapotrzebowanie"):
+            if kolumna not in bearing_cols:
+                conn.execute(f"ALTER TABLE bearings ADD COLUMN {kolumna} INTEGER NOT NULL DEFAULT 0")
     conn.close()
 
 
@@ -212,7 +221,10 @@ def _create_v2_schema(conn: sqlite3.Connection) -> None:
             zrodlo TEXT DEFAULT 'recznie',
             uwagi TEXT DEFAULT '',
             updated_at TEXT NOT NULL,
-            deleted_at TEXT
+            deleted_at TEXT,
+            stan_min INTEGER NOT NULL DEFAULT 0,
+            stan_opt INTEGER NOT NULL DEFAULT 0,
+            zapotrzebowanie INTEGER NOT NULL DEFAULT 0
         )
     """)
 
@@ -728,6 +740,87 @@ def potwierdz_stan(bearing_id: str, policzona_ilosc: int) -> dict:
     return {"ok": True, "ilosc": policzona, "korekta": korekta}
 
 
+@dataclass
+class AlertStanu:
+    """Stan magazynowy poza ustalonymi progami."""
+    bearing_id: str
+    symbol: str
+    uwagi: str
+    lokalizacja: str
+    ilosc: int
+    stan_min: int
+    stan_opt: int
+    poziom: str          # "brak" | "pilne" | "nadmiar"
+    brakuje: int         # ile domówić do stanu optymalnego (0 przy nadmiarze)
+    nadmiar: int
+    komunikat: str
+
+
+def progi_lozyska(b: Bearing) -> tuple[int, int]:
+    """Progi (min, optymalny). Gdy nie ustawiono ich wprost, wyprowadzamy je z
+    rocznego zapotrzebowania: optymalny = zapotrzebowanie, minimalny = połowa.
+
+    Dzięki temu wystarczy podać jedną liczbę ("zużywam 10 rocznie"), zamiast
+    wypełniać dwa pola - a kto chce, nadal może ustawić progi ręcznie.
+    """
+    if b.stan_min or b.stan_opt:
+        opt = b.stan_opt or b.stan_min
+        return b.stan_min, max(opt, b.stan_min)
+    if b.zapotrzebowanie:
+        return max(1, b.zapotrzebowanie // 2), b.zapotrzebowanie
+    return 0, 0
+
+
+def ustaw_progi(bearing_id: str, stan_min: int = 0, stan_opt: int = 0,
+                 zapotrzebowanie: int = 0) -> None:
+    """Progi magazynowe zmieniamy osobno od reszty pól - to decyzja zaopatrzeniowa,
+    a nie zmiana danych technicznych łożyska."""
+    conn = get_connection()
+    with conn:
+        conn.execute(
+            "UPDATE bearings SET stan_min=?, stan_opt=?, zapotrzebowanie=?, updated_at=? WHERE id=?",
+            (max(0, int(stan_min)), max(0, int(stan_opt)), max(0, int(zapotrzebowanie)),
+             now_iso(), bearing_id),
+        )
+    conn.close()
+
+
+def alerty_stanu() -> list[AlertStanu]:
+    """Pozycje wymagające zamówienia albo takie, których jest za dużo.
+
+    Pilnujemy tylko tych, dla których ustawiono progi (albo roczne zapotrzebowanie) -
+    inaczej cały magazyn krzyczałby od pierwszego dnia. Nadmiar to nie awaria, tylko
+    zamrożone pieniądze i miejsce na regale, więc jest osobnym, łagodniejszym poziomem.
+    """
+    wezly = {s.id: s for s in get_shelves()}
+    wyniki: list[AlertStanu] = []
+    for b in get_bearings():
+        mini, opt = progi_lozyska(b)
+        if not mini and not opt:
+            continue
+        gdzie = shelf_path(b.regal_id, wezly) or "bez lokalizacji"
+        opis = f" ({b.uwagi})" if b.uwagi else ""
+        if b.ilosc == 0:
+            wyniki.append(AlertStanu(b.id, b.symbol, b.uwagi, gdzie, b.ilosc, mini, opt,
+                "brak", max(opt - b.ilosc, 0), 0,
+                f"BRAK {b.symbol}{opis} - zamów pilnie {max(opt, mini)} szt. "
+                f"(minimum {mini}, optymalnie {opt})."))
+        elif b.ilosc < mini:
+            wyniki.append(AlertStanu(b.id, b.symbol, b.uwagi, gdzie, b.ilosc, mini, opt,
+                "pilne", max(opt - b.ilosc, 0), 0,
+                f"Konieczne uzupełnienie jak najszybciej: {b.symbol}{opis} - zostało "
+                f"{b.ilosc} szt. przy minimum {mini}. Domów {max(opt - b.ilosc, 0)} szt. "
+                f"do stanu optymalnego ({opt})."))
+        elif opt and b.ilosc > opt:
+            wyniki.append(AlertStanu(b.id, b.symbol, b.uwagi, gdzie, b.ilosc, mini, opt,
+                "nadmiar", 0, b.ilosc - opt,
+                f"Nadmiar: {b.symbol}{opis} - {b.ilosc} szt. przy stanie optymalnym {opt}. "
+                f"{b.ilosc - opt} szt. ponad potrzeby zajmuje miejsce i zamraża pieniądze."))
+    kolejnosc = {"brak": 0, "pilne": 1, "nadmiar": 2}
+    wyniki.sort(key=lambda a: (kolejnosc[a.poziom], -a.brakuje))
+    return wyniki
+
+
 def reassign_all_auto() -> int:
     """Przelicza regał_id dla wszystkich łożysk BEZ ręcznej ingerencji. Zwraca liczbę zmienionych."""
     conn = get_connection()
@@ -765,8 +858,11 @@ def get_bearings(search: str = "") -> list[Bearing]:
         ).fetchall()
     elif search:
         rows = conn.execute(
-            "SELECT * FROM bearings WHERE deleted_at IS NULL AND symbol LIKE ? ORDER BY symbol",
-            (f"%{search}%",),
+            # Szukamy też w uwagach - użytkownik opisuje tam zastosowanie
+            # ("wał corncrackera") i chce po tym trafiać do części.
+            "SELECT * FROM bearings WHERE deleted_at IS NULL "
+            "AND (symbol LIKE ? OR uwagi LIKE ?) ORDER BY symbol",
+            (f"%{search}%", f"%{search}%"),
         ).fetchall()
     else:
         rows = conn.execute("SELECT * FROM bearings WHERE deleted_at IS NULL ORDER BY symbol").fetchall()
@@ -783,7 +879,8 @@ def get_bearing(bearing_id: str) -> Bearing | None:
 
 def add_bearing(symbol: str, typ: str, d: float | None, D: float | None, B: float | None,
                  ilosc: int, zrodlo: str, uwagi: str = "",
-                 regal_id: str | None = None, reczny_przydzial: bool = False) -> str:
+                 regal_id: str | None = None, reczny_przydzial: bool = False,
+                 stan_min: int = 0, stan_opt: int = 0, zapotrzebowanie: int = 0) -> str:
     if regal_id is None and not reczny_przydzial:
         regal_id = suggest_shelf_id(D, typ)
     bearing_id = new_id()
@@ -829,6 +926,9 @@ def _row_to_bearing(row: sqlite3.Row) -> Bearing:
         ilosc=row["ilosc"], regal_id=row["regal_id"],
         reczny_przydzial=bool(row["reczny_przydzial"]), zrodlo=row["zrodlo"], uwagi=row["uwagi"],
         updated_at=row["updated_at"], deleted_at=row["deleted_at"],
+        stan_min=(row["stan_min"] if "stan_min" in row.keys() else 0) or 0,
+        stan_opt=(row["stan_opt"] if "stan_opt" in row.keys() else 0) or 0,
+        zapotrzebowanie=(row["zapotrzebowanie"] if "zapotrzebowanie" in row.keys() else 0) or 0,
     )
 
 
