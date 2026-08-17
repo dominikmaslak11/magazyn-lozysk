@@ -335,3 +335,20 @@ Kolejność wynika z analizy „co realnie boli”, nie z tego, co najciekawsze 
 - [x] Zakładka Dane rozbita na 7 składanych sekcji — świadoma alternatywa dla hamburgera
       (przy 4 zakładkach hamburger chowałby nawigację za dodatkowym tapnięciem)
 - [ ] Brak UI do przypisywania typów w appce Android (jest w wersji webowej)
+
+## Podpowiedzi przełożenia łożysk (2026-08-17)
+
+- [x] **Deterministyczny rdzeń** (`sugestie_przeniesien`, `/api/suggestions`)
+  - Porównuje obecną lokalizację z wyliczoną tymi samymi regułami co przy dodawaniu
+    (typ + średnica). ZERO udziału AI — dzięki temu podpowiedź jest zawsze spójna,
+    natychmiastowa i działa bez internetu
+  - Sortowanie po liczbie sztuk: przeniesienie 10 szt. porządkuje magazyn bardziej niż jednej
+  - Pozycje ustawione ręcznie NIE są pomijane (użytkownik kładzie „gdzie było miejsce"
+    i właśnie o tym chce wiedzieć), ale są oznaczone flagą `reczny`
+- [x] **Żółte podświetlenie + adnotacja** na karcie łożyska w wersji webowej, z powodem
+      („średnica 47 mm mieści się w zakresie 42-55 mm") i przyciskiem „Przenieś"
+- [x] **Asystent AI dostaje gotową listę** i opowiada o niej w rozmowie. Model NIE decyduje,
+      co leży źle — tylko formułuje; inaczej przy tym samym magazynie dawałby różne odpowiedzi
+- [ ] Brak podświetlenia i dymka w appce Android (na razie tylko wersja webowa)
+- [ ] Brak „odrzuć tę sugestię na stałe" — pozycja świadomie zostawiona gdzie indziej
+      będzie się podświetlać w kółko

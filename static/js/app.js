@@ -2,6 +2,7 @@
 
 const state = {
   bearings: [],
+  sugestie: {},
   shelves: [],
   types: [],
   editingId: null,
@@ -73,6 +74,12 @@ async function loadBearings() {
   const search = $("#searchInput").value.trim();
   const url = "/api/bearings" + (search ? `?search=${encodeURIComponent(search)}` : "");
   state.bearings = await api(url);
+  // Podpowiedzi przełożenia liczy serwer deterministycznie (bez AI) - jeśli padną,
+  // lista łożysk i tak ma się wyświetlić.
+  try {
+    const lista = await api("/api/suggestions");
+    state.sugestie = Object.fromEntries(lista.map((s) => [s.bearing_id, s]));
+  } catch (_) { state.sugestie = {}; }
   renderBearings();
 }
 
@@ -91,6 +98,11 @@ function renderBearings() {
   for (const b of state.bearings) {
     const card = document.createElement("div");
     card.className = "card bearing-card";
+    const sug = state.sugestie[b.id];
+    if (sug) {
+      card.style.borderLeft = "5px solid #e0a92b";
+      card.style.background = "color-mix(in srgb, #e0a92b 8%, transparent)";
+    }
     const regalTxt = b.regal_nazwa ? b.regal_nazwa + (b.reczny_przydzial ? " (ręcznie)" : "") : "—";
     card.innerHTML = `
       <div class="row1">
@@ -110,6 +122,11 @@ function renderBearings() {
         <span class="shelf-tag">${esc(regalTxt)}</span>
         <span>${esc(b.uwagi || "")}</span>
       </div>
+      ${sug ? `<div class="meta-row" style="color:#8a6400">
+        <span>⚠ Potrzebna interwencja: przenieś ${sug.ilosc} szt. do <b>${esc(sug.sugerowana)}</b>
+        — ${esc(sug.powod)}${sug.reczny ? " (pozycja ustawiona ręcznie)" : ""}</span>
+        <button class="btn small" data-move="${b.id}" data-cel="${sug.sugerowana_id}">Przenieś</button>
+      </div>` : ""}
       <div class="card-actions">
         <button class="btn small" data-edit="${b.id}">Edytuj</button>
         <button class="btn small danger" data-del="${b.id}">Usuń</button>
@@ -122,6 +139,22 @@ function renderBearings() {
     btn.addEventListener("click", () => openBearingModal(btn.dataset.edit)));
   grid.querySelectorAll("[data-del]").forEach((btn) =>
     btn.addEventListener("click", () => deleteBearing(btn.dataset.del)));
+  grid.querySelectorAll("[data-move]").forEach((btn) =>
+    btn.addEventListener("click", () => przeniesLozysko(btn.dataset.move, btn.dataset.cel)));
+}
+
+async function przeniesLozysko(id, celId) {
+  const b = state.bearings.find((x) => x.id === id);
+  if (!b) return;
+  await api(`/api/bearings/${id}`, {
+    method: "PUT", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      symbol: b.symbol, typ: b.typ, d: b.d, D: b.D, B: b.B, ilosc: b.ilosc,
+      zrodlo: b.zrodlo, uwagi: b.uwagi, regal_id: celId, reczny_przydzial: true,
+    }),
+  });
+  toast(`Przeniesiono ${b.symbol}.`);
+  loadBearings();
 }
 
 async function deleteBearing(id) {

@@ -373,7 +373,22 @@ def _spis_magazynu(limit: int = 400) -> str:
         wym = f"{b.d or '?'}x{b.D or '?'}x{b.B or '?'}"
         linie.append(f"{b.symbol} | {wym} mm | {b.typ or '?'} | {b.ilosc} szt. | "
                       f"{regaly.get(b.regal_id, 'bez regału')}")
-    return "STAN MAGAZYNU (symbol | d x D x B | typ | ilość | regał):\n" + "\n".join(linie)
+    tekst = "STAN MAGAZYNU (symbol | d x D x B | typ | ilość | regał):\n" + "\n".join(linie)
+
+    # Podpowiedzi przełożenia liczy deterministyczna reguła (database.sugestie_przeniesien),
+    # NIE model. Model dostaje gotową listę tylko po to, żeby ładnie o niej opowiedzieć -
+    # dzięki temu nie zmyśli, że coś leży źle, i nie będzie za każdym razem mówił czegoś innego.
+    try:
+        sugestie = db.sugestie_przeniesien(min_sztuk=2)[:10]
+    except Exception:
+        sugestie = []
+    if sugestie:
+        tekst += ("\n\nWARTO PRZEŁOŻYĆ (wyliczone regułami, nie zgaduj tu nic od siebie;"
+                   " wspominaj o tym tylko, gdy pytanie tego dotyczy):\n")
+        tekst += "\n".join(
+            f"{s.symbol} ({s.ilosc} szt.): {s.obecna} -> {s.sugerowana} [{s.powod}]"
+            for s in sugestie)
+    return tekst
 
 
 def _czat_anthropic(klucz: str, wiadomosci: list[dict], kontekst: str) -> str:

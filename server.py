@@ -382,6 +382,14 @@ def api_ai_providers():
     })
 
 
+@app.route("/api/suggestions")
+def api_suggestions():
+    """Podpowiedzi przełożenia łożysk - deterministyczne, bez udziału AI."""
+    min_sztuk = int(request.args.get("min_sztuk", 1))
+    sugestie = db.sugestie_przeniesien(min_sztuk=min_sztuk)
+    return jsonify([asdict(s) for s in sugestie])
+
+
 @app.route("/api/stock-moves")
 def api_stock_moves():
     """Historia ruchów magazynowych (przyjęcia/wydania). Bez parametru - cały magazyn."""

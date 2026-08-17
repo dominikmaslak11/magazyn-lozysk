@@ -485,6 +485,64 @@ def suggest_shelf_id(outer_diameter: float | None, typ: str | None = None) -> st
     return najwiekszy.id if outer_diameter >= (najwiekszy.d_min or 0) else najmniejszy.id
 
 
+@dataclass
+class SugestiaPrzeniesienia:
+    """Łożysko leży gdzie indziej, niż wynika z reguł doboru lokalizacji."""
+    bearing_id: str
+    symbol: str
+    ilosc: int
+    obecna_id: str | None
+    obecna: str
+    sugerowana_id: str
+    sugerowana: str
+    powod: str
+    reczny: bool
+    waga: int          # im wyżej, tym bardziej opłaca się przenieść
+
+
+def sugestie_przeniesien(min_sztuk: int = 1) -> list[SugestiaPrzeniesienia]:
+    """Które łożyska warto przełożyć i dokąd.
+
+    Celowo DETERMINISTYCZNE, bez udziału modeli AI: porównujemy obecną lokalizację
+    z tą, którą wyliczają te same reguły co przy dodawaniu (typ + średnica). Dzięki
+    temu podpowiedź jest zawsze spójna, natychmiastowa i działa bez internetu.
+
+    Waga = liczba sztuk. Przeniesienie 10 sztuk porządkuje magazyn bardziej niż
+    przeniesienie jednej, więc lista jest posortowana od najbardziej opłacalnych.
+
+    Łożyska ustawione ręcznie NIE są pomijane - użytkownik często kładzie coś "gdzie
+    było miejsce" i właśnie o takich przypadkach chce wiedzieć - ale są oznaczone
+    flagą `reczny`, żeby UI mogło je pokazać łagodniej.
+    """
+    wezly = {s.id: s for s in get_shelves()}
+    wyniki: list[SugestiaPrzeniesienia] = []
+    for b in get_bearings():
+        if b.ilosc < min_sztuk:
+            continue
+        cel = suggest_shelf_id(b.D, b.typ)
+        if not cel or cel == b.regal_id:
+            continue
+        docelowy = wezly.get(cel)
+        if docelowy is None:
+            continue
+        if docelowy.typy:
+            powod = f"lokalizacja przeznaczona na typ: {docelowy.typy}"
+        elif b.D is not None:
+            lo = "0" if docelowy.d_min is None else f"{docelowy.d_min:g}"
+            hi = "∞" if docelowy.d_max is None else f"{docelowy.d_max:g}"
+            powod = f"średnica zewnętrzna {b.D:g} mm mieści się w zakresie {lo}-{hi} mm"
+        else:
+            powod = "dopasowanie wg reguł doboru"
+        wyniki.append(SugestiaPrzeniesienia(
+            bearing_id=b.id, symbol=b.symbol, ilosc=b.ilosc,
+            obecna_id=b.regal_id, obecna=shelf_path(b.regal_id, wezly) or "bez lokalizacji",
+            sugerowana_id=cel, sugerowana=shelf_path(cel, wezly),
+            powod=powod, reczny=b.reczny_przydzial, waga=b.ilosc,
+        ))
+    wyniki.sort(key=lambda s: s.waga, reverse=True)
+    return wyniki
+
+
 def reassign_all_auto() -> int:
     """Przelicza regał_id dla wszystkich łożysk BEZ ręcznej ingerencji. Zwraca liczbę zmienionych."""
     conn = get_connection()
