@@ -296,3 +296,24 @@ Kolejność wynika z analizy „co realnie boli”, nie z tego, co najciekawsze 
       w UI webowym, encji Room + ekranu wyboru w appce, przeprojektowania sync-u
       i etykiet PDF. Szczegóły projektu w sekcji „Konfigurowalna hierarchia lokalizacji"
       wyżej — to jedyna pozycja, która nie zmieściła się w tej sesji
+
+## Hierarchia lokalizacji — ZROBIONE 2026-08-17
+
+- [x] **Konfigurowalna hierarchia regał → półka → szuflada → skrytka**
+  - Kluczowa decyzja: NIE nowa tabela, tylko `parent_id` + `poziom_typ` w istniejącej
+    `shelves`. Dzięki temu `bearings.regal_id` działa bez zmian dla DOWOLNEGO węzła,
+    a synchronizacja i encja Room wymagały dwóch pól zamiast przeprojektowania.
+  - **Hierarchia jest niesymetryczna i opcjonalna**: regał może mieć pełne cztery
+    poziomy, samą skrytkę wprost pod sobą, albo nic (zweryfikowane testem)
+  - Migracja serwera v4→v5 i Room v4→v5 — dotychczasowe 9 regałów zostało korzeniami,
+    zero utraty danych
+  - Skasowanie węzła kasuje potomków, ale **NIE kasuje łożysk** — tracą tylko
+    przypisanie (zweryfikowane: 6208 przetrwało z ilością 2)
+  - Usunięty unikalny indeks na `poziom` — w drzewie numery powtarzają się między
+    gałęziami i blokowałby dodawanie dzieci
+  - Starszy klient nie spłaszczy hierarchii: `parent_id` aktualizowane tylko wtedy,
+    gdy klient je przysłał
+  - UI webowe: drzewo z wcięciami, „+ półka/szuflada/skrytka" na każdym poziomie
+  - Android: wybór lokalizacji pokazuje pełną ścieżkę „Regał 3 › Półka 2 › Skrytka A"
+- [ ] Etykiety PDF nadal drukują samą nazwę węzła, nie pełną ścieżkę
+- [ ] Brak przenoszenia węzła między rodzicami (trzeba skasować i utworzyć na nowo)

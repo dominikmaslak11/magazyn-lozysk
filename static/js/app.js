@@ -368,27 +368,70 @@ async function loadShelves() {
   renderShelves();
 }
 
+const POZIOMY_PODRZEDNE = { "regał": "półka", "półka": "szuflada", "szuflada": "skrytka", "skrytka": "skrytka" };
+
+async function addShelfNode(parentId, poziomTyp) {
+  const nazwa = prompt(`Nazwa (${poziomTyp}):`);
+  if (!nazwa || !nazwa.trim()) return;
+  await api("/api/shelves", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ nazwa: nazwa.trim(), parent_id: parentId, poziom_typ: poziomTyp }),
+  });
+  toast("Dodano " + poziomTyp + ".");
+  loadShelves();
+}
+
+async function deleteShelfNode(id, nazwa) {
+  if (!confirm(`Usunąć "${nazwa}" wraz ze wszystkim, co jest pod spodem?\n\n` +
+               "Łożyska NIE zostaną skasowane - stracą tylko przypisanie do lokalizacji.")) return;
+  const r = await api(`/api/shelves/${id}`, { method: "DELETE" });
+  toast(`Usunięto ${r.usunietych} lokalizacji.`);
+  loadShelves();
+}
+
 function renderShelves() {
   const list = $("#shelvesList");
   list.innerHTML = "";
-  for (const s of state.shelves) {
-    const card = document.createElement("div");
-    card.className = "card shelf-card";
-    card.dataset.id = s.id;
-    card.innerHTML = `
-      <div class="fields">
-        <label>Poziom</label><input class="s-poziom" type="number" value="${s.poziom}">
-        <label>Nazwa</label><input class="s-nazwa" value="${esc(s.nazwa)}">
-        <label>D od [mm]</label><input class="s-dmin" inputmode="decimal" value="${s.d_min == null ? "" : s.d_min}">
-        <label>D do [mm]</label><input class="s-dmax" inputmode="decimal" value="${s.d_max == null ? "" : s.d_max}" placeholder="bez limitu">
-      </div>
-      <div class="shelf-counts">
-        <span>Pozycje: <b>${s.pozycje}</b></span>
-        <span>Sztuki: <b>${s.sztuki}</b></span>
-      </div>
-    `;
-    list.appendChild(card);
-  }
+  // Drzewo renderujemy rekurencyjnie, ale każdy węzeł to wciąż .shelf-card z polami
+  // .s-nazwa/.s-poziom/.s-dmin/.s-dmax - dzięki temu zapis (saveShelves) działa bez zmian.
+  const rysuj = (parentId, glebokosc) => {
+    state.shelves
+      .filter((w) => (w.parent_id || null) === parentId)
+      .sort((a, b) => b.poziom - a.poziom)
+      .forEach((s) => {
+        const podrzedny = POZIOMY_PODRZEDNE[s.poziom_typ] || "skrytka";
+        const card = document.createElement("div");
+        card.className = "card shelf-card";
+        card.dataset.id = s.id;
+        card.style.marginLeft = (glebokosc * 24) + "px";
+        card.innerHTML = `
+          <div class="row1">
+            <span class="badge">${esc(s.poziom_typ)}</span>
+            <span class="shelf-counts"><span>Pozycje: <b>${s.pozycje}</b></span>
+              <span>Sztuki: <b>${s.sztuki}</b></span></span>
+          </div>
+          <div class="fields">
+            <label>Kolejność</label><input class="s-poziom" type="number" value="${s.poziom}">
+            <label>Nazwa</label><input class="s-nazwa" value="${esc(s.nazwa)}">
+            <label>D od [mm]</label><input class="s-dmin" inputmode="decimal" value="${s.d_min == null ? "" : s.d_min}" placeholder="—">
+            <label>D do [mm]</label><input class="s-dmax" inputmode="decimal" value="${s.d_max == null ? "" : s.d_max}" placeholder="bez limitu">
+          </div>
+          <div class="card-actions">
+            <button class="btn small" data-add="${s.id}" data-typ="${esc(podrzedny)}">+ ${esc(podrzedny)}</button>
+            <button class="btn small danger" data-delnode="${s.id}" data-nazwa="${esc(s.nazwa)}">Usuń</button>
+          </div>
+        `;
+        list.appendChild(card);
+        rysuj(s.id, glebokosc + 1);
+      });
+  };
+  rysuj(null, 0);
+
+  list.querySelectorAll("[data-add]").forEach((b) =>
+    b.addEventListener("click", () => addShelfNode(b.dataset.add, b.dataset.typ)));
+  list.querySelectorAll("[data-delnode]").forEach((b) =>
+    b.addEventListener("click", () => deleteShelfNode(b.dataset.delnode, b.dataset.nazwa)));
 }
 
 async function saveShelves() {
@@ -541,6 +584,7 @@ async function init() {
 
   $("#saveShelvesBtn").addEventListener("click", saveShelves);
   $("#reassignBtn").addEventListener("click", reassignAll);
+  $("#btnAddRoot").addEventListener("click", () => addShelfNode(null, "regał"));
 
   $("#importDbFile").addEventListener("change", importDbFile);
   $("#importJsonReplace").addEventListener("click", () => importJsonFile("zastap"));

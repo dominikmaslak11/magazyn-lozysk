@@ -41,9 +41,21 @@ private val MIGRATION_3_4 = object : Migration(3, 4) {
     }
 }
 
+/**
+ * v4 -> v5: hierarchia lokalizacji. Dokładamy kolumny do istniejącej tabeli shelves,
+ * więc dotychczasowe regały stają się korzeniami drzewa i nic nie trzeba przenosić.
+ */
+private val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `shelves` ADD COLUMN `parentId` TEXT")
+        db.execSQL("ALTER TABLE `shelves` ADD COLUMN `poziomTyp` TEXT NOT NULL DEFAULT 'regał'")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_shelves_parentId` ON `shelves` (`parentId`)")
+    }
+}
+
 @Database(
     entities = [BearingEntity::class, ShelfEntity::class, BarcodeAliasEntity::class, StockMoveEntity::class],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -66,7 +78,7 @@ abstract class AppDatabase : RoomDatabase() {
                     // v2 -> v3 ma już prawdziwą migrację (nie chcemy tracić zmian zrobionych
                     // offline), więc jest zarejestrowana PO fallbacku - Room użyje jej zamiast
                     // czyszczenia bazy.
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                     .also { INSTANCE = it }
             }

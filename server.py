@@ -263,6 +263,32 @@ def api_shelves_update(shelf_id):
     return jsonify({"ok": True})
 
 
+@app.route("/api/shelves", methods=["POST"])
+def api_shelves_add():
+    """Dodaje węzeł lokalizacji: regał (bez rodzica) albo półkę/szufladę/skrytkę."""
+    payload = request.get_json(force=True)
+    nazwa = (payload.get("nazwa") or "").strip()
+    if not nazwa:
+        abort(400, "Podaj nazwę lokalizacji.")
+    parent_id = payload.get("parent_id") or None
+    if parent_id and db.get_shelf(parent_id) is None:
+        abort(400, "Nadrzędna lokalizacja nie istnieje.")
+    node_id = db.add_shelf(
+        nazwa=nazwa, parent_id=parent_id,
+        poziom_typ=(payload.get("poziom_typ") or "regał"),
+        d_min=payload.get("d_min"), d_max=payload.get("d_max"),
+    )
+    return jsonify({"id": node_id}), 201
+
+
+@app.route("/api/shelves/<shelf_id>", methods=["DELETE"])
+def api_shelves_delete(shelf_id):
+    """Kasuje lokalizację wraz z potomkami. Łożyska zostają - tracą tylko przypisanie."""
+    if db.get_shelf(shelf_id) is None:
+        abort(404)
+    return jsonify({"usunietych": db.delete_shelf(shelf_id)})
+
+
 @app.route("/api/shelves/reassign", methods=["POST"])
 def api_shelves_reassign():
     changed = db.reassign_all_auto()
@@ -473,6 +499,7 @@ def _bearing_to_dict(b: db.Bearing, shelves: dict[int, db.Shelf]) -> dict:
         "id": b.id, "symbol": b.symbol, "typ": b.typ, "d": b.d, "D": b.D, "B": b.B,
         "ilosc": b.ilosc, "regal_id": b.regal_id,
         "regal_nazwa": shelf.nazwa if shelf else None,
+        "sciezka": db.shelf_path(b.regal_id, shelves) if b.regal_id else None,
         "reczny_przydzial": b.reczny_przydzial, "zrodlo": b.zrodlo, "uwagi": b.uwagi,
     }
 
@@ -482,6 +509,7 @@ def _shelf_to_dict(s: db.Shelf, counts: dict[int, tuple[int, int]]) -> dict:
     return {
         "id": s.id, "nazwa": s.nazwa, "poziom": s.poziom,
         "d_min": s.d_min, "d_max": s.d_max, "pozycje": pozycje, "sztuki": sztuki,
+        "parent_id": s.parent_id, "poziom_typ": s.poziom_typ,
     }
 
 

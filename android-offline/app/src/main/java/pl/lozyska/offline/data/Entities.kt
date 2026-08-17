@@ -13,7 +13,15 @@ import androidx.room.PrimaryKey
 // deletedAt to "miękkie" kasowanie (nagrobek), żeby kasowanie poprawnie propagowało
 // się do innych urządzeń przy synchronizacji.
 
-@Entity(tableName = "shelves")
+/**
+ * Węzeł drzewa lokalizacji: regał, półka, szuflada albo skrytka.
+ *
+ * Hierarchia jest KONFIGUROWALNA i niesymetryczna - jeden regał może mieć półki
+ * z szufladami, a inny od razu skrytki albo nic. Dlatego to jedna tabela z
+ * `parentId`, a nie osobna na każdy poziom (patrz Shelf w database.py).
+ * Łożysko wskazuje na DOWOLNY węzeł, więc można je położyć wprost na regale.
+ */
+@Entity(tableName = "shelves", indices = [Index(value = ["parentId"])])
 data class ShelfEntity(
     @PrimaryKey val id: String,
     val nazwa: String,
@@ -22,6 +30,8 @@ data class ShelfEntity(
     val dMax: Double?,
     val updatedAt: Long = System.currentTimeMillis(),
     val deletedAt: Long? = null,
+    val parentId: String? = null,
+    val poziomTyp: String = "regał",
 )
 
 @Entity(
@@ -95,4 +105,6 @@ data class ShelfWithCounts(
     val dMax: Double?,
     val pozycje: Int,
     val sztuki: Int,
+    val parentId: String? = null,
+    val poziomTyp: String = "regał",
 )

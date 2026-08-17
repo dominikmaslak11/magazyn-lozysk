@@ -239,22 +239,40 @@ private fun TypDropdown(selected: String, options: List<String>, onSelected: (St
 private fun ShelfDropdown(shelves: List<ShelfWithCounts>, selectedId: String?, onSelected: (String?) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val label = if (selectedId == AUTO_SHELF) "Auto (na podstawie średnicy D)"
-        else shelves.find { it.id == selectedId }?.let { shelfLabel(it) } ?: "Auto (na podstawie średnicy D)"
+        else shelves.find { it.id == selectedId }?.let { sciezkaLokalizacji(it, shelves) }
+            ?: "Auto (na podstawie średnicy D)"
 
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
             value = label, onValueChange = {}, readOnly = true,
-            label = { Text("Regał") },
+            label = { Text("Lokalizacja") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.fillMaxWidth().menuAnchor(),
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(text = { Text("Auto (na podstawie średnicy D)") }, onClick = { onSelected(AUTO_SHELF); expanded = false })
             shelves.forEach { s ->
-                DropdownMenuItem(text = { Text(shelfLabel(s)) }, onClick = { onSelected(s.id); expanded = false })
+                DropdownMenuItem(
+                    text = { Text(sciezkaLokalizacji(s, shelves)) },
+                    onClick = { onSelected(s.id); expanded = false },
+                )
             }
         }
     }
+}
+
+/** Pełna ścieżka lokalizacji, np. "Regał 3 › Półka 2 › Skrytka A". */
+private fun sciezkaLokalizacji(s: ShelfWithCounts, wszystkie: List<ShelfWithCounts>): String {
+    val wgId = wszystkie.associateBy { it.id }
+    val czesci = mutableListOf<String>()
+    var biezacy: ShelfWithCounts? = s
+    var krok = 0
+    while (biezacy != null && krok < 10) {          // limit chroni przed zapętleniem
+        czesci.add(biezacy.nazwa)
+        biezacy = biezacy.parentId?.let { wgId[it] }
+        krok++
+    }
+    return czesci.reversed().joinToString(" › ")
 }
 
 private fun shelfLabel(s: ShelfWithCounts): String {

@@ -44,7 +44,7 @@ BACKUP_DIR = DB_DIR / "backups"
 BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 MAX_AUTO_BACKUPS = 20
 
-SCHEMA_VERSION = 4  # v4 = tabela stock_moves (ruchy magazynowe zamiast nadpisywania ilości)
+SCHEMA_VERSION = 5  # v5 = hierarchia lokalizacji (parent_id + poziom_typ w shelves)
 
 # Domyślne, edytowalne w GUI zakresy średnicy zewnętrznej (mm) dla 9 regałów.
 # poziom 1 = regał najniższy (duże łożyska), poziom 9 = najwyższy (małe łożyska).
@@ -78,8 +78,23 @@ class Bearing:
     deleted_at: str | None = None
 
 
+# Poziomy hierarchii. Każdy jest OPCJONALNY - regał może mieć od razu skrytki albo
+# nie mieć nic pod sobą. Kolejność w tej krotce to tylko podpowiedź dla UI, nie reguła.
+POZIOMY = ("regał", "półka", "szuflada", "skrytka")
+
+
 @dataclass
 class Shelf:
+    """Węzeł drzewa lokalizacji: regał, półka, szuflada albo skrytka.
+
+    Hierarchia jest KONFIGUROWALNA i niesymetryczna - jeden regał może mieć półki
+    z szufladami, a inny nic pod sobą. Dlatego to jedna, samo-referencyjna tabela
+    (parent_id), a nie osobna tabela na każdy poziom: inaczej "regał bez półek, ale
+    ze skrytkami" wymagałby pustych rekordów-wypełniaczy.
+
+    Łożysko wskazuje na DOWOLNY węzeł (bearings.regal_id) - można je położyć wprost
+    na regale albo w konkretnej skrytce, bez zmiany schematu.
+    """
     id: str
     nazwa: str
     poziom: int
@@ -87,6 +102,8 @@ class Shelf:
     d_max: float | None
     updated_at: str = ""
     deleted_at: str | None = None
+    parent_id: str | None = None
+    poziom_typ: str = "regał"
 
 
 @dataclass
@@ -144,6 +161,12 @@ def init_db() -> None:
         # więc migracja niczego nie rusza w istniejących danych.
         if "stock_moves" not in existing_tables:
             _create_stock_moves_table(conn)
+        # v4 -> v5: hierarchia lokalizacji. Dokładamy kolumny do istniejącej tabeli
+        # zamiast tworzyć nową - dzięki temu bearings.regal_id, synchronizacja i encja
+        # Room działają dalej bez zmian, a dotychczasowe regały stają się korzeniami.
+        shelf_cols = {r["name"] for r in conn.execute("PRAGMA table_info(shelves)")}
+        if "parent_id" not in shelf_cols:
+            _migrate_v4_to_v5(conn)
     conn.close()
 
 
@@ -156,10 +179,15 @@ def _create_v2_schema(conn: sqlite3.Connection) -> None:
             d_min REAL,
             d_max REAL,
             updated_at TEXT NOT NULL,
-            deleted_at TEXT
+            deleted_at TEXT,
+            parent_id TEXT REFERENCES shelves(id) ON DELETE SET NULL,
+            poziom_typ TEXT NOT NULL DEFAULT 'regał'
         )
     """)
-    conn.execute("CREATE UNIQUE INDEX idx_shelves_poziom ON shelves(poziom) WHERE deleted_at IS NULL")
+    # UWAGA: celowo BEZ unikalnego indeksu na `poziom`. Przy hierarchii numer poziomu
+    # powtarza się między gałęziami (półka 1 w regale A i półka 1 w regale B), więc
+    # taki indeks blokowałby dodawanie dzieci.
+    conn.execute("CREATE INDEX idx_shelves_parent ON shelves(parent_id)")
     conn.execute("""
         CREATE TABLE bearings (
             id TEXT PRIMARY KEY,
@@ -191,6 +219,16 @@ def _create_barcode_aliases_table(conn: sqlite3.Connection) -> None:
     """)
     # Jeden aktywny alias na kod - powtórne przypisanie nadpisuje poprzednie (patrz set_barcode_alias).
     conn.execute("CREATE UNIQUE INDEX idx_barcode_aliases_kod ON barcode_aliases(kod) WHERE deleted_at IS NULL")
+
+
+def _migrate_v4_to_v5(conn: sqlite3.Connection) -> None:
+    """Płaska lista regałów -> drzewo lokalizacji. Istniejące regały zostają korzeniami."""
+    conn.execute("ALTER TABLE shelves ADD COLUMN parent_id TEXT REFERENCES shelves(id) ON DELETE SET NULL")
+    conn.execute("ALTER TABLE shelves ADD COLUMN poziom_typ TEXT NOT NULL DEFAULT 'regał'")
+    # Unikalny indeks na `poziom` musi zniknąć: w drzewie numery powtarzają się
+    # między gałęziami, więc blokowałby dodawanie półek i skrytek.
+    conn.execute("DROP INDEX IF EXISTS idx_shelves_poziom")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_shelves_parent ON shelves(parent_id)")
 
 
 def _create_stock_moves_table(conn: sqlite3.Connection) -> None:
@@ -275,6 +313,76 @@ def get_shelves() -> list[Shelf]:
     ).fetchall()
     conn.close()
     return [_row_to_shelf(r) for r in rows]
+
+
+def get_shelf(shelf_id: str) -> Shelf | None:
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM shelves WHERE id=? AND deleted_at IS NULL", (shelf_id,)).fetchone()
+    conn.close()
+    return _row_to_shelf(row) if row else None
+
+
+def add_shelf(nazwa: str, parent_id: str | None = None, poziom_typ: str = "regał",
+               d_min: float | None = None, d_max: float | None = None) -> str:
+    """Dodaje węzeł lokalizacji. `parent_id=None` tworzy nowy regał (korzeń).
+
+    Poziom (liczba) służy już tylko do sortowania w obrębie rodzeństwa - przy
+    hierarchii to numer kolejny, nie globalna pozycja.
+    """
+    conn = get_connection()
+    with conn:
+        nastepny = conn.execute(
+            "SELECT COALESCE(MAX(poziom), 0) + 1 FROM shelves WHERE deleted_at IS NULL "
+            "AND parent_id IS ?", (parent_id,)).fetchone()[0]
+        node_id = new_id()
+        conn.execute(
+            "INSERT INTO shelves (id, nazwa, poziom, d_min, d_max, updated_at, deleted_at, "
+            "parent_id, poziom_typ) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?)",
+            (node_id, nazwa, nastepny, d_min, d_max, now_iso(), parent_id, poziom_typ),
+        )
+    conn.close()
+    return node_id
+
+
+def delete_shelf(shelf_id: str) -> int:
+    """Kasuje węzeł WRAZ Z POTOMKAMI (miękko). Łożyska nie znikają - tracą tylko
+    przypisanie, żeby skasowanie półki nigdy nie kasowało zawartości magazynu.
+    Zwraca liczbę skasowanych węzłów."""
+    conn = get_connection()
+    ts = now_iso()
+    do_skasowania: list[str] = []
+    with conn:
+        kolejka = [shelf_id]
+        while kolejka:
+            biezacy = kolejka.pop()
+            do_skasowania.append(biezacy)
+            kolejka += [r["id"] for r in conn.execute(
+                "SELECT id FROM shelves WHERE parent_id=? AND deleted_at IS NULL", (biezacy,))]
+        for wid in do_skasowania:
+            conn.execute("UPDATE bearings SET regal_id=NULL, updated_at=? WHERE regal_id=?", (ts, wid))
+            conn.execute("UPDATE shelves SET deleted_at=?, updated_at=? WHERE id=?", (ts, ts, wid))
+    conn.close()
+    return len(do_skasowania)
+
+
+def shelf_path(shelf_id: str | None, wezly: dict[str, Shelf] | None = None) -> str:
+    """Czytelna ścieżka lokalizacji, np. "Regał 3 › Półka 2 › Szuflada 1"."""
+    if not shelf_id:
+        return ""
+    if wezly is None:
+        wezly = {s.id: s for s in get_shelves()}
+    czesci: list[str] = []
+    biezacy = shelf_id
+    # Limit chroni przed zapętleniem, gdyby dane kiedykolwiek były niespójne.
+    for _ in range(10):
+        w = wezly.get(biezacy)
+        if w is None:
+            break
+        czesci.append(w.nazwa)
+        if not w.parent_id:
+            break
+        biezacy = w.parent_id
+    return " › ".join(reversed(czesci))
 
 
 def update_shelf(shelf_id: str, nazwa: str, poziom: int, d_min: float | None, d_max: float | None) -> None:
@@ -421,9 +529,12 @@ def _row_to_bearing(row: sqlite3.Row) -> Bearing:
 
 
 def _row_to_shelf(row: sqlite3.Row) -> Shelf:
+    klucze = row.keys()
     return Shelf(
         id=row["id"], nazwa=row["nazwa"], poziom=row["poziom"], d_min=row["d_min"], d_max=row["d_max"],
         updated_at=row["updated_at"], deleted_at=row["deleted_at"],
+        parent_id=row["parent_id"] if "parent_id" in klucze else None,
+        poziom_typ=(row["poziom_typ"] if "poziom_typ" in klucze else None) or "regał",
     )
 
 
@@ -584,15 +695,26 @@ def apply_sync_push(shelves_in: list[dict], bearings_in: list[dict],
         for s in shelves_in:
             exists = conn.execute("SELECT 1 FROM shelves WHERE id=?", (s["id"],)).fetchone()
             if exists:
-                conn.execute(
-                    "UPDATE shelves SET nazwa=?, poziom=?, d_min=?, d_max=?, updated_at=?, deleted_at=? WHERE id=?",
-                    (s["nazwa"], s["poziom"], s.get("d_min"), s.get("d_max"), ts, s.get("deleted_at"), s["id"]),
-                )
+                # parent_id/poziom_typ aktualizujemy TYLKO gdy klient je przysłał - starszy
+                # klient ich nie zna i nie może przez to spłaszczyć hierarchii do zera.
+                if "parent_id" in s or "poziom_typ" in s:
+                    conn.execute(
+                        "UPDATE shelves SET nazwa=?, poziom=?, d_min=?, d_max=?, updated_at=?, "
+                        "deleted_at=?, parent_id=?, poziom_typ=? WHERE id=?",
+                        (s["nazwa"], s["poziom"], s.get("d_min"), s.get("d_max"), ts,
+                         s.get("deleted_at"), s.get("parent_id"), s.get("poziom_typ") or "regał", s["id"]),
+                    )
+                else:
+                    conn.execute(
+                        "UPDATE shelves SET nazwa=?, poziom=?, d_min=?, d_max=?, updated_at=?, deleted_at=? WHERE id=?",
+                        (s["nazwa"], s["poziom"], s.get("d_min"), s.get("d_max"), ts, s.get("deleted_at"), s["id"]),
+                    )
             else:
                 conn.execute(
-                    "INSERT INTO shelves (id, nazwa, poziom, d_min, d_max, updated_at, deleted_at) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (s["id"], s["nazwa"], s["poziom"], s.get("d_min"), s.get("d_max"), ts, s.get("deleted_at")),
+                    "INSERT INTO shelves (id, nazwa, poziom, d_min, d_max, updated_at, deleted_at, "
+                    "parent_id, poziom_typ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (s["id"], s["nazwa"], s["poziom"], s.get("d_min"), s.get("d_max"), ts,
+                     s.get("deleted_at"), s.get("parent_id"), s.get("poziom_typ") or "regał"),
                 )
         for b in bearings_in:
             exists = conn.execute("SELECT 1 FROM bearings WHERE id=?", (b["id"],)).fetchone()
