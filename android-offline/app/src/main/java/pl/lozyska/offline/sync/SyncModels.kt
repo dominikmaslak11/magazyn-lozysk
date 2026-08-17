@@ -53,7 +53,31 @@ data class SyncPushRequest(
     val stock_moves: List<SyncStockMoveDto> = emptyList(),
 )
 
+/**
+ * Podpowiedź wymiarów od modeli AI. Zapytanie idzie do WŁASNEGO serwera, nie do
+ * dostawców AI - klucze API nigdy nie trafiają na telefon (patrz ai_assist.py).
+ */
+data class AiAvailability(val available: Boolean = false)
+
+data class AiLookupRequest(val symbol: String)
+
+data class AiLookupResponse(
+    val symbol: String,
+    val d: Double?, @SerializedName("D") val dZew: Double?, @SerializedName("B") val b: Double?,
+    val typ: String?,
+    val zgodnych: Int = 0,
+    val odpytanych: Int = 0,
+    val znaleziono: Boolean = false,
+    val uwaga: String = "",
+)
+
 interface SyncApiService {
+    @POST("api/ai/lookup")
+    suspend fun aiLookup(@Body body: AiLookupRequest): AiLookupResponse
+
+    @GET("api/ai/available")
+    suspend fun aiAvailable(): AiAvailability
+
     @GET("api/sync/state")
     suspend fun getSyncState(): SyncStateDto
 

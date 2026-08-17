@@ -28,6 +28,7 @@ import pl.lozyska.offline.data.SearchQuery
 private fun sourceLabel(z: String) = when (z) {
     "offline" -> "baza offline"
     "internet" -> "internet"
+    "ai" -> "AI"
     else -> "ręcznie"
 }
 

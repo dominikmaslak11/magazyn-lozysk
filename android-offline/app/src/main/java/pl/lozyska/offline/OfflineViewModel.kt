@@ -11,8 +11,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import pl.lozyska.offline.data.*
+import pl.lozyska.offline.sync.AiLookupRequest
+import pl.lozyska.offline.sync.SyncApiClient
 import pl.lozyska.offline.sync.SyncEngine
 import pl.lozyska.offline.sync.SyncResult
 import pl.lozyska.offline.sync.SyncSettingsRepository
@@ -98,6 +101,50 @@ class OfflineViewModel(application: Application) : AndroidViewModel(application)
                     _message.value = "Serwer odrzucił połączenie - sprawdź token dostępu w zakładce Dane."
             }
             _syncing.value = false
+        }
+    }
+
+    // --------------------------------------------- podpowiedzi AI ----
+
+    /** Czy serwer ma skonfigurowane modele AI (UI chowa przycisk, gdy nie). */
+    private val _aiDostepne = MutableStateFlow(false)
+    val aiDostepne: StateFlow<Boolean> = _aiDostepne
+
+    private val _aiTrwa = MutableStateFlow(false)
+    val aiTrwa: StateFlow<Boolean> = _aiTrwa
+
+    fun sprawdzAi() = viewModelScope.launch {
+        val url = syncSettings.serverUrl.first()
+        if (url.isBlank()) { _aiDostepne.value = false; return@launch }
+        _aiDostepne.value = try {
+            SyncApiClient.forBaseUrl(url, syncSettings.authToken.first()).aiAvailable().available
+        } catch (e: Exception) { false }
+    }
+
+    /**
+     * Pyta WŁASNY serwer o podpowiedź wymiarów od modeli AI. Klucze API zostają na
+     * serwerze - telefon ich nigdy nie widzi. Wynik to propozycja: wymiary trafiają
+     * do formularza oznaczone źródłem "ai", ale zapisuje je dopiero użytkownik.
+     */
+    fun askAi(symbol: String, onResult: (LookupResult?) -> Unit) = viewModelScope.launch {
+        if (_aiTrwa.value) return@launch
+        _aiTrwa.value = true
+        try {
+            val url = syncSettings.serverUrl.first()
+            val r = SyncApiClient.forBaseUrl(url, syncSettings.authToken.first())
+                .aiLookup(AiLookupRequest(symbol))
+            if (r.znaleziono) {
+                onResult(LookupResult(r.symbol, r.d, r.dZew, r.b, "ai", r.typ,
+                    "AI: ${r.zgodnych}/${r.odpytanych} modeli zgodnych. ${r.uwaga}"))
+            } else {
+                _message.value = r.uwaga.ifBlank { "Modele nie znają tego oznaczenia." }
+                onResult(null)
+            }
+        } catch (e: Exception) {
+            _message.value = "Zapytanie do AI nieudane: ${e.message ?: "brak połączenia z serwerem"}"
+            onResult(null)
+        } finally {
+            _aiTrwa.value = false
         }
     }
 

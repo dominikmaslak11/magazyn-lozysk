@@ -21,3 +21,13 @@ __pycache__/
 
 # --- system ---
 .DS_Store
+
+# --- SEKRETY: nigdy nie commitować (repo jest PUBLICZNE) ---
+# Klucze do usług AI. Aplikacja czyta je z ~/.lozyska_data/ai_keys.json,
+# poza katalogiem repo - ten wpis to dodatkowa siatka bezpieczeństwa na wypadek,
+# gdyby plik z kluczami wylądował tutaj przez pomyłkę.
+API_Keys.txt
+*API*Key*.txt
+*api*key*.json
+ai_keys.json
+.env

@@ -265,3 +265,34 @@ Kolejność wynika z analizy „co realnie boli”, nie z tego, co najciekawsze 
   - Wydanie/przyjęcie sztuki to najczęstsza czynność w warsztacie — teraz jedno tapnięcie
     zamiast otwierania arkusza edycji, zmiany pól i zapisu
   - Przycisk „-” jest wyłączony przy stanie 0
+
+## Asystent AI (2026-08-17)
+
+- [x] **Podpowiedzi wymiarów od modeli AI** (`ai_assist.py`, `/api/ai/lookup`)
+  - Cztery usługi równolegle: Claude (`claude-opus-5`), Gemini, DeepSeek, OpenAI
+  - **Każda odpowiedź przechodzi tę samą walidację co scraping**: kod otworu ISO 15 +
+    geometria (`dimensions_are_plausible`). Zweryfikowane testem z podstawionym „kłamcą":
+    model podał 60×80×18 dla 6204 → ODRZUCONE, wynik końcowy pozostał poprawny
+  - Uzgadnianie: liczy się zgodność kilku niezależnych modeli, nie deklarowana pewność
+  - Sprawdzone na oznaczeniach spoza katalogu: `NU2210` 50×90×23 ✓, `7208B` 40×80×18 ✓
+- [x] **Asystent-czat** (`/api/ai/chat`), domyślnie **najnowszy Claude** (`claude-opus-5`),
+  przełączalny na pozostałych dostawców; zakładka „Asystent" w wersji webowej
+  - Dostaje zwięzły spis magazynu, żeby odpowiadać konkretnie („czy mam coś 55 mm?")
+- [x] **Bezpieczeństwo kluczy**: `~/.lozyska_data/ai_keys.json` (chmod 600, poza repo).
+  `.gitignore` rozszerzony o wzorce kluczy. Telefon NIGDY nie widzi kluczy — pyta własny
+  serwer. Świadoma odmowa „zaszycia kluczy w aplikacji": repo jest publiczne, a APK da
+  się rozpakować w minutę
+- [x] Klasyfikator: dodana seria **202xx/203xx (baryłkowe)** — realny przypadek z magazynu
+  (`20211` dostawało domyślne „kulkowe zwykłe")
+- [ ] **Czat w appce Android** — na razie tylko wersja webowa i przycisk „Zapytaj AI"
+      w arkuszu dodawania
+- [ ] Prywatność: spis magazynu wychodzi do dostawcy AI. Jest przełącznik `bez_magazynu`
+      w API, ale nie ma go jeszcze w UI
+
+## Konfigurowalna hierarchia regał → półka → szuflada → skrytka (poprosił 2026-08-17)
+
+- [ ] **DUŻY PROJEKT — nie zaczęty.** Wymaga: samo-referencyjnej tabeli `locations`
+      (`parent_id`), migracji v4→v5 zachowującej obecne 9 regałów, CRUD w API, drzewa
+      w UI webowym, encji Room + ekranu wyboru w appce, przeprojektowania sync-u
+      i etykiet PDF. Szczegóły projektu w sekcji „Konfigurowalna hierarchia lokalizacji"
+      wyżej — to jedyna pozycja, która nie zmieściła się w tej sesji

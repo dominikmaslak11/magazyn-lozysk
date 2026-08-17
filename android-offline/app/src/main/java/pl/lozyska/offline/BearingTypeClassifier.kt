@@ -34,7 +34,7 @@ object BearingTypeClassifier {
     private val DIGIT_RULES: List<Triple<Int, List<String>, TypLozyska>> = listOf(
         Triple(5, listOf("302", "303", "313", "320", "322", "323", "329", "330", "331", "332"),
             TypLozyska.STOZKOWE),
-        Triple(5, listOf("213", "222", "223", "230", "231", "232", "238", "239", "240", "241", "248", "249"),
+        Triple(5, listOf("202", "203", "213", "222", "223", "230", "231", "232", "238", "239", "240", "241", "248", "249"),
             TypLozyska.WAHLIWE_BARYLKOWE),
         Triple(5, listOf("511", "512", "513", "514", "522", "523", "524", "292", "293", "294"),
             TypLozyska.OPOROWE),

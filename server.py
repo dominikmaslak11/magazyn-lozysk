@@ -19,6 +19,7 @@ from pathlib import Path
 from flask import (Flask, abort, jsonify, redirect, render_template, request,
                     send_file, session, url_for)
 
+import ai_assist
 import database as db
 import lookup
 from bearing_data import ALL_TYPES, SOURCE_MANUAL
@@ -287,6 +288,71 @@ def api_sync_push():
 
 
 # --------------------------------------- aliasy kodów kreskowych (opakowania) ----
+
+@app.route("/api/ai/available")
+def api_ai_available():
+    """Czy podpowiedzi AI są skonfigurowane - UI chowa przycisk, gdy nie ma kluczy."""
+    return jsonify({"available": ai_assist.is_available()})
+
+
+@app.route("/api/ai/lookup", methods=["POST"])
+def api_ai_lookup():
+    """Pyta modele AI o wymiary łożyska spoza katalogu.
+
+    Wysyłamy do modeli WYŁĄCZNIE samo oznaczenie - nigdy stanu magazynu. Odpowiedzi
+    przechodzą tę samą walidację co wyniki z wyszukiwarki (kod otworu ISO 15 +
+    geometria), a wynik jest zawsze propozycją do zatwierdzenia przez człowieka.
+    """
+    payload = request.get_json(force=True)
+    symbol = (payload.get("symbol") or "").strip()
+    if not symbol:
+        abort(400, "Podaj oznaczenie łożyska.")
+    wynik = ai_assist.lookup(symbol)
+    return jsonify({
+        "symbol": wynik.symbol,
+        "d": wynik.d, "D": wynik.D, "B": wynik.B, "typ": wynik.typ,
+        "zgodnych": wynik.zgodnych, "odpytanych": wynik.odpytanych,
+        "znaleziono": wynik.znaleziono,
+        "uwaga": wynik.uwaga,
+        "zrodlo": "ai",
+        "odpowiedzi": [
+            {"dostawca": o.dostawca, "d": o.d, "D": o.D, "B": o.B,
+             "pewnosc": o.pewnosc, "blad": o.blad, "odrzucona": o.odrzucona}
+            for o in wynik.odpowiedzi
+        ],
+    })
+
+
+@app.route("/api/ai/chat", methods=["POST"])
+def api_ai_chat():
+    """Asystent-czat o magazynie. Domyślnie najnowszy Claude.
+
+    UWAGA na prywatność: do modelu trafia zwięzły spis magazynu (symbole, wymiary,
+    ilości, regały), bo bez niego asystent nie odpowie na pytania w stylu "czy mam
+    coś 25x52". Można to wyłączyć polem bez_magazynu. Klucze API zostają na serwerze.
+    """
+    payload = request.get_json(force=True)
+    wiadomosci = payload.get("wiadomosci") or []
+    if not isinstance(wiadomosci, list) or not wiadomosci:
+        abort(400, "Brak wiadomości.")
+    wynik = ai_assist.chat(
+        wiadomosci,
+        dostawca=payload.get("dostawca"),
+        bez_magazynu=bool(payload.get("bez_magazynu", False)),
+    )
+    return jsonify(wynik)
+
+
+@app.route("/api/ai/providers")
+def api_ai_providers():
+    dostepni = sorted(ai_assist.load_keys())
+    return jsonify({
+        "dostawcy": dostepni,
+        "domyslny": ai_assist.CZAT_DOMYSLNY if ai_assist.CZAT_DOMYSLNY in dostepni
+                    else (dostepni[0] if dostepni else None),
+        "modele": {d: ai_assist.CZAT_MODELE.get(d) for d in dostepni},
+    })
+
 
 @app.route("/api/stock-moves")
 def api_stock_moves():

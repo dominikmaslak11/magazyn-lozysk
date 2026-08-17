@@ -26,6 +26,9 @@ fun BearingEditSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val shelves by vm.shelves.collectAsState()
+    val aiDostepne by vm.aiDostepne.collectAsState()
+    val aiTrwa by vm.aiTrwa.collectAsState()
+    LaunchedEffect(Unit) { vm.sprawdzAi() }
 
     var typ by remember { mutableStateOf(bearing?.typ ?: vm.types.firstOrNull() ?: "") }
     var symbol by remember { mutableStateOf(bearing?.symbol ?: initialSymbol ?: "") }
@@ -87,6 +90,7 @@ fun BearingEditSheet(
     fun sourceText() = when (source) {
         "offline" -> "Źródło danych: baza offline (pewne)"
         "internet" -> "Źródło danych: internet (orientacyjne - zweryfikuj suwmiarką)"
+        "ai" -> "Źródło danych: modele AI (propozycja - zweryfikuj suwmiarką)"
         else -> "Źródło danych: wpisane ręcznie"
     }
 
@@ -110,7 +114,17 @@ fun BearingEditSheet(
                 label = { Text("Symbol") }, singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            TextButton(onClick = { vm.lookupBySymbol(symbol) { applyLookupResult(it) } }) { Text("Pobierz wymiary") }
+            Row {
+                TextButton(onClick = { vm.lookupBySymbol(symbol) { applyLookupResult(it) } }) { Text("Pobierz wymiary") }
+                // Widoczne tylko, gdy serwer ma skonfigurowane modele. Zapytanie idzie do
+                // NASZEGO serwera - klucze API nigdy nie trafiają na telefon.
+                if (aiDostepne) {
+                    TextButton(
+                        onClick = { vm.askAi(symbol) { wynik -> wynik?.let { applyLookupResult(it) } } },
+                        enabled = !aiTrwa && symbol.isNotBlank(),
+                    ) { Text(if (aiTrwa) "Pytam AI..." else "Zapytaj AI") }
+                }
+            }
 
             Spacer(Modifier.height(6.dp))
             TypDropdown(

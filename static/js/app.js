@@ -80,7 +80,7 @@ function badgeClass(zrodlo) {
   return { offline: "offline", internet: "internet", recznie: "recznie" }[zrodlo] || "recznie";
 }
 function badgeLabel(zrodlo) {
-  return { offline: "baza offline", internet: "internet", recznie: "ręcznie" }[zrodlo] || zrodlo;
+  return { offline: "baza offline", internet: "internet", recznie: "ręcznie", ai: "AI" }[zrodlo] || zrodlo;
 }
 
 function renderBearings() {
@@ -184,6 +184,7 @@ function setSourceNote(source) {
     offline: "Źródło danych: baza offline (pewne)",
     internet: "Źródło danych: internet (orientacyjne - zweryfikuj suwmiarką)",
     recznie: "Źródło danych: wpisane ręcznie",
+    ai: "Źródło danych: modele AI (propozycja - zweryfikuj suwmiarką)",
   };
   $("#sourceNote").textContent = labels[source] || `Źródło danych: ${source}`;
 }
@@ -202,6 +203,103 @@ async function fetchBySymbol() {
   state.chosenSource = result.source;
   setSourceNote(result.source);
   if (result.note) toast(result.note);
+}
+
+async function askAI() {
+  const symbol = $("#f_symbol").value.trim();
+  if (!symbol) { toast("Wpisz symbol łożyska."); return; }
+  const btn = $("#btnAskAI");
+  btn.disabled = true; btn.textContent = "Pytam modele...";
+  try {
+    const r = await api("/api/ai/lookup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ symbol }),
+    });
+    if (r.znaleziono) {
+      $("#f_d").value = r.d; $("#f_D").value = r.D; $("#f_B").value = r.B;
+      if (r.typ) fillTypeSelect($("#f_typ"), r.typ);
+      state.chosenSource = "ai";
+      setSourceNote("ai");
+      toast(`AI: ${r.zgodnych} z ${r.odpytanych} modeli zgodnych. ${r.uwaga}`);
+    } else {
+      toast(r.uwaga || "Modele nie znają tego oznaczenia.");
+    }
+  } catch (e) {
+    toast("Zapytanie do AI nieudane: " + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "Zapytaj AI";
+  }
+}
+
+const czat = { historia: [] };
+
+function renderChat() {
+  const log = $("#chatLog");
+  if (!czat.historia.length) {
+    log.innerHTML = '<div class="row"><span>Brak wiadomości. Zadaj pytanie poniżej.</span></div>';
+    return;
+  }
+  log.innerHTML = czat.historia.map((w) => {
+    const kto = w.role === "user" ? "Ty" : "Asystent";
+    const tresc = esc(w.content).replace(/\n/g, "<br>");
+    return `<div class="row" style="display:block"><strong>${kto}:</strong><br>${tresc}</div>`;
+  }).join("");
+  log.scrollTop = log.scrollHeight;
+}
+
+async function chatSend() {
+  const input = $("#chatInput");
+  const tekst = input.value.trim();
+  if (!tekst) return;
+  czat.historia.push({ role: "user", content: tekst });
+  input.value = "";
+  renderChat();
+
+  const btn = $("#btnChatSend");
+  btn.disabled = true; btn.textContent = "Myślę...";
+  try {
+    const r = await api("/api/ai/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ wiadomosci: czat.historia, dostawca: $("#aiProvider").value }),
+    });
+    if (r.blad) {
+      toast("Asystent: " + r.blad);
+      czat.historia.pop();
+    } else {
+      czat.historia.push({ role: "assistant", content: r.odpowiedz });
+    }
+  } catch (e) {
+    toast("Asystent nieosiągalny: " + e.message);
+    czat.historia.pop();
+  } finally {
+    btn.disabled = false; btn.textContent = "Wyślij";
+    renderChat();
+  }
+}
+
+async function initChat() {
+  try {
+    const r = await api("/api/ai/providers");
+    if (!r.dostawcy.length) return;
+    $("#aiProvider").innerHTML = r.dostawcy.map((d) =>
+      `<option value="${esc(d)}" ${d === r.domyslny ? "selected" : ""}>${esc(d)} (${esc(r.modele[d] || "")})</option>`
+    ).join("");
+    $("#btnChatSend").addEventListener("click", chatSend);
+    $("#btnChatClear").addEventListener("click", () => { czat.historia = []; renderChat(); });
+    $("#chatInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) chatSend();
+    });
+    renderChat();
+  } catch (_) { /* brak AI - zakładka pozostaje pusta */ }
+}
+
+async function initAI() {
+  try {
+    const r = await api("/api/ai/available");
+    if (r.available) $("#btnAskAI").style.display = "inline-block";
+  } catch (_) { /* brak AI - przycisk zostaje ukryty */ }
 }
 
 async function fetchByDimensions() {
@@ -433,6 +531,9 @@ async function init() {
   $("#bearingOverlay").addEventListener("click", (e) => { if (e.target.id === "bearingOverlay") closeBearingModal(); });
   $("#btnFetchBySymbol").addEventListener("click", fetchBySymbol);
   $("#btnFetchByDims").addEventListener("click", fetchByDimensions);
+  $("#btnAskAI").addEventListener("click", askAI);
+  initAI();
+  initChat();
   $("#btnSaveBearing").addEventListener("click", saveBearing);
   $("#btnDeleteBearing").addEventListener("click", async () => {
     if (state.editingId) { await deleteBearing(state.editingId); closeBearingModal(); }

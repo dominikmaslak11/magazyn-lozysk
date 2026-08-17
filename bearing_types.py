@@ -60,8 +60,10 @@ _DIGIT_RULES: list[tuple[int, tuple[str, ...], str]] = [
     # stożkowe (ISO 355 / DIN 720)
     (5, ("302", "303", "313", "320", "322", "323", "329", "330", "331", "332"), TYP_STOZKOWE),
     # wahliwe baryłkowe (DIN 635-2)
-    (5, ("213", "222", "223", "230", "231", "232", "238", "239", "240", "241", "248", "249"),
-     TYP_WAHLIWE_BARYLKOWE),
+    # 202xx/203xx to łożyska baryłkowe jednorzędowe - bez tego wpisu seria zostawała
+    # nierozpoznana (realny przypadek z magazynu: 20211 dostało domyślne "kulkowe zwykłe").
+    (5, ("202", "203", "213", "222", "223", "230", "231", "232", "238", "239", "240", "241",
+         "248", "249"), TYP_WAHLIWE_BARYLKOWE),
     # oporowe kulkowe i baryłkowe
     (5, ("511", "512", "513", "514", "522", "523", "524", "292", "293", "294"), TYP_OPOROWE),
     # kulkowe zwykłe cienkościenne (seria 16000) oraz 4-rzędowe 6xxxx
