@@ -60,6 +60,13 @@ data class BearingEntity(
     val uwagi: String,
     val updatedAt: Long = System.currentTimeMillis(),
     val deletedAt: Long? = null,
+    // Progi magazynowe. 0 = nie pilnujemy tej pozycji (patrz progi_lozyska w database.py).
+    /** Poniżej tego stanu trzeba pilnie uzupełnić. */
+    val stanMin: Int = 0,
+    /** Stan docelowy; powyżej to zamrożone pieniądze i zajęte miejsce. */
+    val stanOpt: Int = 0,
+    /** Szacowane roczne zużycie - gdy progi nie są ustawione wprost, serwer wyprowadza je stąd. */
+    val zapotrzebowanie: Int = 0,
 )
 
 /**
@@ -113,4 +120,26 @@ data class ShelfWithCounts(
     /** Typy łożysk, dla których ta lokalizacja jest przeznaczona (po przecinku).
      *  Puste = ogólna, dobierana po średnicy. Typ ma pierwszeństwo przed średnicą. */
     val typy: String = "",
+)
+
+/**
+ * Podpowiedź wyliczona przez SERWER i zapamiętana lokalnie (patrz powiadomienia() w database.py).
+ *
+ * Świadomy wybór: reguł (progi, niezgodności, duplikaty, przeniesienia) NIE przepisujemy na
+ * Kotlina. Dwa silniki reguł w dwóch językach prędzej czy później zaczęłyby mówić co innego
+ * o tym samym łożysku, a tego się potem nie odkręca. Telefon dostaje gotowy tekst i tylko go
+ * koloruje - dołożenie nowej reguły na serwerze nie wymaga wtedy aktualizacji appki.
+ *
+ * Cena: offline widać stan wiedzy z ostatniej synchronizacji, dlatego trzymamy `pobranoO`
+ * i pokazujemy go wprost, zamiast udawać, że dane są świeże.
+ */
+@Entity(tableName = "powiadomienia")
+data class PowiadomienieEntity(
+    @PrimaryKey val id: String,
+    val bearingId: String?,
+    val rodzaj: String,
+    val waga: String,
+    val tytul: String,
+    val komunikat: String,
+    val pobranoO: Long,
 )

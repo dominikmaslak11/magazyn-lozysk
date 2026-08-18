@@ -60,9 +60,30 @@ private val MIGRATION_5_6 = object : Migration(5, 6) {
     }
 }
 
+/**
+ * v6 -> v7: progi magazynowe na łożysku + lokalna kopia podpowiedzi z serwera.
+ *
+ * Progi mają DEFAULT 0, czyli "nie pilnujemy tej pozycji" - dotychczasowe łożyska
+ * zachowują się dokładnie jak dotąd i nic nie zaczyna nagle alarmować.
+ */
+private val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `bearings` ADD COLUMN `stanMin` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `bearings` ADD COLUMN `stanOpt` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `bearings` ADD COLUMN `zapotrzebowanie` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `powiadomienia` (" +
+                "`id` TEXT NOT NULL, `bearingId` TEXT, `rodzaj` TEXT NOT NULL, " +
+                "`waga` TEXT NOT NULL, `tytul` TEXT NOT NULL, `komunikat` TEXT NOT NULL, " +
+                "`pobranoO` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+        )
+    }
+}
+
 @Database(
-    entities = [BearingEntity::class, ShelfEntity::class, BarcodeAliasEntity::class, StockMoveEntity::class],
-    version = 6,
+    entities = [BearingEntity::class, ShelfEntity::class, BarcodeAliasEntity::class,
+        StockMoveEntity::class, PowiadomienieEntity::class],
+    version = 7,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -70,6 +91,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun shelfDao(): ShelfDao
     abstract fun barcodeAliasDao(): BarcodeAliasDao
     abstract fun stockMoveDao(): StockMoveDao
+    abstract fun powiadomienieDao(): PowiadomienieDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null
@@ -85,7 +107,7 @@ abstract class AppDatabase : RoomDatabase() {
                     // v2 -> v3 ma już prawdziwą migrację (nie chcemy tracić zmian zrobionych
                     // offline), więc jest zarejestrowana PO fallbacku - Room użyje jej zamiast
                     // czyszczenia bazy.
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                     .build()
                     .also { INSTANCE = it }
             }

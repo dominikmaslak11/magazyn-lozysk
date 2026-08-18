@@ -3,6 +3,7 @@ package pl.lozyska.offline.sync
 import com.google.gson.annotations.SerializedName
 import pl.lozyska.offline.data.BarcodeAliasEntity
 import pl.lozyska.offline.data.BearingEntity
+import pl.lozyska.offline.data.PowiadomienieEntity
 import pl.lozyska.offline.data.ShelfEntity
 import pl.lozyska.offline.data.StockMoveEntity
 import retrofit2.http.Body
@@ -27,6 +28,9 @@ data class SyncBearingDto(
     val ilosc: Int, val regal_id: String?, val reczny_przydzial: Boolean,
     val zrodlo: String, val uwagi: String?,
     val updated_at: String? = null, val deleted_at: String? = null,
+    // Progi magazynowe. Wysyłamy je zawsze, więc serwer wie, że ta appka je zna
+    // i może je zapisać (starszy klient ich nie przysyła - patrz apply_sync_push).
+    val stan_min: Int = 0, val stan_opt: Int = 0, val zapotrzebowanie: Int = 0,
 )
 
 data class SyncBarcodeAliasDto(
@@ -43,6 +47,25 @@ data class SyncStateDto(
     val min_client_version: String? = null,
     // Nullable z tego samego powodu - serwer sprzed aliasów kodów kreskowych ich nie zna.
     val barcode_aliases: List<SyncBarcodeAliasDto>? = null,
+    // Gotowe podpowiedzi wyliczone przez serwer. Nullable, bo starszy serwer ich nie liczy -
+    // wtedy zostawiamy w spokoju te, które telefon już ma (patrz SyncEngine).
+    val powiadomienia: List<SyncPowiadomienieDto>? = null,
+)
+
+/**
+ * Podpowiedź wyliczona przez serwer - gotowy tekst do wyświetlenia.
+ *
+ * `rodzaj` celowo przychodzi jako zwykły String, a nie enum: serwer może dołożyć nowy
+ * rodzaj reguły, a starsza appka ma go wtedy po prostu pokazać, zamiast wywalić się na
+ * nieznanej wartości. O kolorze decyduje `waga`, której zbiór jest stały.
+ */
+data class SyncPowiadomienieDto(
+    val id: String,
+    val bearing_id: String?,
+    val rodzaj: String,
+    val waga: String,
+    val tytul: String,
+    val komunikat: String,
 )
 
 /** Ruch magazynowy wysyłany na serwer. `id` służy serwerowi do deduplikacji. */
@@ -97,6 +120,12 @@ fun BearingEntity.toSyncDto() = SyncBearingDto(
     id = id, symbol = symbol, typ = typ, d = d, dZew = dZew, B = b, ilosc = ilosc,
     regal_id = regalId, reczny_przydzial = recznyPrzydzial, zrodlo = zrodlo, uwagi = uwagi,
     deleted_at = deletedAt?.let { "deleted" },
+    stan_min = stanMin, stan_opt = stanOpt, zapotrzebowanie = zapotrzebowanie,
+)
+
+fun SyncPowiadomienieDto.toEntity(localTimestamp: Long) = PowiadomienieEntity(
+    id = id, bearingId = bearing_id, rodzaj = rodzaj, waga = waga,
+    tytul = tytul, komunikat = komunikat, pobranoO = localTimestamp,
 )
 
 /**
@@ -132,4 +161,5 @@ fun SyncBearingDto.toEntity(localTimestamp: Long) = BearingEntity(
     id = id, symbol = symbol, typ = typ, d = d, dZew = dZew, b = B, ilosc = ilosc,
     regalId = regal_id, recznyPrzydzial = reczny_przydzial, zrodlo = zrodlo, uwagi = uwagi ?: "",
     updatedAt = localTimestamp, deletedAt = tombstone(deleted_at, localTimestamp),
+    stanMin = stan_min, stanOpt = stan_opt, zapotrzebowanie = zapotrzebowanie,
 )

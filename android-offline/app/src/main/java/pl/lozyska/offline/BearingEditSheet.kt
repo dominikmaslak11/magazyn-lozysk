@@ -37,6 +37,11 @@ fun BearingEditSheet(
     var B by remember { mutableStateOf(bearing?.b?.let { fmtInput(it) } ?: "") }
     var ilosc by remember { mutableStateOf((bearing?.ilosc ?: 1).toString()) }
     var uwagi by remember { mutableStateOf(bearing?.uwagi ?: "") }
+    // Puste pole = 0 = "nie pilnuj tej pozycji". Pokazujemy pustkę zamiast zera, żeby
+    // nie sugerować, że próg został świadomie ustawiony na zero.
+    var stanMin by remember { mutableStateOf(bearing?.stanMin?.takeIf { it > 0 }?.toString() ?: "") }
+    var stanOpt by remember { mutableStateOf(bearing?.stanOpt?.takeIf { it > 0 }?.toString() ?: "") }
+    var zapotrzebowanie by remember { mutableStateOf(bearing?.zapotrzebowanie?.takeIf { it > 0 }?.toString() ?: "") }
     var source by remember { mutableStateOf(bearing?.zrodlo ?: "recznie") }
     var selectedShelf by remember { mutableStateOf(if (bearing?.recznyPrzydzial == true) bearing.regalId ?: AUTO_SHELF else AUTO_SHELF) }
     var note by remember { mutableStateOf<String?>(null) }
@@ -188,8 +193,37 @@ fun BearingEditSheet(
 
             OutlinedTextField(
                 value = uwagi, onValueChange = { uwagi = it }, label = { Text("Uwagi") },
+                supportingText = { Text("Np. \"wał corncrackera\" - wyszukiwarka przeszukuje też to pole.",
+                    style = MaterialTheme.typography.bodySmall) },
                 modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
             )
+
+            // Progi magazynowe. Wystarczy wypełnić samo roczne zużycie - resztę serwer
+            // wyprowadzi (optymalny = zużycie, minimalny = połowa), patrz progi_lozyska().
+            Spacer(Modifier.height(14.dp))
+            Text("Progi magazynowe (opcjonalne)", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Puste = appka nie pilnuje tej pozycji. Wystarczy podać roczne zużycie.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp, bottom = 6.dp),
+            )
+            // Zużycie osobno, nad progami: to jedyne pole, które trzeba wypełnić, a w rzędzie
+            // po trzy etykiety łamały się na telefonie w połowie słowa ("Optym / alnie").
+            OutlinedTextField(
+                value = zapotrzebowanie, onValueChange = { zapotrzebowanie = it },
+                label = { Text("Roczne zużycie [szt.]") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
+                OutlinedTextField(value = stanMin, onValueChange = { stanMin = it },
+                    label = { Text("Minimum") }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f))
+                OutlinedTextField(value = stanOpt, onValueChange = { stanOpt = it },
+                    label = { Text("Optymalnie") }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f))
+            }
 
             Row(Modifier.fillMaxWidth().padding(top = 18.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (bearing != null) {
@@ -206,6 +240,9 @@ fun BearingEditSheet(
                             ilosc = ilosc.toIntOrNull() ?: 0, zrodlo = source, uwagi = uwagi.trim(),
                             regalId = if (selectedShelf == AUTO_SHELF) null else selectedShelf,
                             recznyPrzydzial = selectedShelf != AUTO_SHELF,
+                            stanMin = stanMin.toIntOrNull() ?: 0,
+                            stanOpt = stanOpt.toIntOrNull() ?: 0,
+                            zapotrzebowanie = zapotrzebowanie.toIntOrNull() ?: 0,
                         ) { onSaved() }
                     },
                     modifier = Modifier.weight(1f),

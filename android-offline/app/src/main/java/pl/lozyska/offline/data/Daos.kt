@@ -132,3 +132,23 @@ interface StockMoveDao {
     @Query("SELECT COALESCE(SUM(delta), 0) FROM stock_moves WHERE bearingId = :bearingId")
     suspend fun pendingDeltaFor(bearingId: String): Int
 }
+
+@Dao
+interface PowiadomienieDao {
+    /** Krytyczne najpierw, potem ostrzeżenia - kolejność musi być stabilna, więc sortujemy jawnie. */
+    @Query("""
+        SELECT * FROM powiadomienia
+        ORDER BY CASE waga WHEN 'krytyczna' THEN 0 WHEN 'ostrzezenie' THEN 1 ELSE 2 END, tytul
+    """)
+    fun observeAll(): Flow<List<PowiadomienieEntity>>
+
+    /** Podpowiedzi dotyczące konkretnych łożysk - do podświetlenia wierszy na liście. */
+    @Query("SELECT * FROM powiadomienia WHERE bearingId IS NOT NULL")
+    fun observeByBearing(): Flow<List<PowiadomienieEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<PowiadomienieEntity>)
+
+    @Query("DELETE FROM powiadomienia")
+    suspend fun deleteAllHard()
+}

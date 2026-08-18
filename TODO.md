@@ -404,3 +404,38 @@ Kolejność wynika z analizy „co realnie boli”, nie z tego, co najciekawsze 
 - [x] Progi zapisywane osobnym wywołaniem (`/api/bearings/<id>/progi`) — to decyzja
       zaopatrzeniowa, oddzielona od danych technicznych łożyska
 - [ ] Progi i alerty nie są jeszcze w appce Android ani w synchronizacji
+
+## Progi i podpowiedzi w appce Android (2026-08-18, wersja 1.3.0)
+
+Wariant B: reguły liczy WYŁĄCZNIE serwer, telefon wyświetla gotowy wynik.
+Powód: dwa silniki reguł (Python + Kotlin) prędzej czy później zaczęłyby mówić
+co innego o tym samym łożysku, a tego się potem nie odkręca. Cena: offline widać
+stan wiedzy z ostatniej synchronizacji - dlatego wiek danych jest pokazany wprost.
+
+- [x] Schemat v7 na telefonie: `stanMin`, `stanOpt`, `zapotrzebowanie` + migracja 6→7
+      (prawdziwa migracja, nie czyszczenie bazy - dane offline zostają)
+- [x] Progi jadą w OBIE strony; serwer zapisuje je tylko wtedy, gdy klient je przysłał,
+      więc starsza appka nie wyzeruje progów ustawionych w przeglądarce
+- [x] Wspólny, płaski format podpowiedzi (`powiadomienia()` w database.py) - jedna lista
+      zamiast czterech osobnych; nowa reguła na serwerze nie wymaga aktualizacji appki
+- [x] Pasek podpowiedzi nad listą, zwijany, z wiekiem danych ("dane z serwera, 6 min temu")
+- [x] Żółte podświetlenie pozycji + adnotacja wprost na karcie, żeby kolor nie był zagadką
+- [x] Pola progów w arkuszu edycji (wystarczy roczne zużycie)
+- [x] Sprawdzone na Samsungu SM-M215F: migracja v6→v7 bez utraty danych, 11 podpowiedzi
+      z serwera, próg wpisany na telefonie dotarł na serwer i wygenerował alert
+- [ ] Limit podpowiedzi przeniesienia to sztywne 10 - przy pełnym magazynie może być za mało
+- [ ] Brak "nie pokazuj więcej tej podpowiedzi"
+- [ ] Czat AI na telefonie (punkt 4 planu)
+- [ ] Scalanie duplikatów i potwierdzanie stanu z telefonu (punkt 3 planu)
+
+## Plan porządkowania magazynu - PO wprowadzeniu wszystkich danych
+
+Zamówione 2026-08-18: gdy wszystkie symbole, wymiary i ilości będą wpisane,
+przygotować KOMPLETNY plan rozłożenia magazynu - co gdzie ma trafić i w jakiej
+kolejności robić ruchy - a nie pojedyncze podpowiedzi pozycja po pozycji.
+
+- [ ] Plan liczony na całości naraz: obłożenie regałów, a nie tylko dopasowanie
+      pojedynczego łożyska do zakresu średnic (dziś regał może się teoretycznie przepełnić)
+- [ ] Kolejność ruchów: najpierw zwolnić miejsce, potem je zająć
+- [ ] Grupowanie po typie i symbolu (UC…, ES… razem; ten sam symbol nigdy w dwóch miejscach)
+- [ ] Wydruk / lista do ręki na czas przekładania, z odhaczaniem

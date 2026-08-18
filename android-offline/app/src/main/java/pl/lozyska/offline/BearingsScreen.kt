@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import pl.lozyska.offline.data.BearingEntity
+import pl.lozyska.offline.data.PowiadomienieEntity
 import pl.lozyska.offline.data.SearchQuery
 
 private fun sourceLabel(z: String) = when (z) {
@@ -37,6 +38,8 @@ fun BearingsScreen(vm: OfflineViewModel) {
     val search by vm.search.collectAsState()
     val bearings by vm.bearings.collectAsState()
     val shelves by vm.shelves.collectAsState()
+    val powiadomienia by vm.powiadomienia.collectAsState()
+    val wagaWgLozyska by vm.wagaWgLozyska.collectAsState()
     val shelfNames = remember(shelves) { shelves.associate { it.id to it.nazwa } }
 
     var editing by remember { mutableStateOf<BearingEntity?>(null) }
@@ -91,6 +94,8 @@ fun BearingsScreen(vm: OfflineViewModel) {
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             )
 
+            PowiadomieniaBanner(powiadomienia, Modifier.padding(bottom = 8.dp))
+
             if (bearings.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     // Rozróżnienie ma znaczenie: pusty magazyn to co innego niż filtr bez
@@ -108,6 +113,8 @@ fun BearingsScreen(vm: OfflineViewModel) {
                         BearingCard(
                             bearing = b,
                             shelfName = b.regalId?.let { shelfNames[it] },
+                            waga = wagaWgLozyska[b.id],
+                            podpowiedzi = powiadomienia.filter { it.bearingId == b.id },
                             onEdit = { editing = b },
                             onDelete = { pendingDelete = b },
                             onChangeQuantity = { delta -> vm.changeQuantity(b, delta) },
@@ -219,11 +226,21 @@ private fun UnknownBarcodeDialog(kod: String, onDismiss: () -> Unit, onConfirm: 
 private fun BearingCard(
     bearing: BearingEntity,
     shelfName: String?,
+    /** Najcięższa podpowiedź dotycząca tej pozycji albo null - decyduje o kolorze karty. */
+    waga: String?,
+    podpowiedzi: List<PowiadomienieEntity>,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onChangeQuantity: (Int) -> Unit,
 ) {
-    ElevatedCard(Modifier.fillMaxWidth()) {
+    // Podświetlenie zamiast osobnej ikonki: przy przeglądaniu listy w warsztacie kolor
+    // widać kątem oka, a to jedyny moment, w którym podpowiedź ma szansę zadziałać.
+    val kolor = waga?.let { kolorWagi(it) }
+    ElevatedCard(
+        Modifier.fillMaxWidth(),
+        colors = if (kolor == null) CardDefaults.elevatedCardColors()
+                 else CardDefaults.elevatedCardColors(containerColor = kolor.tlo, contentColor = kolor.tekst),
+    ) {
         Column(Modifier.padding(14.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(bearing.symbol, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
@@ -236,14 +253,22 @@ private fun BearingCard(
                 Text("B ${fmt(bearing.b)} mm", style = MaterialTheme.typography.bodySmall)
             }
             Spacer(Modifier.height(2.dp))
-            Text(bearing.typ, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // Na kolorowej karcie własny odcień "przygaszonego" tekstu byłby nieczytelny,
+            // więc wtedy zostawiamy kolor odziedziczony po karcie.
+            val drugoplanowy = kolor?.tekst ?: MaterialTheme.colorScheme.onSurfaceVariant
+            Text(bearing.typ, style = MaterialTheme.typography.bodySmall, color = drugoplanowy)
             Text(
                 (shelfName ?: "—") + if (bearing.recznyPrzydzial) " (ręcznie)" else "",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = drugoplanowy,
             )
             if (bearing.uwagi.isNotBlank()) {
-                Text(bearing.uwagi, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(bearing.uwagi, style = MaterialTheme.typography.bodySmall, color = drugoplanowy)
+            }
+            // Adnotacja wprost na karcie - żeby kolor nie był zagadką "dlaczego to żółte?".
+            podpowiedzi.forEach { p ->
+                Text("${p.tytul}: ${p.komunikat}", style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium, modifier = Modifier.padding(top = 6.dp))
             }
 
             // Wydanie/przyjęcie sztuki to NAJCZĘSTSZA czynność w warsztacie - ma być

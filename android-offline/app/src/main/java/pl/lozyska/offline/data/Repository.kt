@@ -53,6 +53,7 @@ class Repository(private val db: AppDatabase) {
     private val shelfDao = db.shelfDao()
     private val aliasDao = db.barcodeAliasDao()
     private val stockMoveDao = db.stockMoveDao()
+    private val powiadomienieDao = db.powiadomienieDao()
 
     /**
      * Jedno pole wyszukiwania obsługuje dwa pytania: "czy mam 6205?" (po symbolu)
@@ -68,11 +69,22 @@ class Repository(private val db: AppDatabase) {
     }
     fun observeShelvesWithCounts() = shelfDao.observeAllWithCounts()
 
+    /** Podpowiedzi z ostatniej synchronizacji - patrz PowiadomienieEntity. */
+    fun observeNotifications() = powiadomienieDao.observeAll()
+    fun observeNotificationsByBearing() = powiadomienieDao.observeByBearing()
+
+    /** Podmienia całą listę podpowiedzi (serwer je liczy, telefon tylko przechowuje). */
+    suspend fun replaceNotifications(items: List<PowiadomienieEntity>) {
+        powiadomienieDao.deleteAllHard()
+        powiadomienieDao.insertAll(items)
+    }
+
     suspend fun getBearing(id: String) = bearingDao.getById(id)
 
     suspend fun saveBearing(
         id: String?, symbol: String, typ: String, d: Double?, dZew: Double?, b: Double?,
         ilosc: Int, zrodlo: String, uwagi: String, regalId: String?, recznyPrzydzial: Boolean,
+        stanMin: Int = 0, stanOpt: Int = 0, zapotrzebowanie: Int = 0,
     ) {
         val finalRegalId = if (recznyPrzydzial) regalId else suggestShelfId(dZew)
         val bearingId = id ?: newLocalId()
@@ -84,6 +96,7 @@ class Repository(private val db: AppDatabase) {
             id = bearingId, symbol = symbol, typ = typ, d = d, dZew = dZew, b = b, ilosc = ilosc,
             regalId = finalRegalId, recznyPrzydzial = recznyPrzydzial, zrodlo = zrodlo, uwagi = uwagi,
             updatedAt = System.currentTimeMillis(),
+            stanMin = stanMin, stanOpt = stanOpt, zapotrzebowanie = zapotrzebowanie,
         )
         if (id == null) bearingDao.insert(entity) else bearingDao.update(entity)
         if (ilosc != poprzedniaIlosc) zapiszRuch(bearingId, ilosc - poprzedniaIlosc)

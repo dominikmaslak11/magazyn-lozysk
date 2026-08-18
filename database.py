@@ -821,6 +821,86 @@ def alerty_stanu() -> list[AlertStanu]:
     return wyniki
 
 
+@dataclass
+class Powiadomienie:
+    """Jedna podpowiedź dla użytkownika, w formie gotowej do wyświetlenia.
+
+    Wszystkie reguły (progi, niezgodności, duplikaty, przeniesienia) sprowadzamy
+    do JEDNEGO płaskiego kształtu, żeby klient nie musiał znać każdej z osobna:
+    dostaje listę, koloruje ją po `waga` i pokazuje. Dołożenie nowej reguły na
+    serwerze nie wymaga wtedy aktualizacji appki na telefonie.
+    """
+    id: str              # stabilny (rodzaj + pozycja) - pod przyszłe "nie pokazuj więcej"
+    bearing_id: str | None
+    rodzaj: str          # brak | pilne | nadmiar | niezgodnosc | duplikat | rozproszone | przeniesienie
+    waga: str            # krytyczna | ostrzezenie | informacja
+    tytul: str
+    komunikat: str
+
+
+# Ile podpowiedzi przeniesienia najwyżej wysyłamy. Przy porządkowaniu magazynu od zera
+# (wszystko na jednym regale) reguła doboru zgłasza praktycznie każdą pozycję - lista
+# bez limitu byłaby ścianą tekstu, w której giną rzeczy naprawdę pilne. Sortowanie w
+# sugestie_przeniesien() jest wg liczby sztuk, więc obcinamy najmniej opłacalne.
+MAX_PRZENIESIEN = 10
+
+# Powyżej tylu sztuk przeniesienie warte jest zachodu i zasługuje na żółte podświetlenie.
+# Niżej to drobiazg - pokazujemy, ale nie krzyczymy.
+PRZENIESIENIE_ISTOTNE_OD = 3
+
+
+def powiadomienia() -> list[Powiadomienie]:
+    """Wszystkie podpowiedzi reguł w jednej, posortowanej liście.
+
+    Liczone WYŁĄCZNIE tutaj, na serwerze, i wysyłane do klientów jako gotowy tekst
+    (patrz sync_state). Alternatywą byłoby przepisanie reguł na Kotlina, ale wtedy
+    telefon i przeglądarka mogłyby powiedzieć co innego o tym samym łożysku -
+    a rozjeżdżających się silników reguł potem się nie odkręca. Cena tego wyboru:
+    offline telefon pokazuje stan wiedzy z ostatniej synchronizacji. Dla podpowiedzi
+    to bez znaczenia (to nie są dane krytyczne), dla spójności - kluczowe.
+    """
+    wynik: list[Powiadomienie] = []
+
+    for a in alerty_stanu():
+        waga = {"brak": "krytyczna", "pilne": "ostrzezenie", "nadmiar": "informacja"}[a.poziom]
+        tytul = {"brak": "Brak na stanie", "pilne": "Uzupełnij zapas",
+                 "nadmiar": "Nadmiar"}[a.poziom]
+        wynik.append(Powiadomienie(f"{a.poziom}:{a.bearing_id}", a.bearing_id,
+                                    a.poziom, waga, tytul, a.komunikat))
+
+    # Niezgodność jest KRYTYCZNA, choć nic nie brakuje: dopóki trwa, żadna liczba przy
+    # tej pozycji nie jest wiarygodna, więc i pozostałe podpowiedzi o niej są niepewne.
+    for n in niezgodnosci_stanu():
+        wynik.append(Powiadomienie(f"niezgodnosc:{n.bearing_id}", n.bearing_id,
+                                    "niezgodnosc", "krytyczna", "Przelicz fizycznie", n.komunikat))
+
+    for s in sugestie_scalenia():
+        gdzie = ", ".join(f"{w['ilosc']} szt. w {w['lokalizacja']}" for w in s.wpisy)
+        if s.rodzaj == "duplikat":
+            tytul, tresc = "Zdublowany wpis", (
+                f"{s.symbol} figuruje w {len(s.wpisy)} wpisach w tym samym miejscu "
+                f"({gdzie}). Powinien być jeden wpis na {s.lacznie} szt.")
+        else:
+            tytul, tresc = "Rozproszone po magazynie", (
+                f"{s.symbol} leży w {len(s.wpisy)} miejscach ({gdzie}). Zbierz wszystkie "
+                f"{s.lacznie} szt. w {s.cel} - inaczej patrząc na jedną półkę widzisz "
+                f"zaniżony stan i zamawiasz niepotrzebnie.")
+        wynik.append(Powiadomienie(f"{s.rodzaj}:{s.symbol}", None, s.rodzaj,
+                                    "ostrzezenie", tytul, tresc))
+
+    for p in sugestie_przeniesien()[:MAX_PRZENIESIEN]:
+        waga = "ostrzezenie" if p.ilosc >= PRZENIESIENIE_ISTOTNE_OD else "informacja"
+        wynik.append(Powiadomienie(
+            f"przeniesienie:{p.bearing_id}", p.bearing_id, "przeniesienie", waga,
+            "Potrzebny ruch magazynowy",
+            f"{p.symbol} ({p.ilosc} szt.) leży w {p.obecna}, a pasuje do {p.sugerowana} - "
+            f"{p.powod}." + (" Lokalizacja ustawiona ręcznie." if p.reczny else "")))
+
+    kolejnosc = {"krytyczna": 0, "ostrzezenie": 1, "informacja": 2}
+    wynik.sort(key=lambda p: kolejnosc[p.waga])
+    return wynik
+
+
 def reassign_all_auto() -> int:
     """Przelicza regał_id dla wszystkich łożysk BEZ ręcznej ingerencji. Zwraca liczbę zmienionych."""
     conn = get_connection()
@@ -1086,6 +1166,8 @@ def sync_state() -> dict:
         "shelves": [asdict(s) for s in shelves],
         "bearings": [asdict(b) for b in bearings],
         "barcode_aliases": [asdict(a) for a in aliases],
+        # Gotowe podpowiedzi liczone TUTAJ - patrz komentarz nad powiadomienia().
+        "powiadomienia": [asdict(p) for p in powiadomienia()],
     }
 
 
@@ -1145,6 +1227,14 @@ def apply_sync_push(shelves_in: list[dict], bearings_in: list[dict],
                     (b["symbol"], b.get("typ", ""), b.get("d"), b.get("D"), b.get("B"),
                      b.get("regal_id"), int(b.get("reczny_przydzial", False)), b.get("zrodlo", "recznie"),
                      b.get("uwagi", ""), ts, b.get("deleted_at"), b["id"]),
+                )
+            # Progi aktualizujemy TYLKO gdy klient je przysłał - starsza appka ich nie zna
+            # i nie może przez to wyzerować progów ustawionych w przeglądarce.
+            if any(k in b for k in ("stan_min", "stan_opt", "zapotrzebowanie")):
+                conn.execute(
+                    "UPDATE bearings SET stan_min=?, stan_opt=?, zapotrzebowanie=? WHERE id=?",
+                    (max(0, int(b.get("stan_min") or 0)), max(0, int(b.get("stan_opt") or 0)),
+                     max(0, int(b.get("zapotrzebowanie") or 0)), b["id"]),
                 )
 
         # Ruchy magazynowe stosujemy PO wstawieniu łożysk, żeby ruch dotyczący nowo

@@ -48,6 +48,21 @@ class OfflineViewModel(application: Application) : AndroidViewModel(application)
     val shelves: StateFlow<List<ShelfWithCounts>> =
         repo.observeShelvesWithCounts().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    /**
+     * Podpowiedzi wyliczone przez serwer i pobrane przy ostatniej synchronizacji
+     * (patrz PowiadomienieEntity). Telefon ich NIE liczy - trzyma jedno źródło prawdy.
+     */
+    val powiadomienia: StateFlow<List<PowiadomienieEntity>> =
+        repo.observeNotifications().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Podpowiedzi w rozbiciu na łożyska - do podświetlenia wierszy (id łożyska -> najcięższa waga). */
+    val wagaWgLozyska: StateFlow<Map<String, String>> =
+        repo.observeNotificationsByBearing().map { lista ->
+            val kolejnosc = mapOf("krytyczna" to 0, "ostrzezenie" to 1, "informacja" to 2)
+            lista.groupBy { it.bearingId!! }
+                .mapValues { (_, p) -> p.minBy { kolejnosc[it.waga] ?: 9 }.waga }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message
     fun clearMessage() { _message.value = null }
@@ -180,9 +195,11 @@ class OfflineViewModel(application: Application) : AndroidViewModel(application)
     fun saveBearing(
         id: String?, symbol: String, typ: String, d: Double?, dZew: Double?, b: Double?,
         ilosc: Int, zrodlo: String, uwagi: String, regalId: String?, recznyPrzydzial: Boolean,
+        stanMin: Int = 0, stanOpt: Int = 0, zapotrzebowanie: Int = 0,
         onDone: () -> Unit,
     ) = viewModelScope.launch {
-        repo.saveBearing(id, symbol, typ, d, dZew, b, ilosc, zrodlo, uwagi, regalId, recznyPrzydzial)
+        repo.saveBearing(id, symbol, typ, d, dZew, b, ilosc, zrodlo, uwagi, regalId, recznyPrzydzial,
+            stanMin, stanOpt, zapotrzebowanie)
         onDone()
     }
 

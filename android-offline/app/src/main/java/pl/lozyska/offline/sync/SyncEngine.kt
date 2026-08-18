@@ -76,6 +76,13 @@ class SyncEngine(private val context: Context) {
                 serverState.barcode_aliases?.map { it.toEntity(syncStartedAt) } ?: repo.getLocalAliasChangesSince(0L),
             )
 
+            // Podpowiedzi to dane WYŁĄCZNIE do odczytu, liczone na serwerze - telefon ich nie
+            // tworzy ani nie wysyła, więc podmieniamy je w całości. Starszy serwer ich nie zna
+            // i nie odsyła tego pola; wtedy zostawiamy poprzednie zamiast czyścić ekran.
+            serverState.powiadomienia?.let { lista ->
+                repo.replaceNotifications(lista.map { it.toEntity(syncStartedAt) })
+            }
+
             // Serwer potwierdził przyjęcie tych ruchów (są już wliczone w odesłany stan),
             // więc dopiero teraz można je skasować lokalnie.
             repo.clearMoves(pendingMoves.map { it.id })
