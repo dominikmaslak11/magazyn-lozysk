@@ -48,7 +48,10 @@ object BearingTypeClassifier {
         Triple(5, listOf("160", "161", "162", "163"), TypLozyska.KULKOWE),
         Triple(4, listOf("32", "33"), TypLozyska.SKOSNE),
         Triple(4, listOf("12", "13", "22", "23"), TypLozyska.WAHLIWE_KULKOWE),
-        Triple(4, listOf("51", "52", "53", "54"), TypLozyska.OPOROWE),
+        // 4-cyfrowe 52xx/53xx to SKOŚNE DWURZĘDOWE (starsze oznaczenie serii 32xx/33xx:
+        // 5202 = 3202 = 15x35x15,9 mm), a NIE oporowe. Oporowe kulkowe mają oznaczenia
+        // PIĘCIOCYFROWE (51100, 51200, 52200...) i łapie je reguła wyżej.
+        Triple(4, listOf("52", "53"), TypLozyska.SKOSNE),
     )
 
     private val FIRST_DIGIT_RULES: List<Pair<String, TypLozyska>> = listOf(

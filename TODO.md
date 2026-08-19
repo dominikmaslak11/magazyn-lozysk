@@ -643,3 +643,33 @@ zwykłe łożysko walcowe, które redukowało się do „208", czyli do kulkoweg
 Oraz regresję, którą sam wprowadziłem przy tej poprawce: po dodaniu przedrostka „N"
 normalizacja czytała **„NTN 6205" jako „N6205"** - końcowe N w nazwie marki wyglądało
 jak seria. Ratuje granica słowa; osobny test tego pilnuje.
+
+## Walidacja całej bazy (2026-08-19, wersja 1.12.0)
+
+Sprawdzone wszystkie 27 pozycji: wymiary kontra oznaczenie, oznaczenie kontra typ,
+zgodność z katalogiem.
+
+### Znaleziony błąd W REGUŁACH (nie w danych)
+
+- [x] **Seria 52xx była klasyfikowana jako OPOROWA, a jest SKOŚNA DWURZĘDOWA.**
+      Łożysko 5202 użytkownika (15 × 35 × 15,9 mm, 11 szt.) dostało przez to złą
+      kategorię. 52xx i 53xx to starsze oznaczenie serii 32xx/33xx - to samo łożysko
+      (5202 = 3202). Oporowe kulkowe mają oznaczenia PIĘCIOCYFROWE: 51100, 51200, 52200.
+      Pomyłka nie jest kosmetyczna: oporowe przenosi obciążenie osiowe, skośne
+      promieniowo i osiowo. Poprawione po obu stronach + test + wpis w katalogu
+
+### Wymiary zgodne z oznaczeniem (sprawdzone regułą kodu otworu i normą)
+
+20211 (55×100×21), 21307 (35×80×21), 21310 (50×110×27), 2209 (45×85×23),
+32010 (50×80×20), NJ211 (55×100×21), 62205 (25×52×18), 6922zz (110×150×20),
+oraz wszystkie 6xxx zgodne z katalogiem co do dziesiątej milimetra.
+
+### Do rozstrzygnięcia przy regale (oznaczone ptaszkiem)
+
+- [ ] **62205 - otwór 52 mm przy średnicy zewnętrznej 52 mm.** Z oznaczenia wynika
+      25 mm. Drugi wpis tego samego symbolu ma poprawne 25 × 52 × 18 - wygląda na
+      literówkę przy wpisywaniu. Do zmierzenia i scalenia z tamtym wpisem
+- [ ] **uc209 - szerokość 19 mm** (pierścień zewnętrzny) kontra 49,2 mm w katalogu
+      i w Twoim nowszym wpisie UC208 (pierścień wewnętrzny). Jedna konwencja do wyboru
+- [ ] **"205"** - to stare oznaczenie PN/GOST odpowiadające 6205; wymiary 25×52×15 się
+      zgadzają. Rozważyć zapis jako 6205, żeby reguły je rozpoznawały

@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from bearing_data import SERIES, TYPY_NIEROZPOZNAWALNE_Z_OZNACZENIA
-from bearing_data import (TYP_IGIELKOWE, TYP_WSTAWKOWE, TYP_WSTAWKOWE_ES,
+from bearing_data import (TYP_IGIELKOWE, TYP_OPOROWE, TYP_SKOSNE, TYP_WSTAWKOWE, TYP_WSTAWKOWE_ES,
                            TYP_WSTAWKOWE_EX, TYP_WSTAWKOWE_RAE)
 from bearing_types import bore_from_symbol, classify_symbol
 
@@ -224,6 +224,23 @@ def test_wstawkowe_o_tych_samych_gabarytach_to_rozne_czesci():
     assert len(typy) == 3, f"każdy powinien mieć własny typ, dostano {typy}"
     szerokosci = {BEARING_DB[s][2] for s in ("UC208", "ES208", "EX208")}
     assert len(szerokosci) == 3, f"katalog musi je odróżniać, dostano {szerokosci}"
+
+
+def test_seria_52xx_to_skosne_a_nie_oporowe():
+    """Realny błąd znaleziony przy walidacji bazy użytkownika.
+
+    Łożysko 5202 (15 x 35 x 15,9 mm) było klasyfikowane jako OPOROWE, bo reguła
+    obejmowała 4-cyfrowe 51/52/53/54. Tymczasem 52xx i 53xx to SKOŚNE DWURZĘDOWE -
+    starsze oznaczenie tej samej konstrukcji co 32xx/33xx (5202 = 3202). Oporowe
+    kulkowe mają oznaczenia pięciocyfrowe: 51100, 51200, 52200.
+
+    Pomyłka nie jest kosmetyczna: oporowe przenosi obciążenie osiowe, skośne promieniowo
+    i osiowo - to inne zastosowanie w maszynie.
+    """
+    for s in ("5202", "5200", "5305", "3202", "3302"):
+        assert classify_symbol(s) == TYP_SKOSNE, s
+    for s in ("51100", "51205", "52205", "51405"):
+        assert classify_symbol(s) == TYP_OPOROWE, s
 
 
 if __name__ == "__main__":

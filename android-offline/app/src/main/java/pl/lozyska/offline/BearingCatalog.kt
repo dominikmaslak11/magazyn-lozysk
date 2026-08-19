@@ -303,6 +303,9 @@ object BearingCatalog {
         // SNR. Kulista powierzchnia zewnętrzna, mocowanie mimośrodowym pierścieniem.
         // Trzecia liczba to szerokość CAŁKOWITA (sam pierścień zewnętrzny ma 21 mm).
         KatalogWpis("EX208", 40.0, 80.0, 56.3, TypLozyska.WSTAWKOWE_EX),
+        // Skośne dwurzędowe. 52xx to starsze oznaczenie serii 32xx - to samo łożysko.
+        KatalogWpis("5202", 15.0, 35.0, 15.9, TypLozyska.SKOSNE),
+        KatalogWpis("3202", 15.0, 35.0, 15.9, TypLozyska.SKOSNE),
         KatalogWpis("UC211", 55.0, 100.0, 55.6, TypLozyska.WSTAWKOWE),
         KatalogWpis("UC212", 60.0, 110.0, 65.1, TypLozyska.WSTAWKOWE),
     )

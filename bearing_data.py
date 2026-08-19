@@ -188,6 +188,13 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         "ES208": (40, 80, 43.7), "ES209": (45, 85, 43.7), "ES210": (50, 90, 43.7),
     },
 
+    TYP_SKOSNE: {
+        # Skośne DWURZĘDOWE. Seria 52xx to starsze oznaczenie serii 32xx - to samo
+        # łożysko (5202 = 3202 = 15 x 35 x 15,9 mm). Źródło: karty katalogowe Nachi/VXB
+        # oraz jawna równoważność 5202-2RS = 3202-2RS u dystrybutorów.
+        "5202": (15, 35, 15.9), "3202": (15, 35, 15.9),
+    },
+
     TYP_WSTAWKOWE_EX: {
         # SNR, wg katalogu producenta i dystrybutorów. Kulista powierzchnia zewnętrzna
         # (samonastawne w oprawie), mocowanie mimośrodowym pierścieniem zaciskowym.

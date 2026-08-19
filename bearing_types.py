@@ -88,7 +88,12 @@ _DIGIT_RULES: list[tuple[int, tuple[str, ...], str]] = [
     # wahliwe kulkowe (1200/1300/2200/2300)
     (4, ("12", "13", "22", "23"), TYP_WAHLIWE_KULKOWE),
     # oporowe kulkowe jednokierunkowe zapisywane 4-cyfrowo
-    (4, ("51", "52", "53", "54"), TYP_OPOROWE),
+    # 4-cyfrowe 52xx/53xx to łożyska SKOŚNE DWURZĘDOWE (starsze oznaczenie tego samego,
+    # co 32xx/33xx: 5202 = 3202 = 15x35x15,9 mm), a NIE oporowe. Oporowe kulkowe mają
+    # oznaczenia PIĘCIOCYFROWE (51100, 51200, 52200...) i są obsłużone regułą wyżej.
+    # Realny błąd: łożysko 5202 użytkownika zostało przez tę regułę zaliczone do
+    # oporowych, choć jest skośne - a to zupełnie inna konstrukcja i zastosowanie.
+    (4, ("52", "53"), TYP_SKOSNE),
 ]
 
 # Reguły na pierwszej cyfrze - najogólniejsze, sprawdzane NA KOŃCU.
