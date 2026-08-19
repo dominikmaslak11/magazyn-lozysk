@@ -196,10 +196,11 @@ class OfflineViewModel(application: Application) : AndroidViewModel(application)
         id: String?, symbol: String, typ: String, d: Double?, dZew: Double?, b: Double?,
         ilosc: Int, zrodlo: String, uwagi: String, regalId: String?, recznyPrzydzial: Boolean,
         stanMin: Int = 0, stanOpt: Int = 0, zapotrzebowanie: Int = 0,
+        doWeryfikacji: Boolean = false,
         onDone: () -> Unit,
     ) = viewModelScope.launch {
         repo.saveBearing(id, symbol, typ, d, dZew, b, ilosc, zrodlo, uwagi, regalId, recznyPrzydzial,
-            stanMin, stanOpt, zapotrzebowanie)
+            stanMin, stanOpt, zapotrzebowanie, doWeryfikacji)
         onDone()
     }
 

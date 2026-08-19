@@ -35,6 +35,7 @@ data class SyncBearingDto(
     // Progi magazynowe. Wysyłamy je zawsze, więc serwer wie, że ta appka je zna
     // i może je zapisać (starszy klient ich nie przysyła - patrz apply_sync_push).
     val stan_min: Int = 0, val stan_opt: Int = 0, val zapotrzebowanie: Int = 0,
+    val do_weryfikacji: Boolean = false,
 )
 
 data class SyncBarcodeAliasDto(
@@ -126,6 +127,7 @@ fun BearingEntity.toSyncDto() = SyncBearingDto(
     regal_id = regalId, reczny_przydzial = recznyPrzydzial, zrodlo = zrodlo, uwagi = uwagi,
     deleted_at = deletedAt?.let { "deleted" },
     stan_min = stanMin, stan_opt = stanOpt, zapotrzebowanie = zapotrzebowanie,
+    do_weryfikacji = doWeryfikacji,
 )
 
 fun SyncPowiadomienieDto.toEntity(localTimestamp: Long) = PowiadomienieEntity(
@@ -168,4 +170,5 @@ fun SyncBearingDto.toEntity(localTimestamp: Long) = BearingEntity(
     regalId = regal_id, recznyPrzydzial = reczny_przydzial, zrodlo = zrodlo, uwagi = uwagi ?: "",
     updatedAt = localTimestamp, deletedAt = tombstone(deleted_at, localTimestamp),
     stanMin = stan_min, stanOpt = stan_opt, zapotrzebowanie = zapotrzebowanie,
+    doWeryfikacji = do_weryfikacji,
 )

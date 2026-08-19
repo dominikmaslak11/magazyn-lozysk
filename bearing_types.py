@@ -156,6 +156,17 @@ def bore_from_symbol(raw: str) -> float | None:
     if len(digits) not in dozwolone:
         return None
 
+    # Kod otworu obowiązuje TYLKO w numeracji metrycznej ISO. Jeśli nie rozpoznajemy
+    # nawet typu, to nie wiemy, w jakim systemie zapisane jest to oznaczenie - i nie
+    # wolno nam twierdzić, ile ma otworu.
+    #
+    # Realny przypadek: 37431A to calowe łożysko stożkowe Timkena o otworze 109,5 mm,
+    # a reguła ISO wyliczała z dwóch ostatnich cyfr ("31") otwór 155 mm. Program
+    # odrzucał wtedy PRAWDZIWE wymiary jako "niepasujące do oznaczenia" i przyjmował
+    # fałszywe - czyli kontrola sensowności działała dokładnie na odwrót.
+    if classify_symbol(text) is None:
+        return None
+
     kod = digits[-2:]
     if kod in _BORE_CODE_EXCEPTIONS:
         return _BORE_CODE_EXCEPTIONS[kod]

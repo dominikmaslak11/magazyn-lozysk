@@ -77,6 +77,9 @@ data class BearingEntity(
     val stanOpt: Int = 0,
     /** Szacowane roczne zużycie - gdy progi nie są ustawione wprost, serwer wyprowadza je stąd. */
     val zapotrzebowanie: Int = 0,
+    /** Pozycja wymaga sprawdzenia: nieczytelne oznaczenie, niepewny wymiar, wątpliwy typ.
+     *  Osobny znacznik, a NIE słowo kluczowe w uwagach - flaga nie zależy od pisowni. */
+    val doWeryfikacji: Boolean = false,
 )
 
 /**

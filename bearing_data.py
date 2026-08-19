@@ -27,6 +27,9 @@ TYP_WSTAWKOWE = "wstawkowe (UC)"
 # pierścienia wewnętrznego, więc jedno nie zastępuje drugiego przy naprawie maszyny.
 # Muszą być osobnymi typami, żeby dało się je rozróżnić na liście i rozdzielić na półkach.
 TYP_WSTAWKOWE_ES = "wstawkowe (ES)"
+# Stożkowe w numeracji CALOWEJ (Timken). Osobny typ, bo różni je nie konstrukcja,
+# tylko system oznaczeń - a to zmienia sposób czytania symbolu i dobór zamienników.
+TYP_STOZKOWE_CALOWE = "stożkowe calowe (Timken)"
 
 # Typy, dla których mamy wymiary w katalogu poniżej.
 _TYPY_Z_KATALOGIEM = [TYP_KULKOWE, TYP_STOZKOWE, TYP_WAHLIWE_KULKOWE, TYP_WAHLIWE_BARYLKOWE, TYP_WSTAWKOWE]
@@ -41,7 +44,7 @@ TYP_WALCOWE = "walcowe"
 TYP_OPOROWE = "oporowe"
 TYP_IGIELKOWE = "igiełkowe"
 
-ALL_TYPES = _TYPY_Z_KATALOGIEM + [TYP_WSTAWKOWE_ES, TYP_SKOSNE, TYP_WALCOWE,
+ALL_TYPES = _TYPY_Z_KATALOGIEM + [TYP_WSTAWKOWE_ES, TYP_STOZKOWE_CALOWE, TYP_SKOSNE, TYP_WALCOWE,
               TYP_OPOROWE, TYP_IGIELKOWE]
 
 # typ -> {symbol: (d, D, B)} w milimetrach
@@ -175,7 +178,24 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         # Szerokość samego pierścienia zewnętrznego to kolejno 18 / 19 / 20 mm.
         "ES208": (40, 80, 43.7), "ES209": (45, 85, 43.7), "ES210": (50, 90, 43.7),
     },
+
+    TYP_STOZKOWE_CALOWE: {
+        # Oznaczenia CALOWE (Timken i zamienniki) - inna numeracja niż ISO, więc reguła
+        # "dwie ostatnie cyfry to kod otworu" tu NIE obowiązuje (patrz bore_from_symbol).
+        #
+        # 37431A to sam PIERŚCIEŃ WEWNĘTRZNY (cone) kompletu 37431A/37625: bez pierścienia
+        # zewnętrznego 37625 (o średnicy 158,75 mm) jest bezużyteczny. Podajemy wymiary
+        # samego stożka, bo to on fizycznie leży na półce.
+        # Źródło: cad.timken.com, karta 37431A.
+        "37431A": (109.538, 132.745, 21.438),
+    },
 }
+
+# Typy, których NIE da się rozpoznać z samego oznaczenia, bo używają innej numeracji
+# niż ISO. Klasyfikator zwraca dla nich uczciwe "nie wiem", a typ bierze się z katalogu
+# (wpis po symbolu) albo od użytkownika. Reguła "dwie ostatnie cyfry to kod otworu"
+# też ich nie dotyczy - patrz bore_from_symbol w bearing_types.py.
+TYPY_NIEROZPOZNAWALNE_Z_OZNACZENIA = {TYP_STOZKOWE_CALOWE}
 
 # Płaskie widoki na potrzeby lookup.py / bazy danych.
 BEARING_DB: dict[str, tuple[float, float, float]] = {}

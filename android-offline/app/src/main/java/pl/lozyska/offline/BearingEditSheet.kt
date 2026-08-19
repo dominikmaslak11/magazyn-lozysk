@@ -39,6 +39,7 @@ fun BearingEditSheet(
     var uwagi by remember { mutableStateOf(bearing?.uwagi ?: "") }
     // Puste pole = 0 = "nie pilnuj tej pozycji". Pokazujemy pustkę zamiast zera, żeby
     // nie sugerować, że próg został świadomie ustawiony na zero.
+    var doWeryfikacji by remember { mutableStateOf(bearing?.doWeryfikacji ?: false) }
     var stanMin by remember { mutableStateOf(bearing?.stanMin?.takeIf { it > 0 }?.toString() ?: "") }
     var stanOpt by remember { mutableStateOf(bearing?.stanOpt?.takeIf { it > 0 }?.toString() ?: "") }
     var zapotrzebowanie by remember { mutableStateOf(bearing?.zapotrzebowanie?.takeIf { it > 0 }?.toString() ?: "") }
@@ -203,6 +204,15 @@ fun BearingEditSheet(
                 modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
             )
 
+            // Ptaszek "sprawdź to" - osobna flaga, nie słowo kluczowe w uwagach, żeby
+            // wyszukiwanie takich pozycji nie zależało od pisowni.
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 8.dp)) {
+                Checkbox(checked = doWeryfikacji, onCheckedChange = { doWeryfikacji = it })
+                Text("Do sprawdzenia - opisz w uwagach, co budzi wątpliwość",
+                    style = MaterialTheme.typography.bodySmall)
+            }
+
             // Progi magazynowe. Wystarczy wypełnić samo roczne zużycie - resztę serwer
             // wyprowadzi (optymalny = zużycie, minimalny = połowa), patrz progi_lozyska().
             Spacer(Modifier.height(14.dp))
@@ -248,6 +258,7 @@ fun BearingEditSheet(
                             stanMin = stanMin.toIntOrNull() ?: 0,
                             stanOpt = stanOpt.toIntOrNull() ?: 0,
                             zapotrzebowanie = zapotrzebowanie.toIntOrNull() ?: 0,
+                            doWeryfikacji = doWeryfikacji,
                         ) { onSaved() }
                     },
                     modifier = Modifier.weight(1f),

@@ -529,3 +529,40 @@ Ustalone w katalogu NTN-SNR (eshop.ntn-snr.com), nie zgadnięte:
       pierścień ZEWNĘTRZNY. Trzeba wybrać jedną konwencję - wewnętrzna jest właściwa
       dla układania na półce (ten pierścień wystaje i to on wyznacza wysokość stosu)
 - [ ] Poprawić wpis `uc209` po ustaleniu konwencji
+
+## Nazwa appki, 37431A, ptaszek weryfikacji i narzędzie audytu (2026-08-19, wersja 1.8.0)
+
+- [x] Appka na telefonie nazywa się teraz **Magazyn Łożysk** (jak serwer, wersja webowa
+      i wydruki naklejek). "Offline" to szczegół implementacyjny, nie nazwa produktu.
+      Stary klient przemianowany na "Magazyn Łożysk (stary klient)", żeby nie mylił
+- [x] **37431A rozpoznane**: to pierścień wewnętrzny (cone) calowego łożyska stożkowego
+      Timken 37431A/37625 - otwór 109,538 mm, śr. stożka 132,745 mm, szer. 21,438 mm.
+      Sam stożek jest bezużyteczny bez pierścienia zewnętrznego 37625 (śr. 158,75 mm).
+      Źródło: cad.timken.com. Wpis w bazie poprawiony (było 110 × 110 × 22)
+- [x] **Naprawiony błąd odwracający kontrolę sensowności**: reguła ISO "dwie ostatnie
+      cyfry to kod otworu" była stosowana także do oznaczeń calowych. Dla 37431A dawała
+      otwór 155 mm, więc program ODRZUCAŁ prawdziwe wymiary jako niepasujące
+      i przyjmował fałszywe. Teraz: nie rozpoznajemy typu → nie twierdzimy nic o otworze
+- [x] Nowy typ "stożkowe calowe (Timken)" - różni je nie konstrukcja, tylko system oznaczeń
+- [x] Ptaszek **"do sprawdzenia"** na łożysku (schemat v10) + zbiorcze powiadomienie
+- [x] **`audyt.py`** - narzędzie przeglądające całą bazę
+
+### audyt.py - co robi
+
+    python audyt.py              # raport
+    python audyt.py --ai         # + zapytanie modeli, najpierw o pozycje z ptaszkiem
+    python audyt.py --zastosuj   # zapisz poprawki PEWNE (wyłącznie z katalogu)
+
+Sprawdza: wymiary wewnętrznie sprzeczne, zgodność z katalogiem, kod otworu wg ISO,
+oznaczenia nie do rozpoznania regułami, brak średnicy zewnętrznej.
+Propozycji AI NIE zapisuje nigdy - błędny wymiar w magazynie wygląda potem
+dokładnie tak samo jak prawdziwy.
+
+### Znalezione w bazie, do decyzji użytkownika
+
+- [ ] **62205 ma otwór 52 mm i średnicę zewnętrzną 52 mm** - z oznaczenia wynika otwór
+      25 mm. Albo symbol, albo wymiar jest błędny; trzeba zmierzyć
+- [ ] **uc209 ma szerokość 19 mm, katalog podaje 49,2 mm** - to ta sama sprawa co
+      konwencja szerokości przy wstawkowych (pierścień zewnętrzny kontra wewnętrzny)
+- [ ] **"205"** - oznaczenie niepełne; modele zgodnie (4/4) podają 25 × 52 × 15 mm,
+      czyli wymiary 6205. Do potwierdzenia suwmiarką

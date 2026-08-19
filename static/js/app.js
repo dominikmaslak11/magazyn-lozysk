@@ -102,6 +102,8 @@ function renderBearings() {
     const card = document.createElement("div");
     card.className = "card bearing-card";
     const sug = state.sugestie[b.id];
+    const znacznikWeryfikacji = b.do_weryfikacji
+      ? '<span class="badge" style="background:#c25e00;color:#fff">do sprawdzenia</span>' : "";
     if (sug) {
       card.style.borderLeft = "5px solid #e0a92b";
       card.style.background = "color-mix(in srgb, #e0a92b 8%, transparent)";
@@ -114,7 +116,7 @@ function renderBearings() {
     card.innerHTML = `
       <div class="row1">
         <span class="symbol">${esc(b.symbol)}</span>
-        <span class="badge ${badgeClass(b.zrodlo)}">${badgeLabel(b.zrodlo)}</span>
+        <span class="badge ${badgeClass(b.zrodlo)}">${badgeLabel(b.zrodlo)}</span>${znacznikWeryfikacji}
       </div>
       <div class="dims">
         <span>d <b>${fmt(b.d)}</b> mm</span>
@@ -278,6 +280,7 @@ function openBearingModal(id) {
   $("#btnDeleteBearing").style.display = b ? "inline-block" : "none";
 
   fillTypeSelect($("#f_typ"), b ? b.typ : state.types[0]);
+  if ($("#f_weryfikacja")) $("#f_weryfikacja").checked = !!(b && b.do_weryfikacji);
   $("#f_symbol").value = b ? b.symbol : "";
   $("#f_d").value = b && b.d != null ? b.d : "";
   $("#f_D").value = b && b.D != null ? b.D : "";
@@ -470,6 +473,7 @@ async function saveBearing() {
 
   // Progi zapisujemy osobnym wywołaniem - to decyzja zaopatrzeniowa, oddzielona od
   // danych technicznych łożyska (patrz ustaw_progi w database.py).
+  const doWeryfikacji = $("#f_weryfikacja") ? $("#f_weryfikacja").checked : false;
   const progi = {
     stan_min: parseInt($("#f_stan_min").value || "0", 10),
     stan_opt: parseInt($("#f_stan_opt").value || "0", 10),
@@ -490,6 +494,10 @@ async function saveBearing() {
     toast("Dodano łożysko.");
   }
   if (bearingId) {
+    await api(`/api/bearings/${bearingId}/weryfikacja`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ do_weryfikacji: doWeryfikacji }),
+    });
     await api(`/api/bearings/${bearingId}/progi`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(progi),
     });

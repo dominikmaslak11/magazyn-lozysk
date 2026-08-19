@@ -45,7 +45,7 @@ BACKUP_DIR = DB_DIR / "backups"
 BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 MAX_AUTO_BACKUPS = 20
 
-SCHEMA_VERSION = 9  # v9 = lokalizacja tymczasowa (bufor)
+SCHEMA_VERSION = 10  # v10 = znacznik "do weryfikacji" na łożysku
 
 # Domyślne, edytowalne w GUI zakresy średnicy zewnętrznej (mm) dla 9 regałów.
 # poziom 1 = regał najniższy (duże łożyska), poziom 9 = najwyższy (małe łożyska).
@@ -81,6 +81,10 @@ class Bearing:
     stan_min: int = 0        # poniżej tego trzeba pilnie uzupełnić
     stan_opt: int = 0        # docelowy stan; powyżej to zamrożone pieniądze
     zapotrzebowanie: int = 0 # szacowane roczne zużycie (podpowiada progi)
+    # Pozycja wymaga sprawdzenia: nieczytelne oznaczenie, niepewny wymiar, wątpliwy typ.
+    # Osobny znacznik, a NIE słowo kluczowe w uwagach - flaga nie zależy od pisowni,
+    # a w uwagach zostaje miejsce na to, co naprawdę jest niejasne.
+    do_weryfikacji: bool = False
 
 
 # Poziomy hierarchii. Każdy jest OPCJONALNY - regał może mieć od razu skrytki albo
@@ -206,6 +210,9 @@ def init_db() -> None:
         for kolumna in ("stan_min", "stan_opt", "zapotrzebowanie"):
             if kolumna not in bearing_cols:
                 conn.execute(f"ALTER TABLE bearings ADD COLUMN {kolumna} INTEGER NOT NULL DEFAULT 0")
+        # v9 -> v10: znacznik "do weryfikacji".
+        if "do_weryfikacji" not in bearing_cols:
+            conn.execute("ALTER TABLE bearings ADD COLUMN do_weryfikacji INTEGER NOT NULL DEFAULT 0")
     conn.close()
 
 
@@ -247,6 +254,7 @@ def _create_v2_schema(conn: sqlite3.Connection) -> None:
             uwagi TEXT DEFAULT '',
             updated_at TEXT NOT NULL,
             deleted_at TEXT,
+            do_weryfikacji INTEGER NOT NULL DEFAULT 0,
             stan_min INTEGER NOT NULL DEFAULT 0,
             stan_opt INTEGER NOT NULL DEFAULT 0,
             zapotrzebowanie INTEGER NOT NULL DEFAULT 0
@@ -854,6 +862,21 @@ def ustaw_progi(bearing_id: str, stan_min: int = 0, stan_opt: int = 0,
     conn.close()
 
 
+def oznacz_do_weryfikacji(bearing_id: str, wartosc: bool) -> None:
+    """Znacznik "sprawdź tę pozycję". Ustawiany osobno od reszty pól, bo to notatka
+    o STANIE WIEDZY, a nie zmiana danych łożyska."""
+    conn = get_connection()
+    with conn:
+        conn.execute("UPDATE bearings SET do_weryfikacji=?, updated_at=? WHERE id=?",
+                      (int(wartosc), now_iso(), bearing_id))
+    conn.close()
+
+
+def do_weryfikacji() -> list[Bearing]:
+    """Pozycje oznaczone jako wymagające sprawdzenia, najstarsze pierwsze."""
+    return sorted([b for b in get_bearings() if b.do_weryfikacji], key=lambda b: b.updated_at)
+
+
 def alerty_stanu() -> list[AlertStanu]:
     """Pozycje wymagające zamówienia albo takie, których jest za dużo.
 
@@ -1004,6 +1027,17 @@ def powiadomienia() -> list[Powiadomienie]:
                 f"{o.nazwa}: zajęte {o.procent:.0f}% powierzchni. Przy większym upakowaniu "
                 f"nie da się wyjąć jednego łożyska bez ruszania sąsiadów."))
 
+    # Lista rzeczy do sprawdzenia - jedno powiadomienie zbiorcze, nie jedno na pozycję,
+    # żeby przy inwenturze nie zasypało wszystkiego innego.
+    niepewne = do_weryfikacji()
+    if niepewne:
+        opisy = "; ".join(
+            f"{b.symbol}" + (f" ({b.uwagi})" if b.uwagi else "") for b in niepewne[:6])
+        wiecej = f" i {len(niepewne) - 6} dalszych" if len(niepewne) > 6 else ""
+        wynik.append(Powiadomienie(
+            "weryfikacja", None, "weryfikacja", "ostrzezenie", "Do sprawdzenia",
+            f"{len(niepewne)} pozycji czeka na weryfikację: {opisy}{wiecej}."))
+
     # Jedno przypomnienie na bufor - nie po to, żeby gonić, tylko żeby zawartość
     # buforów nie została w nich na zawsze.
     for o in obciazenie_lokalizacji():
@@ -1137,6 +1171,7 @@ def _row_to_bearing(row: sqlite3.Row) -> Bearing:
         stan_min=(row["stan_min"] if "stan_min" in row.keys() else 0) or 0,
         stan_opt=(row["stan_opt"] if "stan_opt" in row.keys() else 0) or 0,
         zapotrzebowanie=(row["zapotrzebowanie"] if "zapotrzebowanie" in row.keys() else 0) or 0,
+        do_weryfikacji=bool(row["do_weryfikacji"]) if "do_weryfikacji" in row.keys() else False,
     )
 
 

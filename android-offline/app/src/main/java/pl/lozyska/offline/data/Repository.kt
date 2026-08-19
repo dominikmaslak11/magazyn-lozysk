@@ -88,6 +88,7 @@ class Repository(private val db: AppDatabase) {
         id: String?, symbol: String, typ: String, d: Double?, dZew: Double?, b: Double?,
         ilosc: Int, zrodlo: String, uwagi: String, regalId: String?, recznyPrzydzial: Boolean,
         stanMin: Int = 0, stanOpt: Int = 0, zapotrzebowanie: Int = 0,
+        doWeryfikacji: Boolean = false,
     ) {
         val finalRegalId = if (recznyPrzydzial) regalId else suggestShelfId(dZew)
         val bearingId = id ?: newLocalId()
@@ -100,6 +101,7 @@ class Repository(private val db: AppDatabase) {
             regalId = finalRegalId, recznyPrzydzial = recznyPrzydzial, zrodlo = zrodlo, uwagi = uwagi,
             updatedAt = System.currentTimeMillis(),
             stanMin = stanMin, stanOpt = stanOpt, zapotrzebowanie = zapotrzebowanie,
+            doWeryfikacji = doWeryfikacji,
         )
         if (id == null) bearingDao.insert(entity) else bearingDao.update(entity)
         if (ilosc != poprzedniaIlosc) zapiszRuch(bearingId, ilosc - poprzedniaIlosc)

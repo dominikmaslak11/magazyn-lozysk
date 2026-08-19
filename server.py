@@ -462,6 +462,16 @@ def api_inconsistencies_confirm():
     return jsonify(wynik)
 
 
+@app.route("/api/bearings/<bearing_id>/weryfikacja", methods=["POST"])
+def api_bearing_weryfikacja(bearing_id):
+    """Znacznik "sprawdź tę pozycję" - osobno od danych łożyska, jak progi."""
+    if db.get_bearing(bearing_id) is None:
+        abort(404)
+    payload = request.get_json(force=True)
+    db.oznacz_do_weryfikacji(bearing_id, bool(payload.get("do_weryfikacji", False)))
+    return jsonify({"ok": True})
+
+
 @app.route("/api/stock-alerts")
 def api_stock_alerts():
     """Pozycje poniżej minimum albo ponad stan optymalny."""
@@ -600,6 +610,7 @@ def _bearing_to_dict(b: db.Bearing, shelves: dict[int, db.Shelf]) -> dict:
         "regal_nazwa": shelf.nazwa if shelf else None,
         "sciezka": db.shelf_path(b.regal_id, shelves) if b.regal_id else None,
         "bufor": db.czy_bufor(b.regal_id, shelves),
+        "do_weryfikacji": b.do_weryfikacji,
         "stan_min": b.stan_min, "stan_opt": b.stan_opt, "zapotrzebowanie": b.zapotrzebowanie,
         "reczny_przydzial": b.reczny_przydzial, "zrodlo": b.zrodlo, "uwagi": b.uwagi,
     }

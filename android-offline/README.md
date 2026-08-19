@@ -1,4 +1,4 @@
-# Łożyska Offline (Android)
+# Magazyn Łożysk (Android)
 
 Appka Kotlin/Jetpack Compose z własną bazą (Room/SQLite) na telefonie.
 Działa w pełni offline, a gdy jest połączenie z serwerem (`../server.py`),

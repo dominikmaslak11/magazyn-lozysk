@@ -10,16 +10,28 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from bearing_data import SERIES
+from bearing_data import SERIES, TYPY_NIEROZPOZNAWALNE_Z_OZNACZENIA
 from bearing_data import TYP_WSTAWKOWE, TYP_WSTAWKOWE_ES
 from bearing_types import bore_from_symbol, classify_symbol
 
 
 def test_zgodnosc_z_wbudowanym_katalogiem():
     """Najmocniejszy test: dla KAŻDEGO wpisu katalogu znamy typ na pewno,
-    więc klasyfikator musi się z nim zgadzać co do jednego."""
+    więc klasyfikator musi się z nim zgadzać co do jednego.
+
+    Wyjątek: serie w numeracji innej niż ISO (calowe). Ich oznaczenia nie kodują
+    ani typu, ani otworu, więc klasyfikator ma prawo powiedzieć "nie wiem" - i test
+    tego pilnuje ZAMIAST wymuszać zgadywanie.
+    """
     bledy = []
     for typ, tabela in SERIES.items():
+        if typ in TYPY_NIEROZPOZNAWALNE_Z_OZNACZENIA:
+            for symbol in tabela:
+                assert classify_symbol(symbol) is None, (
+                    f"{symbol}: oznaczenie calowe nie może dawać typu z reguł ISO")
+                assert bore_from_symbol(symbol) is None, (
+                    f"{symbol}: kod otworu ISO nie obowiązuje w numeracji calowej")
+            continue
         for symbol in tabela:
             rozpoznany = classify_symbol(symbol)
             if rozpoznany != typ:
