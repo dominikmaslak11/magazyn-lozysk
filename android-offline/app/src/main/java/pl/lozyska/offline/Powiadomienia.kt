@@ -70,9 +70,12 @@ fun PowiadomieniaBanner(powiadomienia: List<PowiadomienieEntity>, modifier: Modi
     val naglowekWaga = if (krytyczne > 0) "krytyczna" else if (ostrzezenia > 0) "ostrzezenie" else "informacja"
     val kolor = kolorWagi(naglowekWaga)
 
+    // Podsumowanie opisuje WAGĘ, a nie rodzaj reguły. Wcześniej ostrzeżenia nazywane
+    // były "do przełożenia", co przestało być prawdą, gdy dołączyły do nich zdublowane
+    // wpisy i niezgodności stanu - a pasek twierdził, że trzeba coś przenieść.
     val podsumowanie = listOfNotNull(
         krytyczne.takeIf { it > 0 }?.let { "$it pilne" },
-        ostrzezenia.takeIf { it > 0 }?.let { "$it do przełożenia" },
+        ostrzezenia.takeIf { it > 0 }?.let { "$it do sprawdzenia" },
         (powiadomienia.size - krytyczne - ostrzezenia).takeIf { it > 0 }?.let { "$it drobnych" },
     ).joinToString(" · ")
 
