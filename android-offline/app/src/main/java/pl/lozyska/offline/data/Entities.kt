@@ -35,6 +35,12 @@ data class ShelfEntity(
     /** Typy łożysk, dla których ta lokalizacja jest przeznaczona (po przecinku).
      *  Puste = ogólna, dobierana po średnicy. Typ ma pierwszeństwo przed średnicą. */
     val typy: String = "",
+    // Fizyczne wymiary zmierzone miarą, w MILIMETRACH (patrz pojemnosc.py na serwerze).
+    // `wysokoscMm` to PRZEŚWIT do następnej półki, nie grubość deski.
+    // null = nie zmierzono; wtedy serwer nie liczy pojemności tej półki.
+    val szerokoscMm: Double? = null,
+    val glebokoscMm: Double? = null,
+    val wysokoscMm: Double? = null,
 )
 
 @Entity(
@@ -120,6 +126,12 @@ data class ShelfWithCounts(
     /** Typy łożysk, dla których ta lokalizacja jest przeznaczona (po przecinku).
      *  Puste = ogólna, dobierana po średnicy. Typ ma pierwszeństwo przed średnicą. */
     val typy: String = "",
+    // Fizyczne wymiary zmierzone miarą, w MILIMETRACH (patrz pojemnosc.py na serwerze).
+    // `wysokoscMm` to PRZEŚWIT do następnej półki, nie grubość deski.
+    // null = nie zmierzono; wtedy serwer nie liczy pojemności tej półki.
+    val szerokoscMm: Double? = null,
+    val glebokoscMm: Double? = null,
+    val wysokoscMm: Double? = null,
 )
 
 /**

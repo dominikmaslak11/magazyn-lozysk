@@ -37,13 +37,7 @@ fun ShelvesScreen(vm: OfflineViewModel) {
 
     fun buildEntity(s: ShelfWithCounts): ShelfEntity? {
         val f = localFields[s.id] ?: return null
-        return ShelfEntity(
-            id = s.id,
-            nazwa = f.nazwa.ifBlank { s.nazwa },
-            poziom = f.poziom.toIntOrNull() ?: s.poziom,
-            dMin = f.dMin.toDoubleOrNull(),
-            dMax = f.dMax.toDoubleOrNull(),
-        )
+        return zaktualizowanaPolka(s, f.nazwa, f.poziom, f.dMin, f.dMax)
     }
 
     fun saveAll(onDone: (() -> Unit)? = null) {
@@ -104,11 +98,53 @@ fun ShelvesScreen(vm: OfflineViewModel) {
                             Text("Pozycje: ${s.pozycje}", style = MaterialTheme.typography.bodySmall)
                             Text("Sztuki: ${s.sztuki}", style = MaterialTheme.typography.bodySmall)
                         }
+                        // Wymiary tylko do odczytu: mierzy się je miarą i wpisuje w wersji
+                        // webowej, a na telefonie służą do sprawdzenia "czy to tu wejdzie".
+                        wymiaryPolki(s)?.let {
+                            Text(it, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             }
         }
     }
+}
+
+/**
+ * Rekord półki po edycji formularza na tym ekranie.
+ *
+ * UWAGA - tu był błąd: rekord budowano od zera, więc pola, których ten ekran nie
+ * edytuje, wracały do wartości domyślnych. Zapis regału z telefonu KASOWAŁ wtedy
+ * przypisanie do rodzica (parentId = null), spłaszczając całą hierarchię lokalizacji
+ * do listy korzeni, a przy okazji czyścił dedykowane typy i zmierzone wymiary -
+ * i taki "wyczyszczony" rekord jechał następnie na serwer, na wszystkie urządzenia.
+ *
+ * Wszystko, czego formularz nie dotyka, MUSI tu przejść bez zmian.
+ */
+internal fun zaktualizowanaPolka(
+    s: ShelfWithCounts, nazwa: String, poziom: String, dMin: String, dMax: String,
+) = ShelfEntity(
+    id = s.id,
+    nazwa = nazwa.ifBlank { s.nazwa },
+    poziom = poziom.toIntOrNull() ?: s.poziom,
+    dMin = dMin.toDoubleOrNull(),
+    dMax = dMax.toDoubleOrNull(),
+    parentId = s.parentId,
+    poziomTyp = s.poziomTyp,
+    typy = s.typy,
+    szerokoscMm = s.szerokoscMm,
+    glebokoscMm = s.glebokoscMm,
+    wysokoscMm = s.wysokoscMm,
+)
+
+/** "88 × 50 × 21 cm (prześwit)" albo null, gdy półki nie zmierzono. */
+private fun wymiaryPolki(s: ShelfWithCounts): String? {
+    val sz = s.szerokoscMm ?: return null
+    val gl = s.glebokoscMm ?: return null
+    val cm = { v: Double -> fmtNum(v / 10.0) }
+    val wys = s.wysokoscMm?.let { " × ${cm(it)} cm prześwitu" } ?: ""
+    return "${cm(sz)} × ${cm(gl)} cm$wys"
 }
 
 private fun fmtNum(v: Double): String = if (v == v.toLong().toDouble()) v.toLong().toString() else v.toString()

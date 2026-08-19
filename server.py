@@ -252,15 +252,26 @@ def api_lookup_dimensions():
 def api_shelves_list():
     shelves = db.get_shelves()
     counts = db.shelf_counts()
-    return jsonify([_shelf_to_dict(s, counts) for s in shelves])
+    # Zapełnienie liczymy raz dla całego magazynu i podpinamy do półek - inaczej
+    # przeglądarka musiałaby wołać drugi endpoint dla każdej półki z osobna.
+    obciazenia = {o.shelf_id: o for o in db.obciazenie_lokalizacji()}
+    return jsonify([_shelf_to_dict(s, counts, obciazenia.get(s.id)) for s in shelves])
 
 
 @app.route("/api/shelves/<shelf_id>", methods=["PUT"])
 def api_shelves_update(shelf_id):
     payload = request.get_json(force=True)
+    # Wymiary przychodzą w CENTYMETRACH (tak się mierzy regał miarą), a trzymamy je
+    # w milimetrach - jak wszystkie wymiary w programie.
+    wymiary = None
+    if any(k in payload for k in ("szerokosc_cm", "glebokosc_cm", "wysokosc_cm")):
+        wymiary = tuple(
+            (v * 10.0) if (v := _to_float(payload.get(k))) is not None else None
+            for k in ("szerokosc_cm", "glebokosc_cm", "wysokosc_cm")
+        )
     db.update_shelf(shelf_id, payload["nazwa"], int(payload["poziom"]),
                      _to_float(payload.get("d_min")), _to_float(payload.get("d_max")),
-                     typy=payload.get("typy"))
+                     typy=payload.get("typy"), wymiary=wymiary)
     return jsonify({"ok": True})
 
 
@@ -279,6 +290,9 @@ def api_shelves_add():
         poziom_typ=(payload.get("poziom_typ") or "regał"),
         d_min=payload.get("d_min"), d_max=payload.get("d_max"),
         typy=payload.get("typy", ""),
+        szerokosc_mm=(v * 10.0) if (v := _to_float(payload.get("szerokosc_cm"))) is not None else None,
+        glebokosc_mm=(v * 10.0) if (v := _to_float(payload.get("glebokosc_cm"))) is not None else None,
+        wysokosc_mm=(v * 10.0) if (v := _to_float(payload.get("wysokosc_cm"))) is not None else None,
     )
     return jsonify({"id": node_id}), 201
 
@@ -289,6 +303,27 @@ def api_shelves_delete(shelf_id):
     if db.get_shelf(shelf_id) is None:
         abort(404)
     return jsonify({"usunietych": db.delete_shelf(shelf_id)})
+
+
+@app.route("/api/capacity")
+def api_capacity():
+    """Zapełnienie każdej zmierzonej półki (patrz pojemnosc.py)."""
+    return jsonify([
+        {
+            "shelf_id": o.shelf_id, "nazwa": o.nazwa,
+            "procent": round(o.procent, 1),
+            "wolne_cm2": round(o.wolne_mm2 / 100.0, 1),
+            "ciasno": o.ciasno,
+            "pozycje": [
+                {"symbol": p.symbol, "ilosc": p.ilosc, "warstwy": p.warstwy, "stosy": p.stosy,
+                 "powierzchnia_cm2": round(p.powierzchnia_mm2 / 100.0, 1)}
+                for p in o.pozycje
+            ],
+            "niemieszczace": [{"symbol": n.symbol, "ilosc": n.ilosc, "powod": n.powod}
+                               for n in o.niemieszczace],
+        }
+        for o in db.obciazenie_lokalizacji()
+    ])
 
 
 @app.route("/api/shelves/reassign", methods=["POST"])
@@ -567,12 +602,22 @@ def _bearing_to_dict(b: db.Bearing, shelves: dict[int, db.Shelf]) -> dict:
     }
 
 
-def _shelf_to_dict(s: db.Shelf, counts: dict[int, tuple[int, int]]) -> dict:
+def _shelf_to_dict(s: db.Shelf, counts: dict[int, tuple[int, int]],
+                    obciazenie=None) -> dict:
     pozycje, sztuki = counts.get(s.id, (0, 0))
+    def cm(v):
+        return None if v is None else round(v / 10.0, 1)
     return {
         "id": s.id, "nazwa": s.nazwa, "poziom": s.poziom,
         "d_min": s.d_min, "d_max": s.d_max, "pozycje": pozycje, "sztuki": sztuki,
         "parent_id": s.parent_id, "poziom_typ": s.poziom_typ, "typy": s.typy,
+        "szerokosc_cm": cm(s.szerokosc_mm), "glebokosc_cm": cm(s.glebokosc_mm),
+        "wysokosc_cm": cm(s.wysokosc_mm),
+        # None = półka niezmierzona, więc zapełnienia nie da się policzyć.
+        "zajete_procent": None if obciazenie is None else round(obciazenie.procent, 1),
+        "niemieszczace": [] if obciazenie is None else [
+            {"symbol": n.symbol, "powod": n.powod} for n in obciazenie.niemieszczace
+        ],
     }
 
 

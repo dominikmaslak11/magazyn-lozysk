@@ -20,6 +20,9 @@ data class SyncShelfDto(
     val updated_at: String? = null, val deleted_at: String? = null,
     // Hierarchia lokalizacji - null u starszego serwera, wtedy węzeł jest korzeniem.
     val parent_id: String? = null, val poziom_typ: String? = null, val typy: String? = null,
+    // Wymiary półki w milimetrach. Telefon ich nie edytuje - wpisuje się je miarą
+    // w wersji webowej - ale musi je znać, żeby pokazać rozmiar półki bez internetu.
+    val szerokosc_mm: Double? = null, val glebokosc_mm: Double? = null, val wysokosc_mm: Double? = null,
 )
 
 data class SyncBearingDto(
@@ -114,6 +117,7 @@ fun ShelfEntity.toSyncDto() = SyncShelfDto(
     id = id, nazwa = nazwa, poziom = poziom, d_min = dMin, d_max = dMax,
     deleted_at = deletedAt?.let { "deleted" },
     parent_id = parentId, poziom_typ = poziomTyp, typy = typy,
+    szerokosc_mm = szerokoscMm, glebokosc_mm = glebokoscMm, wysokosc_mm = wysokoscMm,
 )
 
 fun BearingEntity.toSyncDto() = SyncBearingDto(
@@ -143,6 +147,7 @@ fun SyncShelfDto.toEntity(localTimestamp: Long) = ShelfEntity(
     id = id, nazwa = nazwa, poziom = poziom, dMin = d_min, dMax = d_max,
     updatedAt = localTimestamp, deletedAt = tombstone(deleted_at, localTimestamp),
     parentId = parent_id, poziomTyp = poziom_typ ?: "regał", typy = typy ?: "",
+    szerokoscMm = szerokosc_mm, glebokoscMm = glebokosc_mm, wysokoscMm = wysokosc_mm,
 )
 
 fun StockMoveEntity.toSyncDto() = SyncStockMoveDto(id = id, bearing_id = bearingId, delta = delta)

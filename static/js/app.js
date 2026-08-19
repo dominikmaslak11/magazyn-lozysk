@@ -587,6 +587,10 @@ function renderShelves() {
     const card = document.createElement("div");
     card.className = "card shelf-card";
     card.dataset.id = wezel.id;
+    // Zakresy średnic zniknęły z formularza (magazyn opisujemy wymiarami półek), ale
+    // nadal jadą przy zapisie - inaczej edycja nazwy kasowałaby je po cichu.
+    card.dataset.dmin = wezel.d_min == null ? "" : wezel.d_min;
+    card.dataset.dmax = wezel.d_max == null ? "" : wezel.d_max;
     card.style.marginLeft = (glebokosc * 24) + "px";
     // Sumy z gałęzi pokazujemy tylko wtedy, gdy różnią się od własnych - inaczej
     // przy liściach byłaby to ta sama liczba dwa razy.
@@ -595,22 +599,38 @@ function renderShelves() {
         `<span>Wprost tutaj: <b>${wezel.pozycje}</b> / <b>${wlasne}</b></span>`
       : `<span>Pozycje: <b>${wezel.pozycje}</b></span><span>Sztuki: <b>${wlasne}</b></span>`;
 
+    // Zapełnienie liczone z wymiarów półki (patrz pojemnosc.py). Pokazujemy je tylko
+    // dla półek ZMIERZONYCH - przy pozostałych nie ma z czego liczyć.
+    const proc = wezel.zajete_procent;
+    const zajetosc = proc == null ? "" :
+      `<span class="zajetosc" style="color:${proc >= 100 ? "#b3261e" : proc >= 85 ? "#8a6d00" : "inherit"}">` +
+      `Zajęte: <b>${proc}%</b></span>`;
+    const nieMiesci = (wezel.niemieszczace || []).length
+      ? `<div class="hint" style="color:#b3261e">Nie mieści się: ` +
+        wezel.niemieszczace.map((n) => `${esc(n.symbol)} (${esc(n.powod)})`).join("; ") + `</div>`
+      : "";
+
     card.innerHTML = `
       <div class="row1">
         <span>
           ${dzieci.length ? `<button class="btn small" data-toggle="${wezel.id}">${zwiniety ? "▸" : "▾"}</button>` : ""}
           <span class="badge">${esc(wezel.poziom_typ)}</span>
         </span>
-        <span class="shelf-counts">${licznik}</span>
+        <span class="shelf-counts">${licznik}${zajetosc}</span>
       </div>
       <div class="fields">
         <label>Kolejność</label><input class="s-poziom" type="number" value="${wezel.poziom}">
         <label>Nazwa</label><input class="s-nazwa" value="${esc(wezel.nazwa)}">
-        <label>D od [mm]</label><input class="s-dmin" inputmode="decimal" value="${wezel.d_min == null ? "" : wezel.d_min}" placeholder="—">
-        <label>D do [mm]</label><input class="s-dmax" inputmode="decimal" value="${wezel.d_max == null ? "" : wezel.d_max}" placeholder="bez limitu">
+        <label title="Zmierz miarą. Puste = nie liczymy pojemności tej półki.">Szerokość [cm]</label>
+        <input class="s-szer" inputmode="decimal" value="${wezel.szerokosc_cm == null ? "" : wezel.szerokosc_cm}" placeholder="—">
+        <label>Głębokość [cm]</label>
+        <input class="s-glab" inputmode="decimal" value="${wezel.glebokosc_cm == null ? "" : wezel.glebokosc_cm}" placeholder="—">
+        <label title="Prześwit do następnej półki, nie grubość deski.">Prześwit [cm]</label>
+        <input class="s-wys" inputmode="decimal" value="${wezel.wysokosc_cm == null ? "" : wezel.wysokosc_cm}" placeholder="—">
         <label title="Puste = lokalizacja ogólna, dobierana po średnicy. Wpisany typ ma pierwszeństwo przed średnicą.">Tylko typy</label>
         <input class="s-typy" value="${esc(wezel.typy || "")}" placeholder="np. wstawkowe (UC)" list="listaTypow">
       </div>
+      ${nieMiesci}
       <div class="card-actions">
         <button class="btn small" data-add="${wezel.id}" data-typ="${esc(podrzedny)}">+ ${esc(podrzedny)}</button>
         <button class="btn small danger" data-delnode="${wezel.id}" data-nazwa="${esc(wezel.nazwa)}">Usuń</button>
@@ -641,9 +661,12 @@ async function saveShelves() {
       const payload = {
         nazwa: card.querySelector(".s-nazwa").value.trim(),
         poziom: parseInt(card.querySelector(".s-poziom").value, 10),
-        d_min: numOrNull(card.querySelector(".s-dmin").value),
-        d_max: numOrNull(card.querySelector(".s-dmax").value),
+        d_min: numOrNull(card.dataset.dmin),
+        d_max: numOrNull(card.dataset.dmax),
         typy: card.querySelector(".s-typy").value.trim(),
+        szerokosc_cm: numOrNull(card.querySelector(".s-szer").value),
+        glebokosc_cm: numOrNull(card.querySelector(".s-glab").value),
+        wysokosc_cm: numOrNull(card.querySelector(".s-wys").value),
       };
       await api(`/api/shelves/${id}`, {
         method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),

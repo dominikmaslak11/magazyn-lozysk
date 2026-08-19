@@ -80,10 +80,19 @@ private val MIGRATION_6_7 = object : Migration(6, 7) {
     }
 }
 
+/** v7 -> v8: fizyczne wymiary półek. Nullable, więc dotychczasowe lokalizacje zostają "niezmierzone". */
+private val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `shelves` ADD COLUMN `szerokoscMm` REAL")
+        db.execSQL("ALTER TABLE `shelves` ADD COLUMN `glebokoscMm` REAL")
+        db.execSQL("ALTER TABLE `shelves` ADD COLUMN `wysokoscMm` REAL")
+    }
+}
+
 @Database(
     entities = [BearingEntity::class, ShelfEntity::class, BarcodeAliasEntity::class,
         StockMoveEntity::class, PowiadomienieEntity::class],
-    version = 7,
+    version = 8,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -107,7 +116,7 @@ abstract class AppDatabase : RoomDatabase() {
                     // v2 -> v3 ma już prawdziwą migrację (nie chcemy tracić zmian zrobionych
                     // offline), więc jest zarejestrowana PO fallbacku - Room użyje jej zamiast
                     // czyszczenia bazy.
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                     .build()
                     .also { INSTANCE = it }
             }

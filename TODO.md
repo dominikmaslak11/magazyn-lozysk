@@ -439,3 +439,35 @@ kolejności robić ruchy - a nie pojedyncze podpowiedzi pozycja po pozycji.
 - [ ] Kolejność ruchów: najpierw zwolnić miejsce, potem je zająć
 - [ ] Grupowanie po typie i symbolu (UC…, ES… razem; ten sam symbol nigdy w dwóch miejscach)
 - [ ] Wydruk / lista do ręki na czas przekładania, z odhaczaniem
+
+## Prawdziwe wymiary regałów i rachunek pojemności (2026-08-19, wersja 1.4.0)
+
+Magazyn przestał być opisany wymyślonymi zakresami średnic ("regał 8 to 30-42 mm"),
+a zaczął rzeczywistymi wymiarami półek zmierzonymi miarą.
+
+- [x] Schemat v8: `szerokosc_mm`, `glebokosc_mm`, `wysokosc_mm` na lokalizacji
+      (`wysokosc` = PRZEŚWIT do następnej półki, nie grubość deski)
+- [x] Struktura zgodna z rzeczywistością: Regał 1 (7 półek, 88 cm szer.),
+      Regał 2 (2 półki, 86×50; dolna ma 142 cm prześwitu), Regał 3 (4 półki 89×40×40,
+      wysokość regulowana) - zamiast dziewięciu wymyślonych "regałów"
+- [x] Wszystkie 22 pozycje przeniesione z "Regał 9" na faktyczne miejsce:
+      **Regał 2 › Półka 2 (góra)**
+- [x] `pojemnosc.py` - rachunek zapełnienia. Model: łożyska leżą płasko (kwadrat o boku D),
+      sztuki tego samego symbolu w stosie, stos nie wyższy niż szeroki (stabilność),
+      odstęp 3 cm na rękę między pozycjami, 5 cm zapasu nad stosem, 15% straty na krawędziach
+- [x] Nowe podpowiedzi: "półka przepełniona" i "nie mieści się na tej półce"
+- [x] Wyłączone podpowiedzi oparte na zakresach średnic - bez zadeklarowanego zakresu
+      lokalizacja nie pasuje do niczego, zamiast łapać wszystko
+- [x] Wymiary widoczne i edytowalne w wersji webowej (w cm), na telefonie do odczytu
+- [x] **Naprawiony błąd spłaszczający hierarchię**: zapis regału z telefonu budował rekord
+      od zera, więc kasował `parentId`, typ poziomu, dedykowane typy i wymiary - i taki
+      rekord jechał na serwer. Test regresyjny: `ShelfEditTest`
+- [x] Regał 3 oznaczony jako bufor tymczasowy (przenosiny nieposortowanej zawartości Regału 1)
+
+### Do zrobienia
+
+- [ ] Podział dolnej półki Regału 2 (142 cm prześwitu) - rachunek mówi: 7 poziomów co 20 cm,
+      zysk 219 dm² (więcej niż połowa dzisiejszego magazynu)
+- [ ] Plan rozłożenia całości: uwzględnić, że Regał 3 jest buforem i nie jest miejscem docelowym
+- [ ] Model nie zna ciężaru - ciężkie łożyska powinny lądować nisko, na razie decyduje o tym człowiek
+- [ ] Głębokie półki (58 cm) - do tylnego rzędu trudno sięgnąć, rachunek tego nie odróżnia

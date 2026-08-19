@@ -31,6 +31,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pojemnosc
 from search_query import TOLERANCE, parse_dimensions
 
 # Lokalizacja danych - domyślnie w katalogu domowym użytkownika, poza kodem
@@ -44,7 +45,7 @@ BACKUP_DIR = DB_DIR / "backups"
 BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 MAX_AUTO_BACKUPS = 20
 
-SCHEMA_VERSION = 7  # v7 = progi magazynowe (stan_min, stan_opt, zapotrzebowanie roczne)
+SCHEMA_VERSION = 8  # v8 = fizyczne wymiary półek (szerokosc/glebokosc/wysokosc w mm)
 
 # Domyślne, edytowalne w GUI zakresy średnicy zewnętrznej (mm) dla 9 regałów.
 # poziom 1 = regał najniższy (duże łożyska), poziom 9 = najwyższy (małe łożyska).
@@ -113,6 +114,13 @@ class Shelf:
     # Po co: średnica to nie jedyne kryterium - wstawkowe UC/ES mają duże obudowy i
     # w praktyce trzyma się je razem, niezależnie od D.
     typy: str = ""
+    # Fizyczne wymiary zmierzone miarą, w MILIMETRACH (tak jak wymiary łożysk;
+    # interfejs pokazuje centymetry, bo w takich mierzy się regały).
+    # `wysokosc_mm` to PRZEŚWIT do następnej półki, nie grubość deski.
+    # None = nie zmierzono; wtedy pojemności nie liczymy, zamiast ją zgadywać.
+    szerokosc_mm: float | None = None
+    glebokosc_mm: float | None = None
+    wysokosc_mm: float | None = None
 
 
 @dataclass
@@ -180,6 +188,11 @@ def init_db() -> None:
         # v5 -> v6: lokalizacja może być dedykowana konkretnym typom łożysk.
         if "typy" not in shelf_cols:
             conn.execute("ALTER TABLE shelves ADD COLUMN typy TEXT NOT NULL DEFAULT ''")
+        # v7 -> v8: fizyczne wymiary półek. Nullable, więc dotychczasowe lokalizacje
+        # zostają "niezmierzone" i pojemność po prostu się dla nich nie liczy.
+        for kolumna in ("szerokosc_mm", "glebokosc_mm", "wysokosc_mm"):
+            if kolumna not in shelf_cols:
+                conn.execute(f"ALTER TABLE shelves ADD COLUMN {kolumna} REAL")
         # v6 -> v7: progi magazynowe na łożysku.
         bearing_cols = {r["name"] for r in conn.execute("PRAGMA table_info(bearings)")}
         for kolumna in ("stan_min", "stan_opt", "zapotrzebowanie"):
@@ -200,7 +213,10 @@ def _create_v2_schema(conn: sqlite3.Connection) -> None:
             deleted_at TEXT,
             parent_id TEXT REFERENCES shelves(id) ON DELETE SET NULL,
             poziom_typ TEXT NOT NULL DEFAULT 'regał',
-            typy TEXT NOT NULL DEFAULT ''
+            typy TEXT NOT NULL DEFAULT '',
+            szerokosc_mm REAL,
+            glebokosc_mm REAL,
+            wysokosc_mm REAL
         )
     """)
     # UWAGA: celowo BEZ unikalnego indeksu na `poziom`. Przy hierarchii numer poziomu
@@ -345,7 +361,9 @@ def get_shelf(shelf_id: str) -> Shelf | None:
 
 
 def add_shelf(nazwa: str, parent_id: str | None = None, poziom_typ: str = "regał",
-               d_min: float | None = None, d_max: float | None = None, typy: str = "") -> str:
+               d_min: float | None = None, d_max: float | None = None, typy: str = "",
+               szerokosc_mm: float | None = None, glebokosc_mm: float | None = None,
+               wysokosc_mm: float | None = None) -> str:
     """Dodaje węzeł lokalizacji. `parent_id=None` tworzy nowy regał (korzeń).
 
     Poziom (liczba) służy już tylko do sortowania w obrębie rodzeństwa - przy
@@ -359,8 +377,10 @@ def add_shelf(nazwa: str, parent_id: str | None = None, poziom_typ: str = "rega�
         node_id = new_id()
         conn.execute(
             "INSERT INTO shelves (id, nazwa, poziom, d_min, d_max, updated_at, deleted_at, "
-            "parent_id, poziom_typ, typy) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)",
-            (node_id, nazwa, nastepny, d_min, d_max, now_iso(), parent_id, poziom_typ, (typy or "").strip()),
+            "parent_id, poziom_typ, typy, szerokosc_mm, glebokosc_mm, wysokosc_mm) "
+            "VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)",
+            (node_id, nazwa, nastepny, d_min, d_max, now_iso(), parent_id, poziom_typ,
+             (typy or "").strip(), szerokosc_mm, glebokosc_mm, wysokosc_mm),
         )
     conn.close()
     return node_id
@@ -408,9 +428,17 @@ def shelf_path(shelf_id: str | None, wezly: dict[str, Shelf] | None = None) -> s
 
 
 def update_shelf(shelf_id: str, nazwa: str, poziom: int, d_min: float | None,
-                  d_max: float | None, typy: str | None = None) -> None:
+                  d_max: float | None, typy: str | None = None,
+                  wymiary: tuple[float | None, float | None, float | None] | None = None) -> None:
     conn = get_connection()
     with conn:
+        # Wymiary aktualizujemy TYLKO gdy je podano - starszy klient ich nie zna
+        # i nie może przez to skasować tego, co zostało zmierzone miarą.
+        if wymiary is not None:
+            conn.execute(
+                "UPDATE shelves SET szerokosc_mm=?, glebokosc_mm=?, wysokosc_mm=?, updated_at=? WHERE id=?",
+                (*wymiary, now_iso(), shelf_id),
+            )
         if typy is None:
             conn.execute(
                 "UPDATE shelves SET nazwa=?, poziom=?, d_min=?, d_max=?, updated_at=? WHERE id=?",
@@ -454,8 +482,14 @@ def suggest_shelf_id(outer_diameter: float | None, typ: str | None = None) -> st
     if not wszystkie:
         return None
 
+    def ma_zakres(s: Shelf) -> bool:
+        return s.d_min is not None or s.d_max is not None
+
     def w_zakresie(s: Shelf) -> bool:
-        if outer_diameter is None:
+        # Lokalizacja BEZ zadeklarowanego zakresu nie pasuje do niczego. Bez tego
+        # warunku półka bez zakresu (czyli "-nieskończoność do +nieskończoność")
+        # łapałaby każde łożysko i program radziłby przenosić wszystko byle gdzie.
+        if outer_diameter is None or not ma_zakres(s):
             return False
         lo = s.d_min if s.d_min is not None else float("-inf")
         hi = s.d_max if s.d_max is not None else float("inf")
@@ -489,7 +523,10 @@ def suggest_shelf_id(outer_diameter: float | None, typ: str | None = None) -> st
     for s in ogolne:
         if w_zakresie(s):
             return s.id
-    # 4) poza zakresami - przypnij do skrajnej ogólnej
+    # 4) poza zakresami - przypnij do skrajnej ogólnej. Tylko spośród tych, które
+    # jakikolwiek zakres deklarują: gdy magazyn opisany jest wymiarami półek zamiast
+    # zakresów średnic, uczciwą odpowiedzią jest "nie wiem", a nie losowa półka.
+    ogolne = [s for s in ogolne if ma_zakres(s)]
     if not ogolne:
         return None
     najwiekszy = max(ogolne, key=lambda s: s.poziom)
@@ -821,6 +858,30 @@ def alerty_stanu() -> list[AlertStanu]:
     return wyniki
 
 
+def obciazenie_lokalizacji() -> list[pojemnosc.Obciazenie]:
+    """Zapełnienie każdej ZMIERZONEJ półki (patrz pojemnosc.py).
+
+    Półki bez wpisanych wymiarów pomijamy zamiast zgadywać ich pojemność -
+    "nie wiem" jest uczciwsze niż liczba wzięta z sufitu.
+    """
+    wezly = {s.id: s for s in get_shelves()}
+    zawartosc: dict[str, list[tuple[str, float | None, float | None, int]]] = {}
+    for b in get_bearings():
+        if b.regal_id:
+            zawartosc.setdefault(b.regal_id, []).append((b.symbol, b.D, b.B, b.ilosc))
+
+    wynik = []
+    for s in wezly.values():
+        if not (s.szerokosc_mm and s.glebokosc_mm):
+            continue
+        wynik.append(pojemnosc.obciazenie_polki(
+            s.id, shelf_path(s.id, wezly), s.szerokosc_mm, s.glebokosc_mm, s.wysokosc_mm,
+            zawartosc.get(s.id, []),
+        ))
+    wynik.sort(key=lambda o: o.procent, reverse=True)
+    return wynik
+
+
 @dataclass
 class Powiadomienie:
     """Jedna podpowiedź dla użytkownika, w formie gotowej do wyświetlenia.
@@ -887,6 +948,23 @@ def powiadomienia() -> list[Powiadomienie]:
                 f"zaniżony stan i zamawiasz niepotrzebnie.")
         wynik.append(Powiadomienie(f"{s.rodzaj}:{s.symbol}", None, s.rodzaj,
                                     "ostrzezenie", tytul, tresc))
+
+    # Fizyka wygrywa z ewidencją: jeśli coś się nie mieści albo półka jest ciasna,
+    # żadne inne uporządkowanie magazynu tego nie naprawi.
+    for o in obciazenie_lokalizacji():
+        for nie in o.niemieszczace:
+            wynik.append(Powiadomienie(
+                f"niemiesci:{o.shelf_id}:{nie.symbol}", None, "nie_miesci", "krytyczna",
+                "Nie mieści się na tej półce",
+                f"{nie.symbol} ({nie.ilosc} szt.) leży w {o.nazwa}, ale {nie.powod}. "
+                f"Trzeba przenieść na półkę o większym prześwicie."))
+        if o.ciasno:
+            waga = "krytyczna" if o.procent >= 100 else "ostrzezenie"
+            wynik.append(Powiadomienie(
+                f"ciasno:{o.shelf_id}", None, "przepelnienie", waga,
+                "Półka prawie pełna" if waga == "ostrzezenie" else "Półka przepełniona",
+                f"{o.nazwa}: zajęte {o.procent:.0f}% powierzchni. Przy większym upakowaniu "
+                f"nie da się wyjąć jednego łożyska bez ruszania sąsiadów."))
 
     for p in sugestie_przeniesien()[:MAX_PRZENIESIEN]:
         waga = "ostrzezenie" if p.ilosc >= PRZENIESIENIE_ISTOTNE_OD else "informacja"
@@ -1020,6 +1098,9 @@ def _row_to_shelf(row: sqlite3.Row) -> Shelf:
         parent_id=row["parent_id"] if "parent_id" in klucze else None,
         poziom_typ=(row["poziom_typ"] if "poziom_typ" in klucze else None) or "regał",
         typy=(row["typy"] if "typy" in klucze else None) or "",
+        szerokosc_mm=row["szerokosc_mm"] if "szerokosc_mm" in klucze else None,
+        glebokosc_mm=row["glebokosc_mm"] if "glebokosc_mm" in klucze else None,
+        wysokosc_mm=row["wysokosc_mm"] if "wysokosc_mm" in klucze else None,
     )
 
 
