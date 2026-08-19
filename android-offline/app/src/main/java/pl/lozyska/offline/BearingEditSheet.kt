@@ -299,7 +299,7 @@ private fun ShelfDropdown(shelves: List<ShelfWithCounts>, selectedId: String?, o
 }
 
 /** Pełna ścieżka lokalizacji, np. "Regał 3 › Półka 2 › Skrytka A". */
-private fun sciezkaLokalizacji(s: ShelfWithCounts, wszystkie: List<ShelfWithCounts>): String {
+internal fun sciezkaLokalizacji(s: ShelfWithCounts, wszystkie: List<ShelfWithCounts>): String {
     val wgId = wszystkie.associateBy { it.id }
     val czesci = mutableListOf<String>()
     var biezacy: ShelfWithCounts? = s

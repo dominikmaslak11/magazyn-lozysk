@@ -19,7 +19,7 @@ class ShelfEditTest {
         id = "p2", nazwa = "Półka 2", poziom = 2, dMin = null, dMax = null,
         pozycje = 22, sztuki = 57,
         parentId = "regal-2", poziomTyp = "półka", typy = "wstawkowe",
-        szerokoscMm = 860.0, glebokoscMm = 500.0, wysokoscMm = 460.0,
+        szerokoscMm = 860.0, glebokoscMm = 500.0, wysokoscMm = 460.0, bufor = true,
     )
 
     @Test
@@ -29,6 +29,7 @@ class ShelfEditTest {
         assertEquals("półka musi zostać w swoim regale", "regal-2", zapisana.parentId)
         assertEquals("półka", zapisana.poziomTyp)
         assertEquals("wstawkowe", zapisana.typy)
+        assertEquals("oznaczenie bufora nie może zniknąć przy edycji nazwy", true, zapisana.bufor)
     }
 
     @Test

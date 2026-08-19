@@ -13,9 +13,10 @@ z dokładnością do milimetra:
     (okrąg wpisany w kwadrat), a nie stoją na obrzeżu - stojące się przewracają.
   * Sztuki tego samego oznaczenia układa się w STOS. Bez tego półka o prześwicie
     21 cm marnowałaby 95% wysokości na łożyska szerokie na 2 cm.
-  * Stos nie może być wyższy niż szeroki. To reguła kciuka na stabilność: stos
-    dziesięciu 6203 (12 cm wysokości przy 4 cm średnicy) wywraca się przy pierwszym
-    dotknięciu, a użytkownik chce wyjmować łożyska "nie przewracając innych".
+  * Stos może być najwyżej DWA RAZY wyższy niż szeroki. Łożyska to precyzyjne
+    pierścienie, więc układają się współosiowo i stos jest stabilniejszy niż stos
+    byle czego - ale przy wyciąganiu sztuki z sąsiedniego stosu smukła wieża i tak
+    się przewraca, a użytkownik chce wyjmować łożyska "nie przewracając innych".
   * Między sąsiednimi pozycjami zostaje odstęp na rękę, a nad stosem zapas na
     chwyt i wyjęcie - inaczej rachunek pokazywałby półkę pełną w 100%, na której
     fizycznie nie da się nic wziąć.
@@ -34,6 +35,12 @@ ODSTEP_MM = 30.0
 
 # Zapas nad stosem: tyle miejsca trzeba, żeby chwycić górne łożysko i je unieść.
 REZERWA_NAD_STOSEM_MM = 50.0
+
+# Ile razy stos może być wyższy niż szeroki. 1.0 (stos nie wyższy niż szeroki) było
+# zbyt ostrożne i marnowało półki: dziesięć 6005 to zaledwie 12 cm przy 4.7 cm średnicy
+# i taki stos stoi pewnie. To JEDNA liczba do zmiany, gdyby w praktyce okazało się,
+# że stosy się przewracają (w dół) albo że spokojnie można wyżej (w górę).
+MAKS_SMUKLOSC_STOSU = 2.0
 
 # Straty na krawędziach: półka nie jest idealną siatką, przy ścianach i z przodu
 # zostają nieużyteczne paski. 0.85 to zgrubna, celowo ostrożna wartość.
@@ -100,8 +107,8 @@ def warstwy_w_stosie(D: float | None, B: float | None, wysokosc_mm: float | None
         z_wysokosci = int(dostepne // B)
     else:
         z_wysokosci = 1                   # nie znamy prześwitu - nie ryzykujemy stosu
-    # Stos nie wyższy niż szeroki, żeby się nie przewracał.
-    ze_stabilnosci = max(1, int((D or 0) // B)) if D else 1
+    # Granica smukłości, żeby stos się nie przewracał przy sięganiu obok.
+    ze_stabilnosci = max(1, int((D or 0) * MAKS_SMUKLOSC_STOSU // B)) if D else 1
     return max(1, min(z_wysokosci, ze_stabilnosci))
 
 

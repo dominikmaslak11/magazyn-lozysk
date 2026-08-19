@@ -271,7 +271,8 @@ def api_shelves_update(shelf_id):
         )
     db.update_shelf(shelf_id, payload["nazwa"], int(payload["poziom"]),
                      _to_float(payload.get("d_min")), _to_float(payload.get("d_max")),
-                     typy=payload.get("typy"), wymiary=wymiary)
+                     typy=payload.get("typy"), wymiary=wymiary,
+                     bufor=payload.get("bufor") if "bufor" in payload else None)
     return jsonify({"ok": True})
 
 
@@ -293,6 +294,7 @@ def api_shelves_add():
         szerokosc_mm=(v * 10.0) if (v := _to_float(payload.get("szerokosc_cm"))) is not None else None,
         glebokosc_mm=(v * 10.0) if (v := _to_float(payload.get("glebokosc_cm"))) is not None else None,
         wysokosc_mm=(v * 10.0) if (v := _to_float(payload.get("wysokosc_cm"))) is not None else None,
+        bufor=bool(payload.get("bufor", False)),
     )
     return jsonify({"id": node_id}), 201
 
@@ -597,6 +599,7 @@ def _bearing_to_dict(b: db.Bearing, shelves: dict[int, db.Shelf]) -> dict:
         "ilosc": b.ilosc, "regal_id": b.regal_id,
         "regal_nazwa": shelf.nazwa if shelf else None,
         "sciezka": db.shelf_path(b.regal_id, shelves) if b.regal_id else None,
+        "bufor": db.czy_bufor(b.regal_id, shelves),
         "stan_min": b.stan_min, "stan_opt": b.stan_opt, "zapotrzebowanie": b.zapotrzebowanie,
         "reczny_przydzial": b.reczny_przydzial, "zrodlo": b.zrodlo, "uwagi": b.uwagi,
     }
@@ -614,6 +617,7 @@ def _shelf_to_dict(s: db.Shelf, counts: dict[int, tuple[int, int]],
         "szerokosc_cm": cm(s.szerokosc_mm), "glebokosc_cm": cm(s.glebokosc_mm),
         "wysokosc_cm": cm(s.wysokosc_mm),
         # None = półka niezmierzona, więc zapełnienia nie da się policzyć.
+        "bufor": s.bufor,
         "zajete_procent": None if obciazenie is None else round(obciazenie.procent, 1),
         "niemieszczace": [] if obciazenie is None else [
             {"symbol": n.symbol, "powod": n.powod} for n in obciazenie.niemieszczace

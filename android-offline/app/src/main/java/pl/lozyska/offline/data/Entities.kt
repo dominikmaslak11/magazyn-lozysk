@@ -41,6 +41,10 @@ data class ShelfEntity(
     val szerokoscMm: Double? = null,
     val glebokoscMm: Double? = null,
     val wysokoscMm: Double? = null,
+    /** Lokalizacja TYMCZASOWA: miejsce odkładcze na czas liczenia i wpisywania łożysk.
+     *  Bufor z założenia bywa przepełniony i to nie jest błąd, więc serwer nie zgłasza
+     *  dla niego ciasnoty ani nie kieruje tam łożysk na stałe. */
+    val bufor: Boolean = false,
 )
 
 @Entity(
@@ -132,6 +136,8 @@ data class ShelfWithCounts(
     val szerokoscMm: Double? = null,
     val glebokoscMm: Double? = null,
     val wysokoscMm: Double? = null,
+    /** Lokalizacja tymczasowa - patrz komentarz przy ShelfEntity.bufor. */
+    val bufor: Boolean = false,
 )
 
 /**

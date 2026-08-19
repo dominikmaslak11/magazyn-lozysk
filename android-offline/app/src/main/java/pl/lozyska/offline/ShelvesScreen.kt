@@ -94,6 +94,10 @@ fun ShelvesScreen(vm: OfflineViewModel) {
                                 placeholder = { Text("bez limitu") }, modifier = Modifier.weight(1f),
                             )
                         }
+                        if (s.bufor) {
+                            Text("miejsce tymczasowe (bufor)", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary)
+                        }
                         Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             Text("Pozycje: ${s.pozycje}", style = MaterialTheme.typography.bodySmall)
                             Text("Sztuki: ${s.sztuki}", style = MaterialTheme.typography.bodySmall)
@@ -136,6 +140,7 @@ internal fun zaktualizowanaPolka(
     szerokoscMm = s.szerokoscMm,
     glebokoscMm = s.glebokoscMm,
     wysokoscMm = s.wysokoscMm,
+    bufor = s.bufor,
 )
 
 /** "88 × 50 × 21 cm (prześwit)" albo null, gdy półki nie zmierzono. */

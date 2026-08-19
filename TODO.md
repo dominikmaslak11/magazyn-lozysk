@@ -471,3 +471,17 @@ a zaczął rzeczywistymi wymiarami półek zmierzonymi miarą.
 - [ ] Plan rozłożenia całości: uwzględnić, że Regał 3 jest buforem i nie jest miejscem docelowym
 - [ ] Model nie zna ciężaru - ciężkie łożyska powinny lądować nisko, na razie decyduje o tym człowiek
 - [ ] Głębokie półki (58 cm) - do tylnego rzędu trudno sięgnąć, rachunek tego nie odróżnia
+
+## Bufory na czas inwentury (2026-08-19, wersja 1.5.0)
+
+- [x] Schemat v9: flaga `bufor` na lokalizacji (ptaszek w wersji webowej, znacznik na telefonie)
+- [x] Flaga dziedziczy się z regału na jego półki - nie trzeba odhaczać każdej z osobna
+- [x] Bufor NIE zgłasza przepełnienia ani "nie mieści się" - jest z założenia zapchany
+      i alarmowanie o tym zagłuszałoby realne problemy
+- [x] Zamiast tego jedno spokojne przypomnienie: ile pozycji czeka na rozłożenie
+- [x] Pełna ścieżka lokalizacji ("📍 Regał 2 › Półka 2") na liście łożysk zamiast
+      samej nazwy półki - nazwy powtarzają się między regałami
+- [x] Granica smukłości stosu podniesiona z 1× na 2× średnicy - łożyska to precyzyjne
+      pierścienie i układają się współosiowo; poprzednia wartość marnowała półki
+- [ ] Model nie zna skrzynek - jeśli łożyska trafią w pojemniki, skrzynka powinna być
+      kolejnym poziomem hierarchii z własnymi wymiarami

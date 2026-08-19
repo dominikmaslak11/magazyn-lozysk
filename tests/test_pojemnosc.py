@@ -15,19 +15,19 @@ from pojemnosc import (  # noqa: E402
 )
 
 
-def test_stos_nie_wyzszy_niz_szerszy():
-    # 6203: D=40, B=12. Prześwit 21 cm zmieściłby 13 sztuk na wysokość, ale taki
-    # stos (16 cm przy 4 cm średnicy) przewraca się przy pierwszym dotknięciu.
-    assert warstwy_w_stosie(40, 12, 210) == 3, "ogranicza stabilność, nie prześwit"
-    # Ta sama sztuka na wyższej półce - nadal 3, bo ogranicza szerokość podstawy.
-    assert warstwy_w_stosie(40, 12, 1420) == 3
+def test_smuklosc_ogranicza_stos():
+    # 6203: D=40, B=12. Prześwit 21 cm zmieściłby 13 sztuk na wysokość, ale stos
+    # może być najwyżej dwa razy wyższy niż szeroki: 2 * 40 / 12 = 6 sztuk.
+    assert warstwy_w_stosie(40, 12, 210) == 6, "ogranicza smukłość, nie prześwit"
+    # Ta sama sztuka na dużo wyższej półce - nadal 6, bo ogranicza szerokość podstawy.
+    assert warstwy_w_stosie(40, 12, 1420) == 6
 
 
 def test_niska_polka_ogranicza_stos():
-    # 6020: D=150, B=24. Stabilność pozwoliłaby na 6 sztuk, ale prześwit 10 cm
+    # 6020: D=150, B=24. Smukłość pozwoliłaby na 12 sztuk, ale prześwit 10 cm
     # minus zapas na rękę zostawia miejsce tylko na 2.
     assert warstwy_w_stosie(150, 24, 100) == 2
-    assert warstwy_w_stosie(150, 24, 1420) == 6, "tu ogranicza już tylko stabilność"
+    assert warstwy_w_stosie(150, 24, 1420) == 12, "tu ogranicza już tylko smukłość"
 
 
 def test_lozysko_ktore_sie_nie_miesci():
@@ -51,10 +51,10 @@ def test_powierzchnia_uwzglednia_odstep_na_reke():
 
 
 def test_sztuki_ukladaja_sie_w_stosy():
-    # 11 sztuk 6203 przy 3 warstwach w stosie = 4 stosy (ostatni niepełny).
+    # 11 sztuk 6203 przy 6 warstwach w stosie = 2 stosy (drugi niepełny).
     p = powierzchnia_pozycji("6203", D=40, B=12, ilosc=11,
                               szerokosc_mm=880, glebokosc_mm=500, wysokosc_mm=210)
-    assert p.warstwy == 3 and p.stosy == 4
+    assert p.warstwy == 6 and p.stosy == 2
 
 
 def test_brak_srednicy_nie_zgaduje():
@@ -71,11 +71,11 @@ def test_polka_bez_wymiarow_nie_ma_pojemnosci():
 
 def test_zapelnienie_i_prog_ciasno():
     # Półka 20 x 20 cm: powierzchnia użyteczna 200*200*0.85 = 34 000 mm².
-    # Cztery stosy 6203 po (40+30)² = 4 900 mm² każdy = 19 600 mm² -> 57.6%.
+    # Dwa stosy 6203 po (40+30)² = 4 900 mm² każdy = 9 800 mm² -> 28.8%.
     o = obciazenie_polki("x", "Półka", 200, 200, 210, [("6203", 40, 12, 11)])
-    assert 57 < o.procent < 58
+    assert 28 < o.procent < 29
     assert not o.ciasno
-    # Dołożenie 6020 (D=150) przekracza próg ciasnoty.
+    # Dołożenie 6020 (D=150, czyli 32 400 mm² na jeden stos) przekracza próg ciasnoty.
     o2 = obciazenie_polki("x", "Półka", 200, 200, 210, [("6203", 40, 12, 11), ("6020", 150, 24, 1)])
     assert o2.ciasno and o2.procent > 85
 

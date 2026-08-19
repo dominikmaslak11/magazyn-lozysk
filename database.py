@@ -45,7 +45,7 @@ BACKUP_DIR = DB_DIR / "backups"
 BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 MAX_AUTO_BACKUPS = 20
 
-SCHEMA_VERSION = 8  # v8 = fizyczne wymiary półek (szerokosc/glebokosc/wysokosc w mm)
+SCHEMA_VERSION = 9  # v9 = lokalizacja tymczasowa (bufor)
 
 # Domyślne, edytowalne w GUI zakresy średnicy zewnętrznej (mm) dla 9 regałów.
 # poziom 1 = regał najniższy (duże łożyska), poziom 9 = najwyższy (małe łożyska).
@@ -121,6 +121,11 @@ class Shelf:
     szerokosc_mm: float | None = None
     glebokosc_mm: float | None = None
     wysokosc_mm: float | None = None
+    # Lokalizacja TYMCZASOWA: miejsce odkładcze na czas liczenia i wpisywania łożysk.
+    # Bufor z założenia bywa przepełniony i to nie jest błąd, więc nie zgłaszamy dla
+    # niego ciasnoty - a plan rozłożenia nigdy nie kieruje tam łożysk na stałe.
+    # Ustawienie flagi na regale obejmuje wszystkie jego półki (patrz czy_bufor).
+    bufor: bool = False
 
 
 @dataclass
@@ -193,6 +198,9 @@ def init_db() -> None:
         for kolumna in ("szerokosc_mm", "glebokosc_mm", "wysokosc_mm"):
             if kolumna not in shelf_cols:
                 conn.execute(f"ALTER TABLE shelves ADD COLUMN {kolumna} REAL")
+        # v8 -> v9: lokalizacja tymczasowa (bufor).
+        if "bufor" not in shelf_cols:
+            conn.execute("ALTER TABLE shelves ADD COLUMN bufor INTEGER NOT NULL DEFAULT 0")
         # v6 -> v7: progi magazynowe na łożysku.
         bearing_cols = {r["name"] for r in conn.execute("PRAGMA table_info(bearings)")}
         for kolumna in ("stan_min", "stan_opt", "zapotrzebowanie"):
@@ -216,7 +224,8 @@ def _create_v2_schema(conn: sqlite3.Connection) -> None:
             typy TEXT NOT NULL DEFAULT '',
             szerokosc_mm REAL,
             glebokosc_mm REAL,
-            wysokosc_mm REAL
+            wysokosc_mm REAL,
+            bufor INTEGER NOT NULL DEFAULT 0
         )
     """)
     # UWAGA: celowo BEZ unikalnego indeksu na `poziom`. Przy hierarchii numer poziomu
@@ -363,7 +372,7 @@ def get_shelf(shelf_id: str) -> Shelf | None:
 def add_shelf(nazwa: str, parent_id: str | None = None, poziom_typ: str = "regał",
                d_min: float | None = None, d_max: float | None = None, typy: str = "",
                szerokosc_mm: float | None = None, glebokosc_mm: float | None = None,
-               wysokosc_mm: float | None = None) -> str:
+               wysokosc_mm: float | None = None, bufor: bool = False) -> str:
     """Dodaje węzeł lokalizacji. `parent_id=None` tworzy nowy regał (korzeń).
 
     Poziom (liczba) służy już tylko do sortowania w obrębie rodzeństwa - przy
@@ -377,10 +386,10 @@ def add_shelf(nazwa: str, parent_id: str | None = None, poziom_typ: str = "rega�
         node_id = new_id()
         conn.execute(
             "INSERT INTO shelves (id, nazwa, poziom, d_min, d_max, updated_at, deleted_at, "
-            "parent_id, poziom_typ, typy, szerokosc_mm, glebokosc_mm, wysokosc_mm) "
-            "VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)",
+            "parent_id, poziom_typ, typy, szerokosc_mm, glebokosc_mm, wysokosc_mm, bufor) "
+            "VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)",
             (node_id, nazwa, nastepny, d_min, d_max, now_iso(), parent_id, poziom_typ,
-             (typy or "").strip(), szerokosc_mm, glebokosc_mm, wysokosc_mm),
+             (typy or "").strip(), szerokosc_mm, glebokosc_mm, wysokosc_mm, int(bufor)),
         )
     conn.close()
     return node_id
@@ -407,6 +416,25 @@ def delete_shelf(shelf_id: str) -> int:
     return len(do_skasowania)
 
 
+def czy_bufor(shelf_id: str | None, wezly: dict[str, Shelf] | None = None) -> bool:
+    """Czy ta lokalizacja jest tymczasowa - sama albo przez regał, w którym leży.
+
+    Dziedziczenie w górę drzewa, żeby oznaczenie całego regału jako bufora nie
+    wymagało odhaczania każdej jego półki z osobna.
+    """
+    if not shelf_id:
+        return False
+    if wezly is None:
+        wezly = {s.id: s for s in get_shelves()}
+    biezacy, krok = wezly.get(shelf_id), 0
+    while biezacy and krok < 10:            # limit chroni przed zapętleniem
+        if biezacy.bufor:
+            return True
+        biezacy = wezly.get(biezacy.parent_id) if biezacy.parent_id else None
+        krok += 1
+    return False
+
+
 def shelf_path(shelf_id: str | None, wezly: dict[str, Shelf] | None = None) -> str:
     """Czytelna ścieżka lokalizacji, np. "Regał 3 › Półka 2 › Szuflada 1"."""
     if not shelf_id:
@@ -429,7 +457,8 @@ def shelf_path(shelf_id: str | None, wezly: dict[str, Shelf] | None = None) -> s
 
 def update_shelf(shelf_id: str, nazwa: str, poziom: int, d_min: float | None,
                   d_max: float | None, typy: str | None = None,
-                  wymiary: tuple[float | None, float | None, float | None] | None = None) -> None:
+                  wymiary: tuple[float | None, float | None, float | None] | None = None,
+                  bufor: bool | None = None) -> None:
     conn = get_connection()
     with conn:
         # Wymiary aktualizujemy TYLKO gdy je podano - starszy klient ich nie zna
@@ -439,6 +468,9 @@ def update_shelf(shelf_id: str, nazwa: str, poziom: int, d_min: float | None,
                 "UPDATE shelves SET szerokosc_mm=?, glebokosc_mm=?, wysokosc_mm=?, updated_at=? WHERE id=?",
                 (*wymiary, now_iso(), shelf_id),
             )
+        if bufor is not None:
+            conn.execute("UPDATE shelves SET bufor=?, updated_at=? WHERE id=?",
+                          (int(bufor), now_iso(), shelf_id))
         if typy is None:
             conn.execute(
                 "UPDATE shelves SET nazwa=?, poziom=?, d_min=?, d_max=?, updated_at=? WHERE id=?",
@@ -951,7 +983,13 @@ def powiadomienia() -> list[Powiadomienie]:
 
     # Fizyka wygrywa z ewidencją: jeśli coś się nie mieści albo półka jest ciasna,
     # żadne inne uporządkowanie magazynu tego nie naprawi.
+    wezly_pow = {s.id: s for s in get_shelves()}
     for o in obciazenie_lokalizacji():
+        # Bufor to miejsce odkładcze na czas liczenia i wpisywania - jest z założenia
+        # zapchany i przypominanie o tym byłoby hałasem, który zagłusza realne problemy.
+        # Zamiast tego jedno spokojne przypomnienie, ile czeka na rozłożenie (niżej).
+        if czy_bufor(o.shelf_id, wezly_pow):
+            continue
         for nie in o.niemieszczace:
             wynik.append(Powiadomienie(
                 f"niemiesci:{o.shelf_id}:{nie.symbol}", None, "nie_miesci", "krytyczna",
@@ -965,6 +1003,18 @@ def powiadomienia() -> list[Powiadomienie]:
                 "Półka prawie pełna" if waga == "ostrzezenie" else "Półka przepełniona",
                 f"{o.nazwa}: zajęte {o.procent:.0f}% powierzchni. Przy większym upakowaniu "
                 f"nie da się wyjąć jednego łożyska bez ruszania sąsiadów."))
+
+    # Jedno przypomnienie na bufor - nie po to, żeby gonić, tylko żeby zawartość
+    # buforów nie została w nich na zawsze.
+    for o in obciazenie_lokalizacji():
+        if not czy_bufor(o.shelf_id, wezly_pow):
+            continue
+        czeka = sum(p.ilosc for p in o.pozycje) + sum(p.ilosc for p in o.niemieszczace)
+        if czeka:
+            wynik.append(Powiadomienie(
+                f"bufor:{o.shelf_id}", None, "bufor", "informacja", "Miejsce tymczasowe",
+                f"{o.nazwa}: {len(o.pozycje) + len(o.niemieszczace)} pozycji "
+                f"({czeka} szt.) czeka na rozłożenie na docelowe miejsce."))
 
     for p in sugestie_przeniesien()[:MAX_PRZENIESIEN]:
         waga = "ostrzezenie" if p.ilosc >= PRZENIESIENIE_ISTOTNE_OD else "informacja"
@@ -1101,6 +1151,7 @@ def _row_to_shelf(row: sqlite3.Row) -> Shelf:
         szerokosc_mm=row["szerokosc_mm"] if "szerokosc_mm" in klucze else None,
         glebokosc_mm=row["glebokosc_mm"] if "glebokosc_mm" in klucze else None,
         wysokosc_mm=row["wysokosc_mm"] if "wysokosc_mm" in klucze else None,
+        bufor=bool(row["bufor"]) if "bufor" in klucze else False,
     )
 
 

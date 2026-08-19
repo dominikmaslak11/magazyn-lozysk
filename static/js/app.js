@@ -106,7 +106,11 @@ function renderBearings() {
       card.style.borderLeft = "5px solid #e0a92b";
       card.style.background = "color-mix(in srgb, #e0a92b 8%, transparent)";
     }
-    const regalTxt = b.regal_nazwa ? b.regal_nazwa + (b.reczny_przydzial ? " (ręcznie)" : "") : "—";
+    // PEŁNA ścieżka ("Regał 2 › Półka 2"), nie sama nazwa węzła: nazwy półek powtarzają
+    // się między regałami, więc samo "Półka 2" nie mówi, gdzie iść po to łożysko.
+    const regalTxt = b.sciezka
+      ? b.sciezka + (b.bufor ? " — tymczasowo" : "") + (b.reczny_przydzial ? " (ręcznie)" : "")
+      : "bez lokalizacji";
     card.innerHTML = `
       <div class="row1">
         <span class="symbol">${esc(b.symbol)}</span>
@@ -122,7 +126,7 @@ function renderBearings() {
         <span>Ilość: <b style="color:var(--text)">${b.ilosc}</b></span>
       </div>
       <div class="meta-row">
-        <span class="shelf-tag">${esc(regalTxt)}</span>
+        <span class="shelf-tag" style="font-weight:600">📍 ${esc(regalTxt)}</span>
         <span>${esc(b.uwagi || "")}</span>
       </div>
       ${sug ? `<div class="meta-row" style="color:#8a6400">
@@ -615,6 +619,7 @@ function renderShelves() {
         <span>
           ${dzieci.length ? `<button class="btn small" data-toggle="${wezel.id}">${zwiniety ? "▸" : "▾"}</button>` : ""}
           <span class="badge">${esc(wezel.poziom_typ)}</span>
+          ${wezel.bufor ? '<span class="badge" style="background:#e0a92b;color:#1a1a1a">bufor</span>' : ""}
         </span>
         <span class="shelf-counts">${licznik}${zajetosc}</span>
       </div>
@@ -627,6 +632,8 @@ function renderShelves() {
         <input class="s-glab" inputmode="decimal" value="${wezel.glebokosc_cm == null ? "" : wezel.glebokosc_cm}" placeholder="—">
         <label title="Prześwit do następnej półki, nie grubość deski.">Prześwit [cm]</label>
         <input class="s-wys" inputmode="decimal" value="${wezel.wysokosc_cm == null ? "" : wezel.wysokosc_cm}" placeholder="—">
+        <label title="Miejsce odkładcze na czas liczenia. Bufor bywa przepełniony i to nie jest błąd, więc appka o tym nie alarmuje - i nigdy nie kieruje tam łożysk na stałe.">Bufor</label>
+        <label class="bufor-label"><input class="s-bufor" type="checkbox" ${wezel.bufor ? "checked" : ""}> miejsce tymczasowe</label>
         <label title="Puste = lokalizacja ogólna, dobierana po średnicy. Wpisany typ ma pierwszeństwo przed średnicą.">Tylko typy</label>
         <input class="s-typy" value="${esc(wezel.typy || "")}" placeholder="np. wstawkowe (UC)" list="listaTypow">
       </div>
@@ -667,6 +674,7 @@ async function saveShelves() {
         szerokosc_cm: numOrNull(card.querySelector(".s-szer").value),
         glebokosc_cm: numOrNull(card.querySelector(".s-glab").value),
         wysokosc_cm: numOrNull(card.querySelector(".s-wys").value),
+        bufor: card.querySelector(".s-bufor").checked,
       };
       await api(`/api/shelves/${id}`, {
         method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),

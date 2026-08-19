@@ -40,7 +40,11 @@ fun BearingsScreen(vm: OfflineViewModel) {
     val shelves by vm.shelves.collectAsState()
     val powiadomienia by vm.powiadomienia.collectAsState()
     val wagaWgLozyska by vm.wagaWgLozyska.collectAsState()
-    val shelfNames = remember(shelves) { shelves.associate { it.id to it.nazwa } }
+    // PEŁNA ścieżka ("Regał 2 › Półka 2"), nie sama nazwa węzła: nazwy półek powtarzają
+    // się między regałami, więc samo "Półka 2" nie mówi, gdzie iść po to łożysko.
+    val shelfNames = remember(shelves) {
+        shelves.associate { it.id to sciezkaLokalizacji(it, shelves) }
+    }
 
     var editing by remember { mutableStateOf<BearingEntity?>(null) }
     var showAdd by remember { mutableStateOf(false) }
@@ -258,8 +262,10 @@ private fun BearingCard(
             val drugoplanowy = kolor?.tekst ?: MaterialTheme.colorScheme.onSurfaceVariant
             Text(bearing.typ, style = MaterialTheme.typography.bodySmall, color = drugoplanowy)
             Text(
-                (shelfName ?: "—") + if (bearing.recznyPrzydzial) " (ręcznie)" else "",
-                style = MaterialTheme.typography.bodySmall,
+                "📍 " + (shelfName ?: "bez lokalizacji") +
+                    if (bearing.recznyPrzydzial) " (ręcznie)" else "",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
                 color = drugoplanowy,
             )
             if (bearing.uwagi.isNotBlank()) {
