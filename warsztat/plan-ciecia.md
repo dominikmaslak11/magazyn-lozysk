@@ -18,7 +18,7 @@ się sumują.
 
 ## Cięcia
 
-### Etap 1 — 4 cięcia wzdłuż arkusza (na długość 2500 mm)
+### Etap 1 — JEDNO cięcie w poprzek całego arkusza
 
 Tniesz **5 pasów po 495 mm** szerokości.
 
@@ -124,3 +124,37 @@ Zysk podwójny: przy okazji dzielą każdą półkę na dwie części, co ułatw
 
 **Jeśli pójdziesz tą drogą, listwy potrzebne są tylko jako podpory boczne** (2 × 50 cm
 na półkę, czyli 6 m zamiast 17 m) — z siedmiu listew robią się trzy, oszczędność ok. 48 zł.
+
+
+---
+
+## Co dalej z paskiem 2500 × 391
+
+Przy nowej kolejności cięć odpad zostaje **jednym kawałkiem 2500 × 391 mm**, a nie
+pięcioma osobnymi. To zmienia, co się z niego da zrobić.
+
+### 1. Przegrody usztywniające — 10 sztuk, potrzeba 7
+
+Z paska wycinasz **2 rzędy × 5 sztuk = 10 przegród 187 × 495 mm**. Potrzeba 7 (po jednej
+na komorę), więc masz 3 zapasowe. Zostaje jeszcze pasek 9 mm — ten faktycznie do kosza.
+
+### 2. Albo siódma półka ze szwem — i to działa
+
+Z paska wychodzą **2 kawałki 855 × 391 mm**. Dwa obok siebie dają 782 mm szerokości,
+a półka potrzebuje 495 — więc jeden zwężasz do 104 mm i masz **pełną półkę 855 × 495
+złożoną z dwóch kawałków**.
+
+**Szew biegnie WZDŁUŻ rozpiętości i to jest kluczowe.** Ugięcie belki nie zależy od jej
+szerokości: szerszy pas niesie proporcjonalnie więcej ciężaru, więc dwa pasy obok siebie
+uginają się tyle samo co jeden szeroki (0,45 mm i 0,36 mm — praktycznie identycznie).
+
+Gdyby szew biegł **w poprzek** rozpiętości, byłby w miejscu największego momentu
+zginającego i półka by się złamała. Wzdłuż — jest nieszkodliwy.
+
+Jedyna wada: drobne łożyska mogą wpaść w szczelinę. Sklej kawałki albo przykryj szew
+taśmą.
+
+**Uwaga:** nie da się mieć obu rzeczy naraz. Albo 10 przegród, albo siódma półka
+(i wtedy 2–3 przegrody z reszty). Przy siedmiu potrzebnych przegrodach wybrałbym
+przegrody — bez nich półki się uginają, a ósmy poziom przy 187 mm prześwitu i tak
+zszedłby do 161 mm.
