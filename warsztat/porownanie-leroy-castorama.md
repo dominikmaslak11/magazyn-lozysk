@@ -55,7 +55,7 @@ Obie wystarczą. Jeśli liczy się wyłącznie cena — **listwa z Leroy jest ta
 17 m to 7 sztuk × 11,99 = **84 zł**, kontra 7 sztuk kantówki × 29,98 = **210 zł**.
 
 **Ale kantówki potrzeba mniej.** Przy 30 × 40 wystarczy jedna listwa usztywniająca
-na półkę zamiast dwóch (ugięcie 2,6 mm — nadal w normie), czyli ok. 11 m zamiast 17:
+na półkę zamiast dwóch (ugięcie 2,2 mm po latach — nadal w normie), czyli ok. 11 m zamiast 17:
 4 sztuki × 29,98 = **120 zł**.
 
 **Najtańszy sensowny wariant: listwa 20 × 30 z Leroy, 7 sztuk, 84 zł.**
