@@ -102,7 +102,22 @@ def link_whatsapp(tresc: str, numer: str = "") -> str:
     return f"https://wa.me/{numer}?text={urllib.parse.quote(tresc)}"
 
 
-def wyslij_email(do: str, temat: str, tresc: str, na_sucho: bool = False) -> str:
+# Typy plików, które faktycznie wysyłamy z tego programu. Nagłówek MIME ustawiamy
+# jawnie, bo bez niego klienci pocztowi traktują załącznik jak strumień bajtów
+# i telefon nie wie, czym go otworzyć.
+TYPY_MIME = {
+    ".pdf": ("application", "pdf"),
+    ".png": ("image", "png"),
+    ".jpg": ("image", "jpeg"),
+    ".step": ("model", "step"),
+    ".fcstd": ("application", "octet-stream"),
+    ".md": ("text", "markdown"),
+    ".csv": ("text", "csv"),
+}
+
+
+def wyslij_email(do: str, temat: str, tresc: str, zalaczniki: list[Path] | None = None,
+                  na_sucho: bool = False) -> str:
     """Wysyła e-mail przez SMTP. `na_sucho` pokazuje, co by poszło, i nic nie wysyła."""
     ust = UstawieniaSmtp.wczytaj()
     if ust is None:
@@ -117,16 +132,27 @@ def wyslij_email(do: str, temat: str, tresc: str, na_sucho: bool = False) -> str
     wiadomosc["Subject"] = temat
     wiadomosc.set_content(tresc)
 
+    for plik in (zalaczniki or []):
+        if not plik.exists():
+            return f"Nie ma pliku do zalacznika: {plik}"
+        glowny, podtyp = TYPY_MIME.get(plik.suffix.lower(), ("application", "octet-stream"))
+        wiadomosc.add_attachment(plik.read_bytes(), maintype=glowny, subtype=podtyp,
+                                  filename=plik.name)
+
     if na_sucho:
+        opis_zal = ", ".join(f"{z.name} ({z.stat().st_size/1024:.0f} kB)"
+                              for z in (zalaczniki or [])) or "brak"
         return (f"[PRÓBA NA SUCHO - nic nie wysłano]\n"
-                f"Od:     {ust.nadawca}\nDo:     {do}\nTemat:  {temat}\n"
-                f"Serwer: {ust.host}:{ust.port}\n\n{tresc}")
+                f"Od:        {ust.nadawca}\nDo:        {do}\nTemat:     {temat}\n"
+                f"Serwer:    {ust.host}:{ust.port}\nZalaczniki: {opis_zal}\n\n{tresc}")
 
     with smtplib.SMTP(ust.host, ust.port, timeout=20) as s:
         s.starttls()
         s.login(ust.user, ust.haslo)
         s.send_message(wiadomosc)
-    return f"Wysłano do {do}: {temat!r}"
+    ile = len(zalaczniki or [])
+    return (f"Wysłano do {do}: {temat!r}"
+            + (f" (+{ile} zal.: " + ", ".join(z.name for z in zalaczniki) + ")" if ile else ""))
 
 
 # -------------------------------------------------------------------- CLI ----
@@ -142,6 +168,8 @@ def main() -> int:
     p.add_argument("--temat", default="Magazyn Łożysk", help="temat wiadomości")
     p.add_argument("--whatsapp", nargs="?", const="", metavar="NUMER",
                     help="wypisz link otwierający WhatsAppa z gotową treścią")
+    p.add_argument("--zalacznik", type=Path, action="append", default=[],
+                    help="plik do dolaczenia (mozna podac wielokrotnie)")
     p.add_argument("--na-sucho", action="store_true",
                     help="pokaż, co poszłoby, ale NIE wysyłaj")
     args = p.parse_args()
@@ -168,7 +196,8 @@ def main() -> int:
         print()
 
     if args.email:
-        print(wyslij_email(args.email, args.temat, tresc, na_sucho=args.na_sucho))
+        print(wyslij_email(args.email, args.temat, tresc, zalaczniki=args.zalacznik,
+                            na_sucho=args.na_sucho))
     return 0
 
 
