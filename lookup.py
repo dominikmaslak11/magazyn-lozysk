@@ -8,6 +8,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from serie_lozysk import przedrostki_wszystkie
 from bearing_data import BEARING_DB, BEARING_TYPE, SOURCE_OFFLINE, SOURCE_ONLINE, SOURCE_MANUAL
 from bearing_types import bore_from_symbol, classify_symbol, dimensions_are_plausible
 
@@ -35,30 +36,15 @@ class LookupResult:
 
 
 # Przedrostki serii, które trzeba ZACHOWAĆ w symbolu (nie sprowadzać do samych cyfr).
-# Bez tego "NU205" stałoby się "205" i szukalibyśmy w internecie zupełnie innego łożyska
-# (realny przypadek: NU205 to 25x52x15, a wyszukiwarka na "205" zwracała 205x285x38).
-# Sortowane od najdłuższego, żeby "NUP" wygrało z "NU", a "NU" z "N".
-_LETTER_PREFIXES = tuple(sorted((
-    # wstawkowe / w oprawach
-    "UCFL", "UCFC", "UCPH", "UCP", "UCF", "UCT", "UCX", "UC", "UK", "SB", "SA", "CSA",
-    # ES/ESP MUSZĄ tu być: bez nich "ES208" redukowało się do "208", czyli do zwykłego
-    # łożyska kulkowego 40x80x18 - zupełnie innej części o tych samych dwóch pierwszych
-    # wymiarach. Ta sama pułapka, co kiedyś przy NU205 -> 205.
-    "ESPA", "ESP", "ES",
-    # SNR serii EX oraz pozostałe rodziny wstawkowych (SNR US/UEL, SKF YEL/YET/YAR).
-    # Bez nich "EX.208.G2" redukowało się do "208" i program podstawiał wymiary
-    # zwykłego łożyska kulkowego 40x80x18 zamiast 40x80x56,3.
-    "EXPA", "EXP", "EXFL", "EXFC", "EXF", "EXC", "EXT", "EX",
-    "USFE", "US", "UEL", "UEM", "YEL", "YET", "YAR",
-    # INA/Schaeffler - tu liczba to wprost otwór w milimetrach (RAE35 = 35 mm).
-    "GRAE", "RALE", "RASE", "RAE", "GRA",
-    # walcowe
-    "NNU", "NNCF", "NCF", "NUP", "NN", "NU", "NJ", "NF",
-    # igiełkowe
-    "RNAO", "RNA", "NKIA", "NKI", "NAO", "NA", "NK", "HK", "BK", "IR",
-    # skośne czteropunktowe
-    "QJ",
-), key=len, reverse=True))
+# Bez tego "NU205" stałoby się "205" i szukalibyśmy zupełnie innego łożyska (realny
+# przypadek: NU205 to 25x52x15, a wyszukiwarka na "205" zwracała 205x285x38). Ta sama
+# pułapka powtórzyła się przy ES208 i EX.208.G2, za każdym razem dla innej serii.
+#
+# Dlatego lista NIE jest już pisana ręcznie, tylko brana z REJESTRU SERII
+# (serie_lozysk.py). Dopisanie serii w jednym miejscu zamyka ją we wszystkich -
+# a tests/test_spojnosc_regul.py pilnuje, żeby telefon znał dokładnie te same.
+# Posortowane od najdłuższego, żeby "NUP" wygrało z "NU", a "NU" z "N".
+_LETTER_PREFIXES = tuple(przedrostki_wszystkie())
 
 
 def normalize_symbol(raw: str) -> str:
@@ -72,7 +58,7 @@ def normalize_symbol(raw: str) -> str:
     # redukowała się do gołego "208" - czyli do zwykłego łożyska kulkowego 40x80x18
     # zamiast wstawkowego 40x80x56,3. Ten sam objaw co przy NU205 -> 205.
     for prefix in _LETTER_PREFIXES:
-        m = re.search(rf"{prefix}[\s\-_./]*(\d{{3,4}})", raw)
+        m = re.search(rf"\b{prefix}[\s\-_./]*(\d{{3,4}})", raw)
         if m:
             return f"{prefix}{m.group(1)}"
     match = re.search(r"\d{3,6}", raw)

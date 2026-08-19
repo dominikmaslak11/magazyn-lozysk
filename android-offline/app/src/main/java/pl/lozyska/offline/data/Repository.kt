@@ -36,9 +36,10 @@ private val LETTER_PREFIXES = listOf(
     "EXPA", "EXP", "EXFL", "EXFC", "EXF", "EXC", "EXT", "EX",
     "USFE", "US", "UEL", "UEM", "YEL", "YET", "YAR",
     // INA/Schaeffler - liczba to wprost otwór w milimetrach (RAE35 = 35 mm).
-    "GRAE", "RALE", "RASE", "RAE", "GRA",
-    "NNU", "NNCF", "NCF", "NUP", "NN", "NU", "NJ", "NF",
-    "RNAO", "RNA", "NKIA", "NKI", "NAO", "NA", "NK", "HK", "BK", "IR",
+    "GRAE", "RALE", "RASE", "RAE", "GRA", "RA",
+    "NNU", "NNCF", "NCF", "NUP", "NUB", "NJP", "NN", "NU", "NJ", "NF", "NP", "N",
+    "RNAO", "RNA", "NKIA", "NKIB", "NKI", "NKX", "NKS", "NAO", "NA", "NK", "HK", "BK",
+    "IR", "TA", "AXK", "AX",
     "QJ",
 ).sortedByDescending { it.length }
 
@@ -49,7 +50,7 @@ fun normalizeSymbol(raw: String): String {
     if (raw.isBlank()) return ""
     val upper = raw.trim().uppercase()
     for (prefix in LETTER_PREFIXES) {
-        val m = Pattern.compile("$prefix[\\s\\-_./]*(\\d{3,4})").matcher(upper)
+        val m = Pattern.compile("\\b$prefix[\\s\\-_./]*(\\d{3,4})").matcher(upper)
         if (m.find()) return prefix + m.group(1)
     }
     val m = Pattern.compile("\\d{3,6}").matcher(upper)

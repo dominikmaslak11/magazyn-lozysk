@@ -620,3 +620,26 @@ Trzy wstawkowe o tych samych gabarytach 40 × 80 mm, ale to trzy różne częśc
 | UC208  | 49,2 mm         | dwa wkręty dociskowe |
 | ES208  | 43,7 mm         | mimośrodowy pierścień |
 | EX208  | 56,3 mm         | mimośrodowy pierścień |
+
+## Rejestr serii i test spójności (2026-08-19, wersja 1.11.0)
+
+Rozpoznawanie oznaczeń żyje w CZTERECH plikach (`bearing_types.py`, `lookup.py`,
+`BearingTypeClassifier.kt`, `Repository.kt`). Trzy razy zdarzyło się, że seria trafiła
+do jednego, a nie do drugiego - i program po cichu podstawiał wymiary innego łożyska.
+
+- [x] **`serie_lozysk.py`** - rejestr serii: przedrostki, typ, sposób czytania otworu
+      (kod ISO / wprost w mm / brak reguły) i **ŹRÓDŁO** dla każdej pozycji.
+      Wpis bez źródła nie przechodzi testu - nie trzymamy tu wiedzy "z pamięci"
+- [x] Lista przedrostków w `lookup.py` nie jest już pisana ręcznie, tylko brana z rejestru
+- [x] **`tests/test_spojnosc_regul.py`** - pilnuje, że wszystkie cztery miejsca mówią
+      to samo; plik Kotlina czytany jako tekst
+
+### Co ten test znalazł od razu
+
+Jedenaście serii z tą samą pułapką co ES/EX - gubiły przedrostek przy normalizacji:
+**N, NP, NUB, NJP, NKX, NKS, NKIB, TA, AXK, AX, RA**. Najpoważniejsze jest `N208`:
+zwykłe łożysko walcowe, które redukowało się do „208", czyli do kulkowego 40×80×18.
+
+Oraz regresję, którą sam wprowadziłem przy tej poprawce: po dodaniu przedrostka „N"
+normalizacja czytała **„NTN 6205" jako „N6205"** - końcowe N w nazwie marki wyglądało
+jak seria. Ratuje granica słowa; osobny test tego pilnuje.
