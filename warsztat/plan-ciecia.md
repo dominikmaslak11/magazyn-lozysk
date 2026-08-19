@@ -89,3 +89,38 @@ mniej**. Przy sześciu potrzebnych i deski w zapasie zostajesz wtedy z pięcioma
 dokupić arkusz albo zrobić 6 poziomów zamiast 7.
 
 Dlatego: pierwszy pas przymierz, dopiero potem tnij resztę.
+
+---
+
+## Co zostanie z arkusza
+
+| ile | wymiar | do czego |
+|---|---|---|
+| **5 szt.** | **391 × 495 mm** | spod każdej półki — **przydatne, zabierz** |
+| 1 szt. | 9 × 1250 mm | pasek z końca arkusza, do wyrzucenia |
+| 1 szt. | 381 × 495 mm | ze starej deski z biurka |
+
+Na półki idzie 2,12 m² z 3,12 m² arkusza, czyli **68% wykorzystania**. Reszta to te
+sześć kawałków ok. 39 × 49,5 cm.
+
+### Te odpady mogą zastąpić listwy usztywniające
+
+Prześwit między półkami wyjdzie **187 mm**. Z jednego odpadu 391 × 495 wycinasz
+**dwie przegrody 187 × 495 mm** — z pięciu odpadów wychodzi **10 przegród**, a potrzeba
+**6** (po jednej pod każdą półkę, ustawione pionowo w połowie szerokości).
+
+Przegroda pośrodku dzieli rozpiętość z 860 na 428 mm, a ugięcie spada **szesnastokrotnie**:
+
+| rozwiązanie | ugięcie |
+|---|---|
+| półka bez podparcia | 5,7 mm |
+| półka z przegrodą pośrodku | **0,35 mm** |
+
+To lepiej niż listwy (1,5 mm) i **za darmo, z odpadu**. Przegrody układają się jedna
+nad drugą, przenosząc obciążenie na dół regału — muszą więc stać w jednej linii.
+
+Zysk podwójny: przy okazji dzielą każdą półkę na dwie części, co ułatwia rozdzielenie
+łożysk wg rozmiaru.
+
+**Jeśli pójdziesz tą drogą, listwy potrzebne są tylko jako podpory boczne** (2 × 50 cm
+na półkę, czyli 6 m zamiast 17 m) — z siedmiu listew robią się trzy, oszczędność ok. 48 zł.
