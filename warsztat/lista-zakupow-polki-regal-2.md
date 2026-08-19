@@ -27,6 +27,9 @@ Prześwit wychodzi z rachunku: 142 cm minus 6 × grubość płyty, podzielone na
 
 **Wybór zależy od wilgotności warsztatu, nie od ceny.**
 
+**Stara deska 124 × 52 × 2 cm z warsztatu daje szóstą półkę**, więc kupujesz
+tylko JEDEN arkusz zamiast dwóch — patrz sekcja niżej.
+
 | wariant | arkuszy | koszt (szac.) | uwaga |
 |---|---|---|---|
 | płyta wiórowa surowa 18 mm, 280 × 207 cm | **1** (wychodzi 12 półek) | ~230 zł | **tylko do suchego, ogrzewanego pomieszczenia** |
@@ -37,7 +40,7 @@ Surowa płyta wiórowa w wilgoci puchnie i rozwarstwia się — tego się nie od
 Przy warsztacie nieogrzewanym bierz OSB-3.
 
 **Poproś o docięcie na miejscu.** Arkusz 280 × 207 cm nie wejdzie do auta.
-Kartka dla obsługi: **6 sztuk 860 × 500 mm**.
+Kartka dla obsługi: **5 sztuk 860 × 500 mm** (szósta ze starej deski).
 
 ## 2. Listwy — to jest ważniejsze niż grubość płyty
 
@@ -110,3 +113,29 @@ podpartej z obciążeniem równomiernym, moduł sprężystości OSB przyjęty os
 (3500 MPa), pełzanie jako podwojenie ugięcia w czasie.
 
 Ceny poza OSB-3 22 mm są **szacunkowe** — sprawdź na miejscu.
+
+
+---
+
+## Stara deska z warsztatu — szósta półka za darmo
+
+Deska **124 × 52 × 2 cm** daje jedną półkę 86 × 50 cm (odcinasz 86 cm, zostaje kawałek
+38 × 52 cm na przegródkę). Dzięki niej z jednego arkusza OSB (5 półek) robi się komplet
+sześciu, czyli **7 poziomów za cenę jednego arkusza — oszczędność 104 zł**.
+
+**Grubość 2 cm wystarczy, ale tylko z listwą usztywniającą** — tak samo jak każda inna
+półka. Bez listwy zależy to od materiału:
+
+| materiał deski | bez listwy (po latach) | z listwami 20 × 30 |
+|---|---|---|
+| płyta wiórowa ze starego mebla | 10,4 mm ❌ | 3,2 mm ✅ |
+| sklejka | 4,2 mm | 1,3 mm ✅ |
+| lite drewno / płyta klejona | 2,9 mm ✅ | 0,9 mm ✅ |
+
+Skoro listwy idą pod każdą półkę, **materiał deski przestaje mieć znaczenie** — każdy
+wariant mieści się w normie.
+
+Rozstaw półek się nie zmienia: 5 płyt po 18 mm + deska 20 mm daje **187 mm prześwitu**,
+dokładnie tyle samo co sześć płyt 18 mm.
+
+**Cięcie deski zrób sam** — sklepy nie tną materiału, którego u nich nie kupiłeś.
