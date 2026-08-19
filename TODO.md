@@ -594,3 +594,29 @@ W magazynie są więc już TRZY konwencje oznaczeń:
       samonastawne w oprawie. Sprzedawcy nagminnie opisują oba jako "spherical",
       więc trzeba obejrzeć: kulisty jest wybrzuszony beczkowato, walcowy prosty
 - [ ] Pozostałe rozmiary serii RAE (30, 40, 45...) - w katalogu jest na razie tylko 35
+
+## EX.208.G2 - kropki w oznaczeniu i seria EX (2026-08-19, wersja 1.10.0)
+
+Zgłoszone przez użytkownika: appka na siłę podpowiadała "kulkowe zwykłe 208,
+40×80×18", a w rzeczywistości EX 208 G2 SNR to wstawkowe samonastawne 40×80×56,3/21.
+
+Dwie osobne przyczyny, obie naprawione:
+
+- [x] **Kropka nie była separatorem.** SNR zapisuje oznaczenia jako "EX.208.G2", więc
+      przedrostek się nie doklejał i całość redukowała się do gołego "208". Program
+      podstawiał wymiary zwykłego łożyska kulkowego - a wyglądały wiarygodnie, bo otwór
+      i średnica zewnętrzna faktycznie się zgadzają. Poprawione w czterech miejscach:
+      `bearing_types.py`, `lookup.py`, `BearingTypeClassifier.kt`, `Repository.kt`
+- [x] **Brak serii EX w regułach.** Nowy typ "wstawkowe (EX/SNR)" + wpis EX208 (40×80×56,3)
+- [x] Przy okazji dołożone pozostałe rodziny wstawkowych, żeby nie powtórzyły tej samej
+      pułapki: SNR US/UEL/USFE, SKF YEL/YET/YAR
+- [x] Testy regresyjne po obu stronach, w tym test pilnujący, że UC208, ES208 i EX208
+      mają trzy różne typy i trzy różne szerokości
+
+Trzy wstawkowe o tych samych gabarytach 40 × 80 mm, ale to trzy różne części:
+
+| symbol | szer. całkowita | mocowanie |
+|--------|-----------------|-----------|
+| UC208  | 49,2 mm         | dwa wkręty dociskowe |
+| ES208  | 43,7 mm         | mimośrodowy pierścień |
+| EX208  | 56,3 mm         | mimośrodowy pierścień |

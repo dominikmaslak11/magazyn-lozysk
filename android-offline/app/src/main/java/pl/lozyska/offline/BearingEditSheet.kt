@@ -326,6 +326,9 @@ private fun opisTypu(typ: String): String? = when (typ) {
         "Mocowane DWOMA WKRĘTAMI dociskowymi, szeroki pierścień wewnętrzny."
     "wstawkowe (ES)" -> "Do opraw; kulista powierzchnia zewnętrzna (samonastawne w oprawie). " +
         "Mocowane MIMOŚRODOWYM PIERŚCIENIEM zaciskowym, węższy pierścień wewnętrzny niż UC."
+    "wstawkowe (EX/SNR)" -> "SNR; kulista powierzchnia zewnętrzna (samonastawne w oprawie), " +
+        "mocowane mimośrodowym pierścieniem. Przy tych samych 40 x 80 mm ma DUŻO szerszy " +
+        "pierścień wewnętrzny niż UC i ES - to nie jest zamiennik."
     "wstawkowe (RAE/INA)" -> "INA/Schaeffler; liczba w oznaczeniu to WPROST otwór w mm " +
         "(RAE35 = 35 mm). UWAGA: RAE ma pierścień zewnętrzny WALCOWY, a GRAE KULISTY - " +
         "tylko GRAE kompensuje niewspółosiowość wału."

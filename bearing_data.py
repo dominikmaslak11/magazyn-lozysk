@@ -34,6 +34,9 @@ TYP_STOZKOWE_CALOWE = "stożkowe calowe (Timken)"
 # w tym magazynie konwencję oznaczeń: liczba w symbolu to WPROST OTWÓR W MILIMETRACH
 # (RAE35 = 35 mm), a nie kod otworu jak w ISO (UC208 -> 08 -> 40 mm).
 TYP_WSTAWKOWE_RAE = "wstawkowe (RAE/INA)"
+# Wstawkowe SNR serii EX. Kod otworu czyta się jak w ISO (EX208 -> 08 -> 40 mm), ale
+# pierścień wewnętrzny jest znacznie szerszy niż w UC i ES przy tych samych 40 x 80 mm.
+TYP_WSTAWKOWE_EX = "wstawkowe (EX/SNR)"
 
 # Typy, dla których mamy wymiary w katalogu poniżej.
 _TYPY_Z_KATALOGIEM = [TYP_KULKOWE, TYP_STOZKOWE, TYP_WAHLIWE_KULKOWE, TYP_WAHLIWE_BARYLKOWE, TYP_WSTAWKOWE]
@@ -48,7 +51,8 @@ TYP_WALCOWE = "walcowe"
 TYP_OPOROWE = "oporowe"
 TYP_IGIELKOWE = "igiełkowe"
 
-ALL_TYPES = _TYPY_Z_KATALOGIEM + [TYP_WSTAWKOWE_ES, TYP_WSTAWKOWE_RAE, TYP_STOZKOWE_CALOWE,
+ALL_TYPES = _TYPY_Z_KATALOGIEM + [TYP_WSTAWKOWE_ES, TYP_WSTAWKOWE_EX, TYP_WSTAWKOWE_RAE,
+              TYP_STOZKOWE_CALOWE,
               TYP_SKOSNE, TYP_WALCOWE,
               TYP_OPOROWE, TYP_IGIELKOWE]
 
@@ -182,6 +186,14 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         # o wysokości stosu na półce, bo pierścień wewnętrzny wystaje poza zewnętrzny.
         # Szerokość samego pierścienia zewnętrznego to kolejno 18 / 19 / 20 mm.
         "ES208": (40, 80, 43.7), "ES209": (45, 85, 43.7), "ES210": (50, 90, 43.7),
+    },
+
+    TYP_WSTAWKOWE_EX: {
+        # SNR, wg katalogu producenta i dystrybutorów. Kulista powierzchnia zewnętrzna
+        # (samonastawne w oprawie), mocowanie mimośrodowym pierścieniem zaciskowym.
+        # Trzecia liczba to szerokość CAŁKOWITA - ta sama konwencja co przy UC (49,2 mm)
+        # i ES (43,7 mm). Sam pierścień zewnętrzny ma 21 mm.
+        "EX208": (40, 80, 56.3),
     },
 
     TYP_WSTAWKOWE_RAE: {

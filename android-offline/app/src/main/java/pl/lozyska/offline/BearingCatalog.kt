@@ -20,6 +20,9 @@ enum class TypLozyska(val etykieta: String) {
     // INA/Schaeffler. Osobny typ, bo mają TRZECIĄ konwencję oznaczeń: liczba w symbolu
     // to WPROST otwór w milimetrach (RAE35 = 35 mm), a nie kod otworu jak w ISO.
     WSTAWKOWE_RAE("wstawkowe (RAE/INA)"),
+    // SNR seria EX. Kod otworu jak w ISO (EX208 -> 40 mm), ale pierścień wewnętrzny
+    // znacznie szerszy niż w UC i ES przy tych samych 40 x 80 mm.
+    WSTAWKOWE_EX("wstawkowe (EX/SNR)"),
     // Typy bez wymiarów w katalogu, ale rozpoznawane z samego oznaczenia
     // (patrz BearingTypeClassifier.kt). Etykiety MUSZĄ być identyczne jak w
     // bearing_data.py na serwerze - inaczej ten sam łożysko dostałoby po
@@ -297,6 +300,9 @@ object BearingCatalog {
         // UWAGA: RAE ma pierścień zewnętrzny WALCOWY, GRAE KULISTY - i tylko ten drugi
         // kompensuje niewspółosiowość wału, czyli jest samonastawny w oprawie.
         KatalogWpis("RAE35", 35.0, 72.0, 39.0, TypLozyska.WSTAWKOWE_RAE),
+        // SNR. Kulista powierzchnia zewnętrzna, mocowanie mimośrodowym pierścieniem.
+        // Trzecia liczba to szerokość CAŁKOWITA (sam pierścień zewnętrzny ma 21 mm).
+        KatalogWpis("EX208", 40.0, 80.0, 56.3, TypLozyska.WSTAWKOWE_EX),
         KatalogWpis("UC211", 55.0, 100.0, 55.6, TypLozyska.WSTAWKOWE),
         KatalogWpis("UC212", 60.0, 110.0, 65.1, TypLozyska.WSTAWKOWE),
     )

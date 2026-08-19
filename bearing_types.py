@@ -31,7 +31,7 @@ import re
 from bearing_data import (TYP_IGIELKOWE, TYP_KULKOWE, TYP_OPOROWE, TYP_SKOSNE,
                            TYP_STOZKOWE, TYP_WAHLIWE_BARYLKOWE, TYP_WAHLIWE_KULKOWE,
                            TYP_WALCOWE, TYP_WSTAWKOWE, TYP_WSTAWKOWE_ES,
-                           TYP_WSTAWKOWE_RAE)
+                           TYP_WSTAWKOWE_RAE, TYP_WSTAWKOWE_EX)
 
 
 # --- reguły na przedrostkach literowych -------------------------------------
@@ -41,12 +41,18 @@ _PREFIX_RULES: list[tuple[str, str]] = [
     # Wstawkowe INA/Schaeffler. PRZED igiełkowymi, bo tam jest reguła na "RNA"/"NA",
     # a tu wchodzą oznaczenia zaczynające się od RA.
     (r"^(GRAE|RALE|RASE|RAE|GRA|RA)\d", TYP_WSTAWKOWE_RAE),
+    # Wstawkowe SNR serii EX (EX208, EXP..., EXF...). Osobno od ES, bo przy tych samych
+    # 40 x 80 mm mają dużo szerszy pierścień wewnętrzny - to inna część, nie zamiennik.
+    (r"^(EXPA|EXP|EXFL|EXFC|EXF|EXC|EXT|EX)\d", TYP_WSTAWKOWE_EX),
     # Wstawkowe serii ES - PRZED regułą UC i jako OSOBNY typ. ES208 i UC208 mają ten
     # sam otwór i tę samą średnicę zewnętrzną, więc łatwo je pomylić, ale to inne
     # konstrukcje i jedna nie zastąpi drugiej w maszynie.
     (r"^(ESPA|ESP|ES)\d", TYP_WSTAWKOWE_ES),
     # łożyska wstawkowe / w oprawach (mocowane wkrętami)
-    (r"^(UCFL|UCFC|UCPH|UCP|UCF|UCT|UCX|UC|UK|SB|SA|CSA)\d", TYP_WSTAWKOWE),
+    # US/UEL (SNR) i YEL/YET/YAR (SKF) to również łożyska wstawkowe; kod otworu czyta
+    # się w nich jak w ISO, więc idą razem z UC.
+    (r"^(UCFL|UCFC|UCPH|UCP|UCF|UCT|UCX|UC|UK|SB|SA|CSA|USFE|US|UEL|UEM|YEL|YET|YAR)\d",
+     TYP_WSTAWKOWE),
     # igiełkowe - PRZED walcowymi
     (r"^(RNAO|RNA|NKIA|NKIB|NKI|NKX|NKS|NAO|NA|NK|HK|BK|IR|TA)\d", TYP_IGIELKOWE),
     # walcowe
@@ -110,7 +116,7 @@ _BRANDS = (
 
 def _normalized(raw: str) -> str:
     """Wielkie litery, bez separatorów, bez nazwy producenta z przodu."""
-    text = re.sub(r"[\s\-_/]", "", (raw or "").strip().upper())
+    text = re.sub(r"[\s\-_/.]", "", (raw or "").strip().upper())
     for brand in _BRANDS:
         if text.startswith(brand) and len(text) > len(brand):
             return text[len(brand):]
@@ -221,7 +227,7 @@ def classify_symbol(raw: str) -> str | None:
         return None
 
     # Ujednolicenie: wielkie litery, bez spacji/łączników, żeby "NU 205" == "NU-205".
-    text = re.sub(r"[\s\-_/]", "", raw.strip().upper())
+    text = re.sub(r"[\s\-_/.]", "", raw.strip().upper())
     # Obcięcie nazwy producenta z przodu ("SKF6205" -> "6205"), żeby nie zasłoniła oznaczenia.
     for brand in _BRANDS:
         if text.startswith(brand) and len(text) > len(brand):

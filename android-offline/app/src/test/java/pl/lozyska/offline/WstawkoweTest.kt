@@ -69,4 +69,30 @@ class WstawkoweTest {
         assertEquals(TypLozyska.IGIELKOWE, BearingTypeClassifier.classify("NA4900"))
         assertEquals("RAE35", normalizeSymbol("RAE35"))
     }
+
+    /**
+     * SNR zapisuje oznaczenia z KROPKAMI: "EX.208.G2". Dopóki kropka nie była
+     * separatorem, przedrostek się nie doklejał i całość redukowała się do gołego
+     * "208" - czyli do zwykłego łożyska kulkowego 40x80x18 zamiast wstawkowego
+     * 40x80x56,3. Objaw był groźny, bo otwór i średnica zewnętrzna się zgadzały.
+     */
+    @Test
+    fun `zapis SNR z kropkami`() {
+        assertEquals("EX208", normalizeSymbol("EX.208.G2"))
+        assertEquals("ES208", normalizeSymbol("ES.208.G2"))
+        assertEquals("UC208", normalizeSymbol("UC.208"))
+        assertEquals(TypLozyska.WSTAWKOWE_EX, BearingTypeClassifier.classify("EX.208.G2"))
+        assertEquals(TypLozyska.WSTAWKOWE_ES, BearingTypeClassifier.classify("ES.208.G2"))
+        assertEquals(40.0, BearingTypeClassifier.boreFromSymbol("EX.208.G2")!!, 0.001)
+    }
+
+    /** UC208, ES208 i EX208 to wszystko 40 x 80 mm, ale trzy różne części. */
+    @Test
+    fun `wstawkowe o tych samych gabarytach to rozne czesci`() {
+        val typy = listOf("UC208", "ES208", "EX208").map { BearingTypeClassifier.classify(it) }.toSet()
+        assertEquals(3, typy.size)
+        val szerokosci = listOf("UC208", "ES208", "EX208")
+            .mapNotNull { BearingCatalog.BY_SYMBOL[it]?.b }.toSet()
+        assertEquals(3, szerokosci.size)
+    }
 }

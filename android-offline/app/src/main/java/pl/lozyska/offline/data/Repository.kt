@@ -33,6 +33,8 @@ private val LETTER_PREFIXES = listOf(
     // ES/ESP MUSZĄ tu być: bez nich "ES208" redukowało się do "208", czyli do zwykłego
     // łożyska kulkowego 40x80x18 - zupełnie innej części. Ta sama pułapka, co przy NU205.
     "ESPA", "ESP", "ES",
+    "EXPA", "EXP", "EXFL", "EXFC", "EXF", "EXC", "EXT", "EX",
+    "USFE", "US", "UEL", "UEM", "YEL", "YET", "YAR",
     // INA/Schaeffler - liczba to wprost otwór w milimetrach (RAE35 = 35 mm).
     "GRAE", "RALE", "RASE", "RAE", "GRA",
     "NNU", "NNCF", "NCF", "NUP", "NN", "NU", "NJ", "NF",
@@ -40,11 +42,14 @@ private val LETTER_PREFIXES = listOf(
     "QJ",
 ).sortedByDescending { it.length }
 
+// UWAGA na KROPKI: SNR zapisuje oznaczenia jako "EX.208.G2". Dopóki kropka nie była
+// separatorem, przedrostek się nie doklejał i całość redukowała się do gołego "208",
+// czyli do zwykłego łożyska kulkowego 40x80x18 zamiast wstawkowego 40x80x56,3.
 fun normalizeSymbol(raw: String): String {
     if (raw.isBlank()) return ""
     val upper = raw.trim().uppercase()
     for (prefix in LETTER_PREFIXES) {
-        val m = Pattern.compile("\\b$prefix\\s*-?\\s*(\\d{3,4})").matcher(upper)
+        val m = Pattern.compile("$prefix[\\s\\-_./]*(\\d{3,4})").matcher(upper)
         if (m.find()) return prefix + m.group(1)
     }
     val m = Pattern.compile("\\d{3,6}").matcher(upper)

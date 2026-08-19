@@ -24,9 +24,12 @@ object BearingTypeClassifier {
     private val PREFIX_RULES: List<Pair<Regex, TypLozyska>> = listOf(
         // INA/Schaeffler PRZED igiełkowymi (tam jest reguła na RNA/NA).
         Regex("^(GRAE|RALE|RASE|RAE|GRA|RA)\\d") to TypLozyska.WSTAWKOWE_RAE,
+        // SNR seria EX - osobno od ES: przy tych samych 40 x 80 mm ma dużo szerszy
+        // pierścień wewnętrzny, więc to inna część, nie zamiennik.
+        Regex("^(EXPA|EXP|EXFL|EXFC|EXF|EXC|EXT|EX)\\d") to TypLozyska.WSTAWKOWE_EX,
         // ES PRZED UC i jako osobny typ - patrz komentarz przy TypLozyska.WSTAWKOWE_ES.
         Regex("^(ESPA|ESP|ES)\\d") to TypLozyska.WSTAWKOWE_ES,
-        Regex("^(UCFL|UCFC|UCPH|UCP|UCF|UCT|UCX|UC|UK|SB|SA|CSA)\\d") to TypLozyska.WSTAWKOWE,
+        Regex("^(UCFL|UCFC|UCPH|UCP|UCF|UCT|UCX|UC|UK|SB|SA|CSA|USFE|US|UEL|UEM|YEL|YET|YAR)\\d") to TypLozyska.WSTAWKOWE,
         Regex("^(RNAO|RNA|NKIA|NKIB|NKI|NKX|NKS|NAO|NA|NK|HK|BK|IR|TA)\\d") to TypLozyska.IGIELKOWE,
         Regex("^(NNU|NNCF|NCF|NUP|NUB|NJP|NN|NU|NJ|NF|NP|N)\\d") to TypLozyska.WALCOWE,
         Regex("^QJ\\d") to TypLozyska.SKOSNE,
@@ -64,7 +67,8 @@ object BearingTypeClassifier {
         "MCGILL", "TORRINGTON", "BARDEN", "SCHAEFFLER", "LOYAL", "CRAFT", "ASAHI",
     )
 
-    private val SEPARATORS = Regex("[\\s\\-_/]")
+    // Kropka JEST separatorem: SNR zapisuje oznaczenia jako "EX.208.G2".
+    private val SEPARATORS = Regex("[\\s\\-_/.]")
     private val LEADING_DIGITS = Regex("^(\\d+)")
     private val PREFIX_AND_DIGITS = Regex("^([A-Z]*)(\\d+)")
 

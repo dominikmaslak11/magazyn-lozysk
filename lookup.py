@@ -45,6 +45,11 @@ _LETTER_PREFIXES = tuple(sorted((
     # łożyska kulkowego 40x80x18 - zupełnie innej części o tych samych dwóch pierwszych
     # wymiarach. Ta sama pułapka, co kiedyś przy NU205 -> 205.
     "ESPA", "ESP", "ES",
+    # SNR serii EX oraz pozostałe rodziny wstawkowych (SNR US/UEL, SKF YEL/YET/YAR).
+    # Bez nich "EX.208.G2" redukowało się do "208" i program podstawiał wymiary
+    # zwykłego łożyska kulkowego 40x80x18 zamiast 40x80x56,3.
+    "EXPA", "EXP", "EXFL", "EXFC", "EXF", "EXC", "EXT", "EX",
+    "USFE", "US", "UEL", "UEM", "YEL", "YET", "YAR",
     # INA/Schaeffler - tu liczba to wprost otwór w milimetrach (RAE35 = 35 mm).
     "GRAE", "RALE", "RASE", "RAE", "GRA",
     # walcowe
@@ -62,8 +67,12 @@ def normalize_symbol(raw: str) -> str:
     if not raw:
         return ""
     raw = raw.strip().upper()
+    # UWAGA na KROPKI: SNR zapisuje oznaczenia jako "EX.208.G2" / "ES.208.G2". Dopóki
+    # kropka nie była traktowana jak separator, przedrostek się nie doklejał i całość
+    # redukowała się do gołego "208" - czyli do zwykłego łożyska kulkowego 40x80x18
+    # zamiast wstawkowego 40x80x56,3. Ten sam objaw co przy NU205 -> 205.
     for prefix in _LETTER_PREFIXES:
-        m = re.search(rf"\b{prefix}\s*-?\s*(\d{{3,4}})", raw)
+        m = re.search(rf"{prefix}[\s\-_./]*(\d{{3,4}})", raw)
         if m:
             return f"{prefix}{m.group(1)}"
     match = re.search(r"\d{3,6}", raw)

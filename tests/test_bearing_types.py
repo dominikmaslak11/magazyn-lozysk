@@ -11,7 +11,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from bearing_data import SERIES, TYPY_NIEROZPOZNAWALNE_Z_OZNACZENIA
-from bearing_data import TYP_IGIELKOWE, TYP_WSTAWKOWE, TYP_WSTAWKOWE_ES, TYP_WSTAWKOWE_RAE
+from bearing_data import (TYP_IGIELKOWE, TYP_WSTAWKOWE, TYP_WSTAWKOWE_ES,
+                           TYP_WSTAWKOWE_EX, TYP_WSTAWKOWE_RAE)
 from bearing_types import bore_from_symbol, classify_symbol
 
 
@@ -192,6 +193,37 @@ def test_ina_nie_redukuje_sie_do_golych_cyfr():
     from lookup import normalize_symbol
     for symbol in ("RAE35", "GRAE35", "RALE40"):
         assert normalize_symbol(symbol) == symbol, symbol
+
+
+def test_zapis_snr_z_kropkami():
+    """SNR zapisuje oznaczenia z kropkami: "EX.208.G2", "ES.208.G2".
+
+    Dopóki kropka nie była separatorem, przedrostek się nie doklejał i całość
+    redukowała się do gołego "208" - czyli program podstawiał wymiary ZWYKŁEGO
+    łożyska kulkowego 40x80x18 zamiast wstawkowego 40x80x56,3. Objaw był tym
+    gorszy, że otwór i średnica zewnętrzna się zgadzały, więc wynik wyglądał wiarygodnie.
+    """
+    from lookup import normalize_symbol
+    assert normalize_symbol("EX.208.G2") == "EX208"
+    assert normalize_symbol("ES.208.G2") == "ES208"
+    assert normalize_symbol("UC.208") == "UC208"
+    assert classify_symbol("EX.208.G2") == TYP_WSTAWKOWE_EX
+    assert classify_symbol("ES.208.G2") == TYP_WSTAWKOWE_ES
+    assert bore_from_symbol("EX.208.G2") == 40.0
+
+
+def test_wstawkowe_o_tych_samych_gabarytach_to_rozne_czesci():
+    """UC208, ES208 i EX208 to wszystko 40 x 80 mm, ale trzy różne części.
+
+    Różni je szerokość pierścienia wewnętrznego (49,2 / 43,7 / 56,3 mm) i sposób
+    mocowania. Zlanie ich w jeden typ znaczyłoby, że program podpowiada część,
+    która wygląda na właściwą i nie pasuje.
+    """
+    from bearing_data import BEARING_DB
+    typy = {classify_symbol(s) for s in ("UC208", "ES208", "EX208")}
+    assert len(typy) == 3, f"każdy powinien mieć własny typ, dostano {typy}"
+    szerokosci = {BEARING_DB[s][2] for s in ("UC208", "ES208", "EX208")}
+    assert len(szerokosci) == 3, f"katalog musi je odróżniać, dostano {szerokosci}"
 
 
 if __name__ == "__main__":
