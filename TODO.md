@@ -485,3 +485,25 @@ a zaczął rzeczywistymi wymiarami półek zmierzonymi miarą.
       pierścienie i układają się współosiowo; poprzednia wartość marnowała półki
 - [ ] Model nie zna skrzynek - jeśli łożyska trafią w pojemniki, skrzynka powinna być
       kolejnym poziomem hierarchii z własnymi wymiarami
+
+## Rozdzielenie serii UC i ES (2026-08-19, wersja 1.6.0)
+
+UC208 i ES208 mają ten sam otwór (40 mm) i tę samą średnicę zewnętrzną (80 mm),
+ale to dwie różne konstrukcje - jedna nie zastąpi drugiej w maszynie.
+
+- [x] Osobny typ `wstawkowe (ES)` obok `wstawkowe (UC)`, po obu stronach (Python + Kotlin)
+- [x] **Naprawiony błąd podmieniający część**: "ES208" redukowało się przy szukaniu
+      wymiarów do "208", czyli do zwykłego łożyska kulkowego 40×80×18. Ta sama pułapka,
+      co kiedyś przy NU205 → 205. Brakowało ES/ESP na liście przedrostków do zachowania
+- [x] Przy okazji dopisane brakujące UCPH, UCX, CSA - były w regułach typów, ale nie
+      w normalizacji symbolu
+- [x] Testy regresyjne po obu stronach (`test_bearing_types.py`, `WstawkoweTest.kt`)
+- [x] `wstawkowe (ES)` dodane do listy typów w interfejsie
+
+### Otwarte
+
+- [ ] **Wymiarów serii ES nie ma skąd wziąć**: katalog offline jej nie zna, a modele AI
+      nie są zgodne (1 na 4, i wzajemnie sprzeczne między symbolami). Trzeba zmierzyć suwmiarką
+- [ ] Łożyska wstawkowe mają WYSTAJĄCY pierścień wewnętrzny: leżąc płasko zajmują na
+      wysokość szerokość pierścienia wewnętrznego (UC209: 49,2 mm), a nie zewnętrznego
+      (19 mm). Rachunek pojemności bierze pole B, więc dla tej serii zaniża wysokość stosu

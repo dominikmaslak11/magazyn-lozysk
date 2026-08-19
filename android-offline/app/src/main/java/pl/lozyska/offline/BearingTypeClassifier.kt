@@ -22,7 +22,9 @@ object BearingTypeClassifier {
 
     /** Kolejność MA ZNACZENIE: igiełkowe (NA/NK/NKI) przed walcowymi (N/NU/NJ). */
     private val PREFIX_RULES: List<Pair<Regex, TypLozyska>> = listOf(
-        Regex("^(UCFL|UCFC|UCPH|UCP|UCF|UCT|UCX|UC|UK|SB|SA|CSA|ESP|ES)\\d") to TypLozyska.WSTAWKOWE,
+        // ES PRZED UC i jako osobny typ - patrz komentarz przy TypLozyska.WSTAWKOWE_ES.
+        Regex("^(ESPA|ESP|ES)\\d") to TypLozyska.WSTAWKOWE_ES,
+        Regex("^(UCFL|UCFC|UCPH|UCP|UCF|UCT|UCX|UC|UK|SB|SA|CSA)\\d") to TypLozyska.WSTAWKOWE,
         Regex("^(RNAO|RNA|NKIA|NKIB|NKI|NKX|NKS|NAO|NA|NK|HK|BK|IR|TA)\\d") to TypLozyska.IGIELKOWE,
         Regex("^(NNU|NNCF|NCF|NUP|NUB|NJP|NN|NU|NJ|NF|NP|N)\\d") to TypLozyska.WALCOWE,
         Regex("^QJ\\d") to TypLozyska.SKOSNE,

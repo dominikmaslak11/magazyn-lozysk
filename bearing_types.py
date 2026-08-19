@@ -30,15 +30,19 @@ import re
 
 from bearing_data import (TYP_IGIELKOWE, TYP_KULKOWE, TYP_OPOROWE, TYP_SKOSNE,
                            TYP_STOZKOWE, TYP_WAHLIWE_BARYLKOWE, TYP_WAHLIWE_KULKOWE,
-                           TYP_WALCOWE, TYP_WSTAWKOWE)
+                           TYP_WALCOWE, TYP_WSTAWKOWE, TYP_WSTAWKOWE_ES)
 
 
 # --- reguły na przedrostkach literowych -------------------------------------
 # Kolejność MA ZNACZENIE: igiełkowe (NA/NK/NKI) muszą być sprawdzone przed walcowymi
 # (N/NU/NJ), bo inaczej reguła na "N" połknęłaby "NA4900".
 _PREFIX_RULES: list[tuple[str, str]] = [
-    # łożyska wstawkowe / w oprawach
-    (r"^(UCFL|UCFC|UCPH|UCP|UCF|UCT|UCX|UC|UK|SB|SA|CSA|ESP|ES)\d", TYP_WSTAWKOWE),
+    # Wstawkowe serii ES - PRZED regułą UC i jako OSOBNY typ. ES208 i UC208 mają ten
+    # sam otwór i tę samą średnicę zewnętrzną, więc łatwo je pomylić, ale to inne
+    # konstrukcje i jedna nie zastąpi drugiej w maszynie.
+    (r"^(ESPA|ESP|ES)\d", TYP_WSTAWKOWE_ES),
+    # łożyska wstawkowe / w oprawach (mocowane wkrętami)
+    (r"^(UCFL|UCFC|UCPH|UCP|UCF|UCT|UCX|UC|UK|SB|SA|CSA)\d", TYP_WSTAWKOWE),
     # igiełkowe - PRZED walcowymi
     (r"^(RNAO|RNA|NKIA|NKIB|NKI|NKX|NKS|NAO|NA|NK|HK|BK|IR|TA)\d", TYP_IGIELKOWE),
     # walcowe

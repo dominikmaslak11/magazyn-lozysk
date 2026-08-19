@@ -40,7 +40,11 @@ class LookupResult:
 # Sortowane od najdłuższego, żeby "NUP" wygrało z "NU", a "NU" z "N".
 _LETTER_PREFIXES = tuple(sorted((
     # wstawkowe / w oprawach
-    "UCFL", "UCFC", "UCP", "UCF", "UCT", "UC", "UK", "SB", "SA",
+    "UCFL", "UCFC", "UCPH", "UCP", "UCF", "UCT", "UCX", "UC", "UK", "SB", "SA", "CSA",
+    # ES/ESP MUSZĄ tu być: bez nich "ES208" redukowało się do "208", czyli do zwykłego
+    # łożyska kulkowego 40x80x18 - zupełnie innej części o tych samych dwóch pierwszych
+    # wymiarach. Ta sama pułapka, co kiedyś przy NU205 -> 205.
+    "ESPA", "ESP", "ES",
     # walcowe
     "NNU", "NNCF", "NCF", "NUP", "NN", "NU", "NJ", "NF",
     # igiełkowe

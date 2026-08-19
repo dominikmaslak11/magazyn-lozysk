@@ -22,9 +22,15 @@ TYP_STOZKOWE = "stożkowe"
 TYP_WAHLIWE_KULKOWE = "wahliwe kulkowe"
 TYP_WAHLIWE_BARYLKOWE = "wahliwe baryłkowe"
 TYP_WSTAWKOWE = "wstawkowe (UC)"
+# UC i ES to DWIE RÓŻNE konstrukcje, mimo że dzielą kod otworu i średnicę zewnętrzną
+# (UC208 i ES208 to oba 40 x 80 mm). Różni je sposób mocowania na wale i szerokość
+# pierścienia wewnętrznego, więc jedno nie zastępuje drugiego przy naprawie maszyny.
+# Muszą być osobnymi typami, żeby dało się je rozróżnić na liście i rozdzielić na półkach.
+TYP_WSTAWKOWE_ES = "wstawkowe (ES)"
 
 # Typy, dla których mamy wymiary w katalogu poniżej.
 _TYPY_Z_KATALOGIEM = [TYP_KULKOWE, TYP_STOZKOWE, TYP_WAHLIWE_KULKOWE, TYP_WAHLIWE_BARYLKOWE, TYP_WSTAWKOWE]
+# ES nie ma wpisów w katalogu - wymiarów tej serii trzeba szukać poza nim (albo zmierzyć).
 
 # Typy bez wymiarów w katalogu, ale rozpoznawane z samego oznaczenia (bearing_types.py) -
 # muszą być na liście wyboru, inaczej automatycznie rozpoznanej kategorii nie dałoby się
@@ -35,7 +41,8 @@ TYP_WALCOWE = "walcowe"
 TYP_OPOROWE = "oporowe"
 TYP_IGIELKOWE = "igiełkowe"
 
-ALL_TYPES = _TYPY_Z_KATALOGIEM + [TYP_SKOSNE, TYP_WALCOWE, TYP_OPOROWE, TYP_IGIELKOWE]
+ALL_TYPES = _TYPY_Z_KATALOGIEM + [TYP_WSTAWKOWE_ES, TYP_SKOSNE, TYP_WALCOWE,
+              TYP_OPOROWE, TYP_IGIELKOWE]
 
 # typ -> {symbol: (d, D, B)} w milimetrach
 SERIES: dict[str, dict[str, tuple[float, float, float]]] = {

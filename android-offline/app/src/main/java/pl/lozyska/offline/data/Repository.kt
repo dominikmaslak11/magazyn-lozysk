@@ -29,7 +29,10 @@ private fun fmtMm(v: Double): String =
 // Sortowane od najdłuższego, żeby "NUP" wygrało z "NU", a "NU" z "N".
 // Lista musi odpowiadać _LETTER_PREFIXES w lookup.py na serwerze.
 private val LETTER_PREFIXES = listOf(
-    "UCFL", "UCFC", "UCP", "UCF", "UCT", "UC", "UK", "SB", "SA",
+    "UCFL", "UCFC", "UCPH", "UCP", "UCF", "UCT", "UCX", "UC", "UK", "SB", "SA", "CSA",
+    // ES/ESP MUSZĄ tu być: bez nich "ES208" redukowało się do "208", czyli do zwykłego
+    // łożyska kulkowego 40x80x18 - zupełnie innej części. Ta sama pułapka, co przy NU205.
+    "ESPA", "ESP", "ES",
     "NNU", "NNCF", "NCF", "NUP", "NN", "NU", "NJ", "NF",
     "RNAO", "RNA", "NKIA", "NKI", "NAO", "NA", "NK", "HK", "BK", "IR",
     "QJ",

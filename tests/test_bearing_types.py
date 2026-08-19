@@ -11,7 +11,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from bearing_data import SERIES
-from bearing_types import classify_symbol
+from bearing_data import TYP_WSTAWKOWE, TYP_WSTAWKOWE_ES
+from bearing_types import bore_from_symbol, classify_symbol
 
 
 def test_zgodnosc_z_wbudowanym_katalogiem():
@@ -115,6 +116,35 @@ def test_odsiewanie_blednych_wymiarow_z_internetu():
     assert dimensions_are_plausible("6205", 25, 52, 0) is False     # zerowa szerokość
     # Tam, gdzie reguły otworu nie ma, sprawdzamy tylko geometrię
     assert dimensions_are_plausible("HK1010", 10, 14, 10) is True
+
+
+def test_uc_i_es_to_rozne_typy():
+    """UC208 i ES208 dzielą otwór i średnicę zewnętrzną, ale to inne konstrukcje.
+
+    Zlanie ich w jeden typ oznaczałoby, że przy naprawie maszyny appka podpowiada
+    część, która nie pasuje - a wygląda na tę właściwą.
+    """
+    for s in ("UC208", "UC209", "UCP208", "SB208", "UK209"):
+        assert classify_symbol(s) == TYP_WSTAWKOWE, s
+    for s in ("ES208", "ES209", "ES210", "ESP208"):
+        assert classify_symbol(s) == TYP_WSTAWKOWE_ES, s
+    assert classify_symbol("UC208") != classify_symbol("ES208")
+
+    # Kod otworu obowiązuje w obu seriach tak samo (ISO 15).
+    assert bore_from_symbol("ES208") == 40.0
+    assert bore_from_symbol("ES210") == 50.0
+
+
+def test_es_nie_redukuje_sie_do_golych_cyfr():
+    """Regresja: "ES208" -> "208" kazałoby szukać wymiarów zwykłego łożyska kulkowego.
+
+    Dokładnie ta sama pułapka, przez którą kiedyś NU205 stawało się 205 i wyszukiwarka
+    zwracała 205x285x38 zamiast 25x52x15.
+    """
+    from lookup import normalize_symbol
+    for symbol in ("ES208", "ES209", "ES210", "ESP208"):
+        assert normalize_symbol(symbol) == symbol, (
+            f"{symbol} nie może zredukować się do samych cyfr")
 
 
 if __name__ == "__main__":

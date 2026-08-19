@@ -13,6 +13,10 @@ enum class TypLozyska(val etykieta: String) {
     WAHLIWE_KULKOWE("wahliwe kulkowe"),
     WAHLIWE_BARYLKOWE("wahliwe baryłkowe"),
     WSTAWKOWE("wstawkowe (UC)"),
+    // UC i ES to DWIE RÓŻNE konstrukcje, mimo że dzielą kod otworu i średnicę zewnętrzną
+    // (UC208 i ES208 to oba 40 x 80 mm). Różni je mocowanie na wale i szerokość pierścienia
+    // wewnętrznego, więc jedno nie zastąpi drugiego przy naprawie maszyny.
+    WSTAWKOWE_ES("wstawkowe (ES)"),
     // Typy bez wymiarów w katalogu, ale rozpoznawane z samego oznaczenia
     // (patrz BearingTypeClassifier.kt). Etykiety MUSZĄ być identyczne jak w
     // bearing_data.py na serwerze - inaczej ten sam łożysko dostałoby po
