@@ -45,6 +45,8 @@ _LETTER_PREFIXES = tuple(sorted((
     # łożyska kulkowego 40x80x18 - zupełnie innej części o tych samych dwóch pierwszych
     # wymiarach. Ta sama pułapka, co kiedyś przy NU205 -> 205.
     "ESPA", "ESP", "ES",
+    # INA/Schaeffler - tu liczba to wprost otwór w milimetrach (RAE35 = 35 mm).
+    "GRAE", "RALE", "RASE", "RAE", "GRA",
     # walcowe
     "NNU", "NNCF", "NCF", "NUP", "NN", "NU", "NJ", "NF",
     # igiełkowe

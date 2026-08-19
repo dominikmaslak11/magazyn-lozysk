@@ -33,6 +33,8 @@ private val LETTER_PREFIXES = listOf(
     // ES/ESP MUSZĄ tu być: bez nich "ES208" redukowało się do "208", czyli do zwykłego
     // łożyska kulkowego 40x80x18 - zupełnie innej części. Ta sama pułapka, co przy NU205.
     "ESPA", "ESP", "ES",
+    // INA/Schaeffler - liczba to wprost otwór w milimetrach (RAE35 = 35 mm).
+    "GRAE", "RALE", "RASE", "RAE", "GRA",
     "NNU", "NNCF", "NCF", "NUP", "NN", "NU", "NJ", "NF",
     "RNAO", "RNA", "NKIA", "NKI", "NAO", "NA", "NK", "HK", "BK", "IR",
     "QJ",

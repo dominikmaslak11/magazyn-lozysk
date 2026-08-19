@@ -22,6 +22,8 @@ object BearingTypeClassifier {
 
     /** Kolejność MA ZNACZENIE: igiełkowe (NA/NK/NKI) przed walcowymi (N/NU/NJ). */
     private val PREFIX_RULES: List<Pair<Regex, TypLozyska>> = listOf(
+        // INA/Schaeffler PRZED igiełkowymi (tam jest reguła na RNA/NA).
+        Regex("^(GRAE|RALE|RASE|RAE|GRA|RA)\\d") to TypLozyska.WSTAWKOWE_RAE,
         // ES PRZED UC i jako osobny typ - patrz komentarz przy TypLozyska.WSTAWKOWE_ES.
         Regex("^(ESPA|ESP|ES)\\d") to TypLozyska.WSTAWKOWE_ES,
         Regex("^(UCFL|UCFC|UCPH|UCP|UCF|UCT|UCX|UC|UK|SB|SA|CSA)\\d") to TypLozyska.WSTAWKOWE,
@@ -69,6 +71,9 @@ object BearingTypeClassifier {
     /** Serie, w których dwie ostatnie cyfry NIE są kodem otworu. */
     private val NO_BORE_CODE = Regex("^(RNAO|RNA|NKIA|NKIB|NKI|NKX|NKS|NAO|NA|NK|HK|BK|IR|TA|AXK|AX)\\d")
 
+    /** Serie INA, w których liczba to wprost otwór w milimetrach. */
+    private val INA_BORE = Regex("^(?:GRAE|RALE|RASE|RAE|GRA|RA)(\\d{2,3})")
+
     /** Kody otworu odbiegające od reguły "kod x 5 mm" (ISO 15). */
     private val BORE_EXCEPTIONS = mapOf("00" to 10.0, "01" to 12.0, "02" to 15.0, "03" to 17.0)
 
@@ -91,6 +96,13 @@ object BearingTypeClassifier {
         val text = normalized(raw)
         if (text.isEmpty()) return null
         if (NO_BORE_CODE.containsMatchIn(text)) return null
+
+        // Serie INA: liczba to WPROST otwór w milimetrach (RAE35 = 35 mm), a nie kod
+        // otworu. Reguła ISO dałaby tu 175 mm i odrzuciłaby prawdziwe wymiary.
+        INA_BORE.find(text)?.let { dopasowanie ->
+            val wartosc = dopasowanie.groupValues[1].toIntOrNull() ?: return null
+            return if (wartosc in 10..200) wartosc.toDouble() else null
+        }
 
         val m = PREFIX_AND_DIGITS.find(text) ?: return null
         val prefiks = m.groupValues[1]

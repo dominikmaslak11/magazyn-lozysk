@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from bearing_data import SERIES, TYPY_NIEROZPOZNAWALNE_Z_OZNACZENIA
-from bearing_data import TYP_WSTAWKOWE, TYP_WSTAWKOWE_ES
+from bearing_data import TYP_IGIELKOWE, TYP_WSTAWKOWE, TYP_WSTAWKOWE_ES, TYP_WSTAWKOWE_RAE
 from bearing_types import bore_from_symbol, classify_symbol
 
 
@@ -157,6 +157,41 @@ def test_es_nie_redukuje_sie_do_golych_cyfr():
     for symbol in ("ES208", "ES209", "ES210", "ESP208"):
         assert normalize_symbol(symbol) == symbol, (
             f"{symbol} nie może zredukować się do samych cyfr")
+
+
+def test_seria_ina_liczy_otwor_wprost_w_milimetrach():
+    """Trzecia konwencja oznaczeń w tym magazynie - i najłatwiejsza do przeoczenia.
+
+    ISO:        6205  -> kod "05" -> otwór 25 mm
+    Timken:     37431A -> brak reguły
+    INA:        RAE35 -> otwór 35 mm WPROST, a nie 35 x 5 = 175 mm
+
+    Bez osobnej reguły program uznałby prawdziwe wymiary RAE35 (35 x 72 x 39) za
+    niepasujące do oznaczenia i by je odrzucił.
+    """
+    for symbol, otwor in (("RAE35", 35.0), ("GRAE35", 35.0), ("RAE30", 30.0),
+                           ("RALE40", 40.0), ("RA35", 35.0)):
+        assert classify_symbol(symbol) == TYP_WSTAWKOWE_RAE, symbol
+        assert bore_from_symbol(symbol) == otwor, symbol
+
+    # Prawdziwe wymiary RAE35 muszą przechodzić kontrolę sensowności.
+    from bearing_types import dimensions_are_plausible
+    assert dimensions_are_plausible("RAE35", 35, 72, 39)
+    # A wymiary innego łożyska - nie.
+    assert not dimensions_are_plausible("RAE35", 175, 320, 68)
+
+
+def test_ina_nie_kradnie_igielkowych():
+    """Reguła na "RA" nie może połknąć igiełkowych RNA/NA - stąd kolejność reguł."""
+    assert classify_symbol("RNA4900") == TYP_IGIELKOWE
+    assert classify_symbol("NA4900") == TYP_IGIELKOWE
+    assert bore_from_symbol("RNA4900") is None
+
+
+def test_ina_nie_redukuje_sie_do_golych_cyfr():
+    from lookup import normalize_symbol
+    for symbol in ("RAE35", "GRAE35", "RALE40"):
+        assert normalize_symbol(symbol) == symbol, symbol
 
 
 if __name__ == "__main__":

@@ -30,13 +30,17 @@ import re
 
 from bearing_data import (TYP_IGIELKOWE, TYP_KULKOWE, TYP_OPOROWE, TYP_SKOSNE,
                            TYP_STOZKOWE, TYP_WAHLIWE_BARYLKOWE, TYP_WAHLIWE_KULKOWE,
-                           TYP_WALCOWE, TYP_WSTAWKOWE, TYP_WSTAWKOWE_ES)
+                           TYP_WALCOWE, TYP_WSTAWKOWE, TYP_WSTAWKOWE_ES,
+                           TYP_WSTAWKOWE_RAE)
 
 
 # --- reguły na przedrostkach literowych -------------------------------------
 # Kolejność MA ZNACZENIE: igiełkowe (NA/NK/NKI) muszą być sprawdzone przed walcowymi
 # (N/NU/NJ), bo inaczej reguła na "N" połknęłaby "NA4900".
 _PREFIX_RULES: list[tuple[str, str]] = [
+    # Wstawkowe INA/Schaeffler. PRZED igiełkowymi, bo tam jest reguła na "RNA"/"NA",
+    # a tu wchodzą oznaczenia zaczynające się od RA.
+    (r"^(GRAE|RALE|RASE|RAE|GRA|RA)\d", TYP_WSTAWKOWE_RAE),
     # Wstawkowe serii ES - PRZED regułą UC i jako OSOBNY typ. ES208 i UC208 mają ten
     # sam otwór i tę samą średnicę zewnętrzną, więc łatwo je pomylić, ale to inne
     # konstrukcje i jedna nie zastąpi drugiej w maszynie.
@@ -136,6 +140,15 @@ def bore_from_symbol(raw: str) -> float | None:
     text = _normalized(raw)
     if not text:
         return None
+
+    # Serie INA (RAE/GRAE/RALE/RA): liczba w oznaczeniu to WPROST otwór w milimetrach,
+    # a nie kod otworu. RAE35 ma 35 mm, nie 175 mm (35 x 5) - reguła ISO dałaby tu
+    # wynik pięciokrotnie zawyżony i odrzuciłaby prawdziwe wymiary jako "niepasujące".
+    m_ina = re.match(r"^(?:GRAE|RALE|RASE|RAE|GRA|RA)(\d{2,3})", text)
+    if m_ina:
+        wartosc = int(m_ina.group(1))
+        # Zakres rozsądku: seria obejmuje kilkanaście do stu kilkudziesięciu milimetrów.
+        return float(wartosc) if 10 <= wartosc <= 200 else None
 
     # Serie, w których dwie ostatnie cyfry NIE są kodem otworu.
     if re.match(r"^(RNAO|RNA|NKIA|NKIB|NKI|NKX|NKS|NAO|NA|NK|HK|BK|IR|TA|AXK|AX)\d", text):

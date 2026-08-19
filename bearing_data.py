@@ -30,6 +30,10 @@ TYP_WSTAWKOWE_ES = "wstawkowe (ES)"
 # Stożkowe w numeracji CALOWEJ (Timken). Osobny typ, bo różni je nie konstrukcja,
 # tylko system oznaczeń - a to zmienia sposób czytania symbolu i dobór zamienników.
 TYP_STOZKOWE_CALOWE = "stożkowe calowe (Timken)"
+# Wstawkowe kulkowe INA/Schaeffler (RAE, GRAE, RALE, RA...). Osobny typ, bo mają TRZECIĄ
+# w tym magazynie konwencję oznaczeń: liczba w symbolu to WPROST OTWÓR W MILIMETRACH
+# (RAE35 = 35 mm), a nie kod otworu jak w ISO (UC208 -> 08 -> 40 mm).
+TYP_WSTAWKOWE_RAE = "wstawkowe (RAE/INA)"
 
 # Typy, dla których mamy wymiary w katalogu poniżej.
 _TYPY_Z_KATALOGIEM = [TYP_KULKOWE, TYP_STOZKOWE, TYP_WAHLIWE_KULKOWE, TYP_WAHLIWE_BARYLKOWE, TYP_WSTAWKOWE]
@@ -44,7 +48,8 @@ TYP_WALCOWE = "walcowe"
 TYP_OPOROWE = "oporowe"
 TYP_IGIELKOWE = "igiełkowe"
 
-ALL_TYPES = _TYPY_Z_KATALOGIEM + [TYP_WSTAWKOWE_ES, TYP_STOZKOWE_CALOWE, TYP_SKOSNE, TYP_WALCOWE,
+ALL_TYPES = _TYPY_Z_KATALOGIEM + [TYP_WSTAWKOWE_ES, TYP_WSTAWKOWE_RAE, TYP_STOZKOWE_CALOWE,
+              TYP_SKOSNE, TYP_WALCOWE,
               TYP_OPOROWE, TYP_IGIELKOWE]
 
 # typ -> {symbol: (d, D, B)} w milimetrach
@@ -177,6 +182,14 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         # o wysokości stosu na półce, bo pierścień wewnętrzny wystaje poza zewnętrzny.
         # Szerokość samego pierścienia zewnętrznego to kolejno 18 / 19 / 20 mm.
         "ES208": (40, 80, 43.7), "ES209": (45, 85, 43.7), "ES210": (50, 90, 43.7),
+    },
+
+    TYP_WSTAWKOWE_RAE: {
+        # INA/Schaeffler. Trzecia liczba to szerokość CAŁKOWITA (z poszerzonym pierścieniem
+        # wewnętrznym i pierścieniem zaciskowym) - ta sama konwencja co przy UC i ES.
+        # UWAGA na wariant: RAE ma pierścień zewnętrzny WALCOWY, a GRAE KULISTY - i tylko
+        # ten drugi kompensuje niewspółosiowość wału (jest "samonastawny" w oprawie).
+        "RAE35": (35, 72, 39),
     },
 
     TYP_STOZKOWE_CALOWE: {

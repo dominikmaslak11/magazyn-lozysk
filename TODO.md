@@ -566,3 +566,31 @@ dokładnie tak samo jak prawdziwy.
       konwencja szerokości przy wstawkowych (pierścień zewnętrzny kontra wewnętrzny)
 - [ ] **"205"** - oznaczenie niepełne; modele zgodnie (4/4) podają 25 × 52 × 15 mm,
       czyli wymiary 6205. Do potwierdzenia suwmiarką
+
+## Seria RAE (INA/Schaeffler) - trzecia konwencja oznaczeń (2026-08-19, wersja 1.9.0)
+
+RAE35 to wstawkowe łożysko kulkowe INA, 35 × 72 × 39 mm, mocowane mimośrodowym
+pierścieniem zaciskowym, z poszerzonym pierścieniem wewnętrznym z jednej strony.
+
+**Najważniejsze dla programu:** liczba w oznaczeniu to WPROST otwór w milimetrach
+(RAE35 = 35 mm), a nie kod otworu jak w ISO. Reguła ISO dałaby 35 × 5 = 175 mm,
+czyli wynik pięciokrotnie zawyżony - i program odrzucałby prawdziwe wymiary jako
+"niepasujące do oznaczenia". Ten sam mechanizm, który zepsuł 37431A.
+
+W magazynie są więc już TRZY konwencje oznaczeń:
+  * ISO metryczna   6205    -> kod "05" -> otwór 25 mm
+  * calowa Timken   37431A  -> brak reguły, otwór trzeba znać z katalogu
+  * INA             RAE35   -> otwór 35 mm wprost
+
+- [x] Typ "wstawkowe (RAE/INA)" + reguły po obu stronach (Python i Kotlin)
+- [x] RAE35 w katalogu offline
+- [x] Testy: reguła otworu, kontrola sensowności, brak kolizji z igiełkowymi RNA/NA
+- [x] Opis typu ostrzega o różnicy RAE (walcowy) kontra GRAE (kulisty)
+
+### Do sprawdzenia przy regale
+
+- [ ] **Czy to RAE czy GRAE?** Wg Schaefflera RAE ma pierścień zewnętrzny WALCOWY,
+      a GRAE KULISTY - i tylko GRAE kompensuje niewspółosiowość wału, czyli jest
+      samonastawne w oprawie. Sprzedawcy nagminnie opisują oba jako "spherical",
+      więc trzeba obejrzeć: kulisty jest wybrzuszony beczkowato, walcowy prosty
+- [ ] Pozostałe rozmiary serii RAE (30, 40, 45...) - w katalogu jest na razie tylko 35
