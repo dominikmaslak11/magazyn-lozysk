@@ -1,71 +1,65 @@
 # Lista zakupów: 6 nowych półek w Regale 2
 
-Data: 2026-08-19 · sklep: Leroy Merlin
+Data: 2026-08-19 (aktualizacja po znalezieniu starej deski)
 
 ## Co i po co
 
 Dolna półka Regału 2 ma **142 cm prześwitu** — to dziś zmarnowana przestrzeń.
-Podział na 7 poziomów (czyli **6 nowych półek**) daje ok. **219 dm² powierzchni**,
+Podział na **7 poziomów** (czyli 6 nowych półek) daje ok. **219 dm² powierzchni**,
 więcej niż całe dzisiejsze Regały 1 + 2 razem wzięte (294 → 513 dm²).
 
-Regał jest **drewniany, zrobiony ze starej szafy, ścianka ok. 2 cm** — to determinuje
-długość wkrętów (patrz niżej).
+Regał jest **drewniany, ze starej szafy, ścianka ok. 2 cm** — to determinuje długość
+wkrętów.
 
-## Wymiary półek
+## Skąd biorą się półki
 
-| | |
-|---|---|
-| wymiar płyty | **860 × 500 mm** (6 sztuk) |
-| prześwit po zamontowaniu | ok. **18,4 cm** na poziom |
-| najwyższy stos, jaki wejdzie | 13,4 cm (2 szt. uc209 albo 5 szt. 6020) |
+| źródło | ile | wymiar |
+|---|---|---|
+| **stara deska z blatu biurka** (już w warsztacie) | 1 | 124 × 52 × 2 cm → docinasz do 85,5 × 49,5 |
+| **jeden arkusz OSB-3 18 mm** (do kupienia) | 5 | 250 × 125 cm → 5 × 85,5 × 49,5 |
 
-Prześwit wychodzi z rachunku: 142 cm minus 6 × grubość płyty, podzielone na 7 poziomów.
+Z arkusza wychodzi dokładnie 5 półek, więc bez deski szósta wymuszałaby zakup drugiego
+arkusza, z którego zużyłbyś jedną piątą. **Deska oszczędza 104 zł.**
+
+Prześwit po zamontowaniu: **18,7 cm** na poziom (mieści stos 13,7 cm — np. 2 sztuki
+uc209 albo 5 sztuk 6020).
 
 ---
 
-## 1. Płyta — dwa warianty
+## 1. Płyta — 1 arkusz
 
-**Wybór zależy od wilgotności warsztatu, nie od ceny.**
-
-**Stara deska 124 × 52 × 2 cm z warsztatu daje szóstą półkę**, więc kupujesz
-tylko JEDEN arkusz zamiast dwóch — patrz sekcja niżej.
-
-| wariant | arkuszy | koszt (szac.) | uwaga |
+| produkt | kod (Leroy) | cena | ilość |
 |---|---|---|---|
-| płyta wiórowa surowa 18 mm, 280 × 207 cm | **1** (wychodzi 12 półek) | ~230 zł | **tylko do suchego, ogrzewanego pomieszczenia** |
-| **OSB-3 18 mm, 250 × 125 cm** | **2** (po 5 półek) | ~330 zł | odporna na wilgoć — **wybór domyślny dla warsztatu** |
-| OSB-3 22 mm, 250 × 125 cm | 2 | ~400 zł ([cena potwierdzona: 199 zł/arkusz](https://www.leroymerlin.pl/konstrukcje-drewniane-i-metalowe/deski-plyty-wykonczeniowe-listwy/plyty-osb/plyta-osb-3-22mm-2500x1250-3-125m2,p178697,l1899.html)) | niepotrzebna, jeśli będą listwy |
+| **OSB-3 18 mm, 250 × 125 cm, Swiss Krono** | **43226043** | **104 zł** | **1** |
 
-Surowa płyta wiórowa w wilgoci puchnie i rozwarstwia się — tego się nie odwraca.
-Przy warsztacie nieogrzewanym bierz OSB-3.
+Ta sama płyta w tej samej cenie jest w Castoramie ([Swiss Krono](https://www.castorama.pl/plyta-osb-3-swisskrono-2500-x-1250-x-18-mm-3-125-m2/5901940274924_CAPL.prd)) —
+bierz gdzie wygodniej. OSB-3 jest odporna na wilgoć; surowa płyta wiórowa w wilgotnym
+warsztacie puchnie i się rozwarstwia.
 
-**Poproś o docięcie na miejscu.** Arkusz 280 × 207 cm nie wejdzie do auta.
-Kartka dla obsługi: **5 sztuk 860 × 500 mm** (szósta ze starej deski).
+**Docięcie:** kartka dla obsługi — **5 sztuk 855 × 495 mm**.
+Z arkusza zostanie 5 kawałków 49,5 × 39 cm; nie wyrzucaj, nadadzą się na przegródki.
+Cięcie bywa płatne i cena zależy od sklepu — **zapytaj przez telefon przed przyjazdem**.
 
-## 2. Listwy — to jest ważniejsze niż grubość płyty
+## 2. Listwy — ważniejsze niż grubość płyty
 
 Rozpiętość 86 cm bez podparcia jest duża. Ugięcie przy 60 kg (tyle waży pełna półka
-ciężkich łożysk), z uwzględnieniem pełzania — płyta pod stałym obciążeniem dogina się
-latami:
+ciężkich łożysk), z pełzaniem — płyta pod stałym obciążeniem dogina się latami:
 
 | rozwiązanie | od razu | po latach |
 |---|---|---|
 | sama płyta 18 mm | 5,7 mm | 11,5 mm ❌ |
 | sama płyta 22 mm | 3,1 mm | 6,3 mm |
-| **18 mm + dwie listwy 20 × 40 pod krawędziami** | **0,9 mm** | **1,7 mm** ✅ |
+| **18 mm + dwie listwy 20 × 30 pod krawędziami** | **1,5 mm** | **3,0 mm** ✅ |
 
-Listwy za kilkadziesiąt złotych dają sztywność, której nie kupisz żadną rozsądną
-grubością płyty. Listwa idzie **na sztorc** (bokiem 40 mm w pionie) pod przednią
-i tylną krawędzią, wzdłuż 86 cm.
+Granica przyzwoitości to 4,3 mm (L/200). Listwa idzie **na sztorc** (bokiem 30 mm
+w pionie) pod przednią i tylną krawędzią, wzdłuż 86 cm.
 
-**Do kupienia:**
+| produkt | kod (Leroy) | cena | ilość |
+|---|---|---|---|
+| Listwa montażowa sosnowa 20 × 30 × 2700 mm, Floorpol | **45216185** | ~12 zł | **7** |
 
-| pozycja | ilość | zastosowanie |
-|---|---|---|
-| listwa sosnowa 20 × 40 mm | **11 m** (np. 4 × 3 m) | usztywnienie: 2 × 86 cm na półkę |
-| listwa sosnowa 20 × 40 mm | **6 m** (np. 2 × 3 m) | podpory boczne: 2 × 50 cm na półkę |
-
-Razem ok. **17 m**, czyli **6 listew po 3 m** z małym zapasem.
+Potrzeba ok. 17 m: 10,3 m na usztywnienia (2 × 86 cm na półkę) i 6 m na podpory boczne
+(2 × 50 cm na półkę). Siedem listew po 2,7 m daje 18,9 m, z zapasem na docinanie.
 
 ## 3. Wkręty — długość wynika ze ścianki 2 cm
 
@@ -73,69 +67,62 @@ Razem ok. **17 m**, czyli **6 listew po 3 m** z małym zapasem.
 
 | wkręt | ilość | do czego |
 |---|---|---|
-| **4 × 35 mm** do drewna | 100 szt. | podpory boczne do ścianek regału (20 mm listwa + 15 mm w ściankę) |
-| **3,5 × 30 mm** do drewna | 100 szt. | płyta do listew usztywniających (18 mm płyta + 12 mm w listwę) |
+| **4 × 35 mm**, ocynkowane | 100 szt. | podpory boczne do ścianek regału |
+| **3,5 × 30 mm**, ocynkowane | 100 szt. | płyta do listew usztywniających |
 
-Po dwa opakowania setek starczy z zapasem (potrzeba ok. 50 + 25).
+Nie bierz nierdzewnych — są kilka razy droższe i do wnętrza niepotrzebne.
+Potrzeba ok. 50 + 25 sztuk, więc setki starczą z zapasem.
 
-**Jeśli szafa jest z płyty wiórowej, a nie z litego drewna** (a stare szafy zwykle są):
-- **nawiercaj otwory** wiertłem 2,5 mm — wiórowa pęka i pęcznieje przy wkręcaniu na siłę
-- wkręcaj w **płaszczyznę** ścianki, nigdy w krawędź — w krawędzi wiórowa trzyma słabo
+**Nawiercaj otwory wiertłem 2,5 mm.** Stara szafa jest zapewne z płyty wiórowej, a ta
+pęka i pęcznieje przy wkręcaniu na siłę. Wkręcaj w płaszczyznę ścianki, nigdy w krawędź.
 
 ---
 
-## Podsumowanie kosztów (szacunek)
+## Koszt
 
-| | |
+| pozycja | koszt |
 |---|---|
-| OSB-3 18 mm × 2 arkusze | ~330 zł |
-| listwy 20 × 40, 6 × 3 m | ~60 zł |
-| wkręty, 2 opakowania | ~40 zł |
-| **razem** | **~430 zł** |
+| OSB-3 18 mm × 1 arkusz | 104 zł |
+| listwy 20 × 30 × 2700 mm × 7 | ~84 zł |
+| wkręty, 2 opakowania | ~45 zł |
+| **razem** | **~235 zł** |
 
-Wariant z płytą wiórową (suchy warsztat): **~330 zł**.
+Plus ewentualna opłata za cięcie.
+
+---
+
+## Deska z blatu biurka — na co uważać
+
+Blaty biurek to zwykle **laminowana płyta wiórowa**. Przy 2 cm grubości i listwach
+usztywniających ugnie się o 3,2 mm po latach — mieści się w normie, tak samo jak OSB.
+
+Dwie rzeczy specyficzne dla laminatu:
+
+- **Krawędzie po cięciu są odsłonięte** — laminat chroni tylko płaszczyzny. W wilgotnym
+  warsztacie odsłonięta krawędź pęcznieje. Zabezpiecz obrzeżem, silikonem albo choćby
+  farbą; brzeg schowany pod listwą i tak będzie osłonięty.
+- **Laminat jest śliski** — drobne łożyska mogą się zsuwać przy wyjmowaniu sąsiadów.
+  Jeśli to zacznie przeszkadzać, wystarczy kawałek gumy albo tektury pod stos.
+
+**Cięcie deski zrób sam** — sklepy nie tną materiału, którego u nich nie kupiłeś
+(Castorama wymaga paragonu z tej samej wizyty).
 
 ---
 
 ## Do sprawdzenia przed zakupem
 
-- [ ] Zmierzyć **wewnętrzną** szerokość regału w kilku miejscach — stara szafa może być
-      nierówna, a 860 mm to wymiar dopasowany na styk. Jak wyjdzie mniej, docinamy mniej
-- [ ] Ustalić, czy warsztat jest ogrzewany (decyduje o wyborze płyty)
-- [ ] Sprawdzić, czy ścianki są z litego drewna czy z płyty wiórowej (decyduje o nawiercaniu)
+- [ ] Zmierzyć **wewnętrzną** szerokość regału w kilku miejscach — stara szafa bywa
+      nierówna, a 860 mm to wymiar na styk. Jak wyjdzie mniej, docinamy mniej
+- [ ] Zapytać w sklepie o **cenę cięcia** (zależy od placówki, źródła w sieci są niewiarygodne)
+- [ ] Sprawdzić, czy ścianki regału są z litego drewna czy z wiórowej (decyduje o nawiercaniu)
 
 ## Skąd te liczby
 
-Wymiary regału pochodzą z bazy magazynu (tabela `shelves`, kolumny `szerokosc_mm`,
+Wymiary regału pochodzą z bazy magazynu (tabela `shelves`: `szerokosc_mm`,
 `glebokosc_mm`, `wysokosc_mm`). Obciążenie 60 kg to oszacowanie pełnej półki ciężkich
 łożysk, policzone z geometrii pozycji w bazie. Ugięcie liczone jak dla belki swobodnie
-podpartej z obciążeniem równomiernym, moduł sprężystości OSB przyjęty ostrożnie
-(3500 MPa), pełzanie jako podwojenie ugięcia w czasie.
+podpartej z obciążeniem równomiernym; moduł sprężystości przyjęty ostrożnie
+(OSB 3500 MPa, płyta wiórowa 2800 MPa), pełzanie jako podwojenie ugięcia w czasie.
 
-Ceny poza OSB-3 22 mm są **szacunkowe** — sprawdź na miejscu.
-
-
----
-
-## Stara deska z warsztatu — szósta półka za darmo
-
-Deska **124 × 52 × 2 cm** daje jedną półkę 86 × 50 cm (odcinasz 86 cm, zostaje kawałek
-38 × 52 cm na przegródkę). Dzięki niej z jednego arkusza OSB (5 półek) robi się komplet
-sześciu, czyli **7 poziomów za cenę jednego arkusza — oszczędność 104 zł**.
-
-**Grubość 2 cm wystarczy, ale tylko z listwą usztywniającą** — tak samo jak każda inna
-półka. Bez listwy zależy to od materiału:
-
-| materiał deski | bez listwy (po latach) | z listwami 20 × 30 |
-|---|---|---|
-| płyta wiórowa ze starego mebla | 10,4 mm ❌ | 3,2 mm ✅ |
-| sklejka | 4,2 mm | 1,3 mm ✅ |
-| lite drewno / płyta klejona | 2,9 mm ✅ | 0,9 mm ✅ |
-
-Skoro listwy idą pod każdą półkę, **materiał deski przestaje mieć znaczenie** — każdy
-wariant mieści się w normie.
-
-Rozstaw półek się nie zmienia: 5 płyt po 18 mm + deska 20 mm daje **187 mm prześwitu**,
-dokładnie tyle samo co sześć płyt 18 mm.
-
-**Cięcie deski zrób sam** — sklepy nie tną materiału, którego u nich nie kupiłeś.
+Cena płyty OSB-3 18 mm jest **potwierdzona** (104 zł, obie sieci). Ceny listew, wkrętów
+i cięcia są **szacunkowe** — sprawdź na miejscu.

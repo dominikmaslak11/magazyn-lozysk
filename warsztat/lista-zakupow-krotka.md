@@ -2,7 +2,7 @@ Lista zakupów - półki do regału na łożyska
 
 1) Płyta OSB-3, grubość 18 mm, arkusz 250 x 125 cm - 1 sztuka
    (Swiss Krono, ok. 104 zł. Ta sama cena w Leroy Merlin i w Castoramie.)
-   WAŻNE: poprosić o docięcie na miejscu na 5 kawałków 86 x 50 cm.
+   WAŻNE: poprosić o docięcie na miejscu na 5 kawałków 85,5 x 49,5 cm.
    Szósta półka będzie ze starej deski, która już jest w warsztacie.
 
 2) Listwa drewniana 20 x 30 mm, długość 270 cm - 7 sztuk
