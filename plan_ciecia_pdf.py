@@ -190,6 +190,7 @@ def zbuduj(sciezka: Path) -> Path:
         pdf.cell(0, 5, linia, new_x="LMARGIN", new_y="NEXT")
 
     rysunek_montazowy(pdf)
+    plan_przegrod(pdf)
     pdf.output(str(sciezka))
     return sciezka
 
@@ -320,6 +321,150 @@ def rysunek_montazowy(pdf) -> None:
     ):
         pdf.set_x(X_WYKAZ)
         pdf.cell(0, 4.5, linia, new_x="LMARGIN", new_y="NEXT")
+
+
+
+
+# ============================================ PRZEGRODY Z ODPADU (strona 3) ===
+
+PASEK_DL = ARKUSZ_DL
+PASEK_SZER = ARKUSZ_SZER - POLKA_DL - RZAZ      # 391 mm
+PRZEGRODA_WYS = 187.0                            # = prześwit komory
+PRZEGROD_POTRZEBA = 7
+KAWALKOW = 4                                     # 4 kawałki x 2 = 8 przegród
+SKALA_P = 0.088
+
+
+def plan_przegrod(pdf) -> None:
+    """Jak z paska odpadowego wyciac przegrody - i co zostawic w calosci."""
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.set_y(12)
+    pdf.cell(0, 7, "Przegrody z odpadu - 8 sztuk 187 x 495 mm", align="C",
+              new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 9)
+    pdf.cell(0, 5, f"Pasek {PASEK_DL:.0f} x {PASEK_SZER:.0f} mm z pierwszego ciecia   |   "
+                    f"skala 1:{1/SKALA_P:.0f}   |   8 ciec",
+              align="C", new_x="LMARGIN", new_y="NEXT")
+
+    x0, y0 = 30.0, 40.0
+    dl = PASEK_DL * SKALA_P
+    szer = PASEK_SZER * SKALA_P
+
+    pdf.set_draw_color(90, 90, 90)
+    pdf.set_line_width(0.3)
+
+    x = 0.0
+    for i in range(1, KAWALKOW + 1):
+        for rzad in (0, 1):
+            nr = (i - 1) * 2 + rzad + 1
+            yy = y0 + rzad * (PRZEGRODA_WYS + RZAZ) * SKALA_P
+            pdf.set_fill_color(207, 226, 243)
+            pdf.rect(x0 + x * SKALA_P, yy, POLKA_GLEB_P() * SKALA_P,
+                      PRZEGRODA_WYS * SKALA_P, style="FD")
+            pdf.set_font("Helvetica", "B", 7)
+            pdf.set_xy(x0 + x * SKALA_P, yy + PRZEGRODA_WYS * SKALA_P / 2 - 4)
+            pdf.cell(POLKA_GLEB_P() * SKALA_P, 4, f"PRZEGRODA {nr}", align="C")
+            pdf.set_font("Helvetica", "", 6.5)
+            pdf.set_xy(x0 + x * SKALA_P, yy + PRZEGRODA_WYS * SKALA_P / 2)
+            pdf.cell(POLKA_GLEB_P() * SKALA_P, 4, f"{PRZEGRODA_WYS:.0f} x {POLKA_GLEB_P():.0f}",
+                      align="C")
+        # cienki pasek 13 mm pod spodem
+        pdf.set_fill_color(245, 235, 200)
+        pdf.rect(x0 + x * SKALA_P, y0 + 2 * (PRZEGRODA_WYS + RZAZ) * SKALA_P,
+                  POLKA_GLEB_P() * SKALA_P,
+                  (PASEK_SZER - 2 * PRZEGRODA_WYS - RZAZ) * SKALA_P, style="FD")
+
+        x += POLKA_GLEB_P()
+        # cięcie poprzeczne
+        xc = x0 + (x + RZAZ / 2) * SKALA_P
+        pdf.set_draw_color(200, 0, 0)
+        pdf.set_line_width(0.7)
+        pdf.line(xc, y0 - 6, xc, y0 + szer + 2)
+        pdf.set_fill_color(200, 0, 0)
+        pdf.ellipse(xc - 2.4, y0 - 11.5, 4.8, 4.8, style="F")
+        pdf.set_text_color(255, 255, 255)
+        pdf.set_font("Helvetica", "B", 7)
+        pdf.set_xy(xc - 4, y0 - 11)
+        pdf.cell(8, 4, str(i), align="C")
+        pdf.set_text_color(0, 0, 0)
+        pdf.set_draw_color(90, 90, 90)
+        pdf.set_line_width(0.3)
+        x += RZAZ
+
+    # cięcia wzdłużne (rozdzielenie rzędów) - jedno na kawałek
+    yc = y0 + (PRZEGRODA_WYS + RZAZ / 2) * SKALA_P
+    pdf.set_draw_color(200, 0, 0)
+    pdf.set_line_width(0.7)
+    pdf.line(x0 - 3, yc, x0 + x * SKALA_P, yc)
+    pdf.set_fill_color(200, 0, 0)
+    pdf.ellipse(x0 - 11, yc - 2.4, 4.8, 4.8, style="F")
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Helvetica", "B", 6.5)
+    pdf.set_xy(x0 - 13, yc - 1.9)
+    pdf.cell(8, 4, "5-8", align="C")
+    pdf.set_text_color(0, 0, 0)
+
+    # nietkniety kawalek
+    reszta = PASEK_DL - x
+    pdf.set_fill_color(214, 234, 214)
+    pdf.set_draw_color(60, 120, 60)
+    pdf.set_line_width(0.5)
+    pdf.rect(x0 + x * SKALA_P, y0, reszta * SKALA_P, szer, style="FD")
+    pdf.set_font("Helvetica", "B", 8)
+    pdf.set_text_color(30, 90, 30)
+    pdf.set_xy(x0 + x * SKALA_P, y0 + szer / 2 - 6)
+    pdf.cell(reszta * SKALA_P, 4, "NIE TNIJ", align="C")
+    pdf.set_font("Helvetica", "", 7)
+    pdf.set_xy(x0 + x * SKALA_P, y0 + szer / 2 - 1)
+    pdf.cell(reszta * SKALA_P, 4, f"{reszta:.0f} x {PASEK_SZER:.0f}", align="C")
+    pdf.set_xy(x0 + x * SKALA_P, y0 + szer / 2 + 4)
+    pdf.cell(reszta * SKALA_P, 4, "zostaje caly", align="C")
+    pdf.set_text_color(0, 0, 0)
+
+    pdf.set_draw_color(0, 0, 0)
+    pdf.set_line_width(0.8)
+    pdf.rect(x0, y0, dl, szer)
+
+    pdf.set_font("Helvetica", "", 8)
+    pdf.set_xy(x0, y0 + szer + 5)
+    pdf.cell(dl, 5, f"{PASEK_DL:.0f} mm", align="C")
+
+    # opis
+    yt = y0 + szer + 18
+    pdf.set_xy(16, yt)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 6, "Kolejnosc", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 8.5)
+    for nr, tresc in (
+        ("1-4", f"cztery ciecia w poprzek paska, co {POLKA_GLEB_P():.0f} mm -> "
+                 f"{KAWALKOW} kawalki {PASEK_SZER:.0f} x {POLKA_GLEB_P():.0f} mm"),
+        ("5-8", f"kazdy kawalek przecinasz wzdluz na dwie przegrody po {PRZEGRODA_WYS:.0f} mm "
+                 f"(zostaje pasek 13 mm - do kosza)"),
+    ):
+        pdf.set_x(16)
+        pdf.set_font("Helvetica", "B", 8.5)
+        pdf.cell(12, 5, nr)
+        pdf.set_font("Helvetica", "", 8.5)
+        pdf.cell(0, 5, tresc, new_x="LMARGIN", new_y="NEXT")
+
+    pdf.ln(2)
+    pdf.set_font("Helvetica", "B", 8.5)
+    for linia in (
+        f"Wychodzi 8 przegrod, a potrzeba {PRZEGROD_POTRZEBA} - jedna zapasowa.",
+        f"Kawalek {PASEK_DL - x:.0f} x {PASEK_SZER:.0f} mm ZOSTAJE W CALOSCI. Nie tnij go na zapas.",
+        "",
+        "WYSOKOSC PRZEGRODY TNIJ NA MIEJSCU, po zamontowaniu pierwszej polki.",
+        "187 mm to wyliczenie; realne grubosci plyt roznia sie o ulamki milimetra,",
+        "a przegroda ma przenosic ciezar - za krotka nie robi nic, za dluga podnosi polke.",
+    ):
+        pdf.set_x(16)
+        pdf.cell(0, 5, linia, new_x="LMARGIN", new_y="NEXT")
+
+
+def POLKA_GLEB_P() -> float:
+    """Glebokosc polki - tyle ma przegroda na dlugosc."""
+    return PAS
 
 
 if __name__ == "__main__":

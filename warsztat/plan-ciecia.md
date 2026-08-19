@@ -158,3 +158,31 @@ taśmą.
 (i wtedy 2–3 przegrody z reszty). Przy siedmiu potrzebnych przegrodach wybrałbym
 przegrody — bez nich półki się uginają, a ósmy poziom przy 187 mm prześwitu i tak
 zszedłby do 161 mm.
+
+---
+
+## Mocowanie przegród
+
+Przegroda pracuje na **ŚCISKANIE** — przenosi ciężar z półki nad nią na półkę pod nią.
+To zmienia wymagania wobec wkrętów: nie muszą nic dźwigać, mają tylko **nie pozwolić
+przegrodzie przewrócić się na bok**.
+
+**Dwa wkręty 3,5 × 30 od góry, przez półkę w kant przegrody**, wystarczą. Ale:
+
+- **Nawierć otwór 2,5 mm** i trafiaj w środek 18-milimetrowego kantu. Wkręt wbity
+  na siłę w kant płyty rozwarstwia ją wzdłuż — i wtedy przegroda traci sztywność.
+- **Nie dokręcaj na maksa.** Jeśli przegroda wyjdzie o milimetr za długa, dociskanie
+  wkrętem wygnie półkę do góry. Ma stać ciasno, nie być rozpierakiem.
+- Jeśli kant się rozwarstwia (zdarza się przy OSB), zamiast wkrętów użyj **dwóch małych
+  kątowników** przykręconych do płaszczyzny przegrody, nie do kantu.
+
+**Wszystkie przegrody muszą stać w jednej pionowej linii** — obciążenie schodzi przez
+nie aż na dno regału. Odmierz środek szerokości (430 mm od ścianki) i zaznaczaj pionem
+albo poziomicą na każdym poziomie, a nie „na oko" od nowa przy każdej półce.
+
+## Wysokość przegrody — tnij na miejscu
+
+187 mm to wyliczenie z rachunku. Realne grubości płyt różnią się o ułamki milimetra
+i błędy się sumują przez sześć poziomów. **Zmontuj pierwszą półkę, zmierz rzeczywisty
+prześwit, dopiero wtedy tnij przegrodę.** Za krótka nie robi nic — półka ugnie się
+do niej dopiero po obciążeniu. Za długa podnosi półkę nad podpory bocznych listew.
