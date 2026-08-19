@@ -196,11 +196,19 @@ def propozycje_ai(wynik: Wynik) -> list[tuple[str, str]]:
     return propozycje
 
 
-def zastosuj(wynik: Wynik) -> int:
-    """Zapisuje TYLKO poprawki pewne, czyli wynikające z katalogu. Zwraca ich liczbę."""
+def zastosuj(wynik: Wynik, tylko: set[str] | None = None) -> int:
+    """Zapisuje TYLKO poprawki pewne, czyli wynikające z katalogu. Zwraca ich liczbę.
+
+    `tylko` ogranicza zapis do wskazanych symboli. Potrzebne, bo nie każda rozbieżność
+    z katalogiem jest błędem: użytkownik mógł zmierzyć INNY wymiar niż ten, który
+    katalog podaje (przy wstawkowych szerokość pierścienia zewnętrznego zamiast
+    wewnętrznego). Takiej pozycji nie wolno nadpisać hurtem.
+    """
     zmienionych = 0
     for u in wynik.uwagi:
         if not u.poprawka:
+            continue
+        if tylko is not None and u.symbol.upper() not in tylko:
             continue
         b = db.get_bearing(u.bearing_id)
         if b is None:
@@ -284,6 +292,8 @@ def main() -> int:
                          help="pokaż tylko pozycje z ptaszkiem \"do sprawdzenia\"")
     parser.add_argument("--zastosuj", action="store_true",
                          help="zapisz poprawki pewne (wyłącznie te z katalogu)")
+    parser.add_argument("--tylko", default="",
+                         help="ogranicz --zastosuj do podanych symboli (po przecinku)")
     parser.add_argument("--ai", action="store_true",
                          help="dopytaj modele o pozycje spoza katalogu (tylko raport)")
     args = parser.parse_args()
@@ -298,7 +308,8 @@ def main() -> int:
     print(raport(wynik, propozycje))
 
     if args.zastosuj:
-        ile = zastosuj(wynik)
+        tylko = {s.strip().upper() for s in args.tylko.split(",") if s.strip()} or None
+        ile = zastosuj(wynik, tylko)
         print(f"\nZapisano {ile} poprawek z katalogu. Propozycji AI nie zapisano.")
     return 0
 
