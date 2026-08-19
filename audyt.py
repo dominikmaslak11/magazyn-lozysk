@@ -13,8 +13,18 @@ wygląda potem dokładnie tak samo jak prawda.
 
 Użycie:
     python audyt.py                  # raport
+    python audyt.py --oznaczone      # SAMA lista pozycji z ptaszkiem "do sprawdzenia"
     python audyt.py --ai             # raport + zapytanie modeli o brakujące wymiary
     python audyt.py --zastosuj       # zapisz poprawki pewne (z katalogu)
+
+Umówiony tryb pracy: użytkownik zaznacza ptaszek "do sprawdzenia" przy pozycjach,
+których nie da się rozpoznać przy regale (nieczytelne oznaczenie, nieznana seria,
+podejrzany wymiar) i opisuje w uwagach, co budzi wątpliwość. Potem `--oznaczone`
+daje gotową listę do rozpracowania: sprawdzenia w katalogach producentów i - gdy
+trzeba - dopisania nowej serii do reguł rozpoznawania.
+
+Tak powstały dotąd: rozdzielenie UC/ES, calowe 37431A i seria RAE (INA), gdzie
+liczba w oznaczeniu to otwór w milimetrach, a nie kod otworu.
 """
 
 from __future__ import annotations
@@ -211,6 +221,29 @@ def zastosuj(wynik: Wynik) -> int:
     return zmienionych
 
 
+def lista_oznaczonych() -> str:
+    """Robocza lista pozycji z ptaszkiem - wszystko, co potrzebne do rozpoznania serii."""
+    oznaczone = db.do_weryfikacji()
+    if not oznaczone:
+        return "Nic nie czeka na weryfikację."
+
+    wezly = {s.id: s for s in db.get_shelves()}
+    linie = [f"Do sprawdzenia: {len(oznaczone)} pozycji.\n"]
+    for b in oznaczone:
+        wymiary = " x ".join(f"{v:g}" if v is not None else "?" for v in (b.d, b.D, b.B))
+        linie.append(f"  {b.symbol}")
+        linie.append(f"      wymiary:     {wymiary} mm    ilość: {b.ilosc} szt.")
+        linie.append(f"      typ wpisany: {b.typ or '(brak)'}")
+        linie.append(f"      lokalizacja: {db.shelf_path(b.regal_id, wezly) or 'bez lokalizacji'}")
+        linie.append(f"      wątpliwość:  {b.uwagi or '(nie opisano)'}")
+        rozpoznany = bearing_types.classify_symbol(b.symbol)
+        otwor = bearing_types.bore_from_symbol(b.symbol)
+        linie.append(f"      reguły mówią: typ={rozpoznany or 'nie wiem'}, "
+                      f"otwór={f'{otwor:g} mm' if otwor else 'nie wiem'}")
+        linie.append("")
+    return "\n".join(linie)
+
+
 def raport(wynik: Wynik, propozycje: list[tuple[str, str]] | None = None) -> str:
     linie = [f"Sprawdzono {wynik.sprawdzonych} pozycji."]
     oznaczone = db.do_weryfikacji()
@@ -247,6 +280,8 @@ def raport(wynik: Wynik, propozycje: list[tuple[str, str]] | None = None) -> str
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Audyt danych w bazie łożysk.")
+    parser.add_argument("--oznaczone", action="store_true",
+                         help="pokaż tylko pozycje z ptaszkiem \"do sprawdzenia\"")
     parser.add_argument("--zastosuj", action="store_true",
                          help="zapisz poprawki pewne (wyłącznie te z katalogu)")
     parser.add_argument("--ai", action="store_true",
@@ -254,6 +289,10 @@ def main() -> int:
     args = parser.parse_args()
 
     db.init_db()
+    if args.oznaczone:
+        print(lista_oznaczonych())
+        return 0
+
     wynik = audyt()
     propozycje = propozycje_ai(wynik) if args.ai else None
     print(raport(wynik, propozycje))
