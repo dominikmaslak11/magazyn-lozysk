@@ -507,3 +507,25 @@ ale to dwie różne konstrukcje - jedna nie zastąpi drugiej w maszynie.
 - [ ] Łożyska wstawkowe mają WYSTAJĄCY pierścień wewnętrzny: leżąc płasko zajmują na
       wysokość szerokość pierścienia wewnętrznego (UC209: 49,2 mm), a nie zewnętrznego
       (19 mm). Rachunek pojemności bierze pole B, więc dla tej serii zaniża wysokość stosu
+
+## Seria ES rozpoznana - dane od producenta (2026-08-19, wersja 1.7.0)
+
+Ustalone w katalogu NTN-SNR (eshop.ntn-snr.com), nie zgadnięte:
+
+- ES to łożyska WSTAWKOWE do opraw, z kulistą powierzchnią zewnętrzną - czyli
+  samonastawne w oprawie, tak samo jak UC. Nie jest to inna rodzina.
+- Różnica jest w MOCOWANIU NA WALE: ES ma mimośrodowy pierścień zaciskowy,
+  UC dwa wkręty dociskowe. Stąd inna szerokość pierścienia wewnętrznego.
+- ES208 = 40×80, ES209 = 45×85, ES210 = 50×90; pierścień wewnętrzny z zaciskowym
+  ma 43,7 mm w całej serii; pierścień zewnętrzny kolejno 18 / 19 / 20 mm.
+  Dla porównania UC208/UC209 mają pierścień wewnętrzny 49,2 mm.
+- [x] Wpisy ES208/209/210 w katalogu offline (serwer + telefon)
+- [x] Opis typu przy wyborze kategorii - czym UC różni się od ES
+
+### Do rozstrzygnięcia
+
+- [ ] **Którą szerokość wpisujemy dla wstawkowych?** Katalog trzyma pierścień
+      WEWNĘTRZNY (UC209: 49,2 mm), a wpis użytkownika `uc209` ma 19 mm, czyli
+      pierścień ZEWNĘTRZNY. Trzeba wybrać jedną konwencję - wewnętrzna jest właściwa
+      dla układania na półce (ten pierścień wystaje i to on wyznacza wysokość stosu)
+- [ ] Poprawić wpis `uc209` po ustaleniu konwencji

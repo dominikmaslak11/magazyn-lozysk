@@ -137,6 +137,11 @@ fun BearingEditSheet(
                 options = vm.types,
                 onSelected = { typ = it; typWybranyRecznie = true },
             )
+            opisTypu(typ)?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp))
+            }
             typZOznaczenia?.let { rozpoznany ->
                 Text(
                     if (typWybranyRecznie && typ != rozpoznany)
@@ -296,6 +301,21 @@ private fun ShelfDropdown(shelves: List<ShelfWithCounts>, selectedId: String?, o
             }
         }
     }
+}
+
+/**
+ * Krótkie wyjaśnienie typu tam, gdzie się go wybiera.
+ *
+ * Dopisane dla serii wstawkowych, bo UC208 i ES208 mają ten sam otwór i tę samą
+ * średnicę zewnętrzną (40 x 80 mm) i bez podpowiedzi nie da się ich odróżnić
+ * z samej nazwy typu - a jedna nie zastąpi drugiej w maszynie.
+ */
+private fun opisTypu(typ: String): String? = when (typ) {
+    "wstawkowe (UC)" -> "Do opraw; kulista powierzchnia zewnętrzna (samonastawne w oprawie). " +
+        "Mocowane DWOMA WKRĘTAMI dociskowymi, szeroki pierścień wewnętrzny."
+    "wstawkowe (ES)" -> "Do opraw; kulista powierzchnia zewnętrzna (samonastawne w oprawie). " +
+        "Mocowane MIMOŚRODOWYM PIERŚCIENIEM zaciskowym, węższy pierścień wewnętrzny niż UC."
+    else -> null
 }
 
 /** Pełna ścieżka lokalizacji, np. "Regał 3 › Półka 2 › Skrytka A". */

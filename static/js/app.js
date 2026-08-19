@@ -253,7 +253,7 @@ async function deleteBearing(id) {
 
 // --------------------------------------------------------- modal łożyska ----
 
-function fillTypeSelect(selectEl, selected) {
+function fillTypeSelectRaw(selectEl, selected) {
   selectEl.innerHTML = state.types.map((t) =>
     `<option value="${esc(t)}" ${t === selected ? "selected" : ""}>${esc(t)}</option>`).join("");
 }
@@ -552,6 +552,31 @@ function maDzieci(id, wszystkie) {
   return wszystkie.some((w) => w.parent_id === id);
 }
 
+// Krótkie wyjaśnienie typu tam, gdzie się go wybiera. Dopisane dla serii wstawkowych,
+// bo UC208 i ES208 mają ten sam otwór i tę samą średnicę zewnętrzną (40x80 mm) i bez
+// podpowiedzi nie da się ich odróżnić z samej nazwy typu.
+const OPISY_TYPOW = {
+  "wstawkowe (UC)": "Do opraw; kulista powierzchnia zewnętrzna (samonastawne w oprawie). " +
+    "Mocowane DWOMA WKRĘTAMI dociskowymi, szeroki pierścień wewnętrzny.",
+  "wstawkowe (ES)": "Do opraw; kulista powierzchnia zewnętrzna (samonastawne w oprawie). " +
+    "Mocowane MIMOŚRODOWYM PIERŚCIENIEM zaciskowym, węższy pierścień wewnętrzny niż UC.",
+};
+
+function podepnijOpisTypu() {
+  const sel = document.getElementById("f_typ");
+  if (sel && !sel.dataset.opisPodpiety) {
+    sel.addEventListener("change", pokazOpisTypu);
+    sel.dataset.opisPodpiety = "1";
+  }
+}
+
+function pokazOpisTypu() {
+  podepnijOpisTypu();
+  const el = document.getElementById("opisTypu");
+  if (!el) return;
+  el.textContent = OPISY_TYPOW[document.getElementById("f_typ").value] || "";
+}
+
 function renderShelves() {
   const list = $("#shelvesList");
   const wszystkie = state.shelves;
@@ -848,3 +873,12 @@ function debounce(fn, ms) {
 }
 
 document.addEventListener("DOMContentLoaded", init);
+
+
+// Opis typu musi nadążać za KAŻDĄ zmianą typu - także tą automatyczną, z rozpoznania
+// symbolu - a nie tylko za ręcznym wyborem z listy. Dlatego opakowujemy funkcję
+// wypełniającą listę, zamiast wieszać się wyłącznie na zdarzeniu "change".
+function fillTypeSelect(select, value) {
+  fillTypeSelectRaw(select, value);
+  if (select && select.id === "f_typ") pokazOpisTypu();
+}

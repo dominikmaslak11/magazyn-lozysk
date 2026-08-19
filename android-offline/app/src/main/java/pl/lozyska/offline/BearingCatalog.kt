@@ -283,6 +283,13 @@ object BearingCatalog {
         KatalogWpis("UC208", 40.0, 80.0, 49.2, TypLozyska.WSTAWKOWE),
         KatalogWpis("UC209", 45.0, 85.0, 49.2, TypLozyska.WSTAWKOWE),
         KatalogWpis("UC210", 50.0, 90.0, 51.6, TypLozyska.WSTAWKOWE),
+        // Seria ES200 (SNR/NTN), wg katalogu producenta. Ta sama rodzina co UC, ale mocowana
+        // MIMOŚRODOWYM PIERŚCIENIEM ZACISKOWYM zamiast dwóch wkrętów - i węższa w środku.
+        // Trzecia liczba to całkowita szerokość pierścienia WEWNĘTRZNEGO z pierścieniem
+        // zaciskowym (43.7 mm w całej serii) - ta sama konwencja co przy UC (49.2 mm).
+        KatalogWpis("ES208", 40.0, 80.0, 43.7, TypLozyska.WSTAWKOWE_ES),
+        KatalogWpis("ES209", 45.0, 85.0, 43.7, TypLozyska.WSTAWKOWE_ES),
+        KatalogWpis("ES210", 50.0, 90.0, 43.7, TypLozyska.WSTAWKOWE_ES),
         KatalogWpis("UC211", 55.0, 100.0, 55.6, TypLozyska.WSTAWKOWE),
         KatalogWpis("UC212", 60.0, 110.0, 65.1, TypLozyska.WSTAWKOWE),
     )

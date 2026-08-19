@@ -161,6 +161,20 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         "UC207": (35, 72, 42.9), "UC208": (40, 80, 49.2), "UC209": (45, 85, 49.2),
         "UC210": (50, 90, 51.6), "UC211": (55, 100, 55.6), "UC212": (60, 110, 65.1),
     },
+
+    TYP_WSTAWKOWE_ES: {
+        # Seria ES200 (SNR/NTN), wg katalogu producenta - eshop.ntn-snr.com.
+        # Ta sama rodzina co UC (wstawkowe, kulista powierzchnia zewnętrzna, czyli
+        # samonastawne w oprawie), ale mocowane MIMOŚRODOWYM PIERŚCIENIEM ZACISKOWYM
+        # zamiast dwóch wkrętów dociskowych - i z węższym pierścieniem wewnętrznym.
+        #
+        # Trzecia liczba to CAŁKOWITA szerokość pierścienia wewnętrznego z pierścieniem
+        # zaciskowym (B1 = 43.7 mm w całej serii) - ta sama konwencja co przy UC (49.2 mm),
+        # gdzie też podajemy pierścień wewnętrzny, a nie zewnętrzny. To ona decyduje
+        # o wysokości stosu na półce, bo pierścień wewnętrzny wystaje poza zewnętrzny.
+        # Szerokość samego pierścienia zewnętrznego to kolejno 18 / 19 / 20 mm.
+        "ES208": (40, 80, 43.7), "ES209": (45, 85, 43.7), "ES210": (50, 90, 43.7),
+    },
 }
 
 # Płaskie widoki na potrzeby lookup.py / bazy danych.
