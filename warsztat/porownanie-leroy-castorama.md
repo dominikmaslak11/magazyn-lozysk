@@ -11,12 +11,21 @@ Data: 2026-08-19 · dotyczy [listy zakupów na półki do Regału 2](lista-zakup
 
 ## Wniosek na skróty
 
-**Płyta kosztuje tyle samo w obu sklepach (104 zł).** Cała różnica jest na drewnie
-i wkrętach, i tu **Castorama wychodzi taniej** — ma nieheblowaną kantówkę
-konstrukcyjną, której Leroy w tej formie nie ma.
+**Płyta kosztuje tyle samo w obu sklepach: 104 zł za arkusz, ten sam Swiss Krono.**
+Cała różnica jest na drewnie — i tu, licząc wyłącznie cenę, **taniej wychodzi
+Leroy Merlin**.
 
-**Jedź do Castoramy.** Oszczędność ok. 30–60 zł na całości, a przy okazji dostajesz
-sztywniejszy przekrój (30 × 40 zamiast 20 × 30).
+| wariant | koszt |
+|---|---|
+| **płyta gdziekolwiek + listwy 20 × 30 z Leroy** | **~337 zł** ← najtaniej |
+| wszystko w Castoramie (kantówka 30 × 40) | ~373 zł |
+
+**Skoro liczy się cena — bierz wariant z Leroy.** Listwa 20 × 30 daje ugięcie 3,0 mm
+po latach przy 60 kg na półce; kantówka 30 × 40 z Castoramy daje 1,3 mm. Obie mieszczą
+się w granicy przyzwoitości (4,3 mm), więc te 36 zł różnicy kupuje zapas sztywności,
+którego przy Twoim obciążeniu nie potrzebujesz.
+
+Płytę weź tam, gdzie akurat jedziesz — jest identyczna i kosztuje tyle samo.
 
 ---
 
