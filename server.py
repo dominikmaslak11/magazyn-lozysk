@@ -20,6 +20,7 @@ from flask import (Flask, abort, jsonify, redirect, render_template, request,
                     send_file, session, url_for)
 
 import ai_assist
+import bearing_types
 import database as db
 import lookup
 from bearing_data import ALL_TYPES, SOURCE_MANUAL
@@ -167,6 +168,24 @@ def service_worker():
 
 
 # --------------------------------------------------------------------- API ----
+
+@app.route("/api/classify")
+def api_classify():
+    """Typ i otwór rozpoznane z samego oznaczenia (ISO 15 / ISO 355 i serie producenckie).
+
+    Przeglądarka pyta o to SERWER, zamiast mieć własną kopię reguł. Reguły żyją już
+    w dwóch miejscach (Python i port na Androida) i to jest maksimum, jakie da się
+    utrzymać w zgodzie - trzecia kopia w JavaScripcie prędzej czy później zaczęłaby
+    mówić co innego o tym samym łożysku.
+    """
+    symbol = (request.args.get("symbol") or "").strip()
+    if not symbol:
+        return jsonify({"typ": None, "otwor": None})
+    return jsonify({
+        "typ": bearing_types.classify_symbol(symbol),
+        "otwor": bearing_types.bore_from_symbol(symbol),
+    })
+
 
 @app.route("/api/types")
 def api_types():

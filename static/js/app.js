@@ -281,6 +281,15 @@ function openBearingModal(id) {
 
   fillTypeSelect($("#f_typ"), b ? b.typ : state.types[0]);
   if ($("#f_weryfikacja")) $("#f_weryfikacja").checked = !!(b && b.do_weryfikacji);
+  // Przy otwarciu okienka zakładamy wybór automatyczny; ręczny dopiero gdy użytkownik
+  // sam ruszy listę typów.
+  typWybranyRecznie = false;
+  if (!$("#f_symbol").dataset.klasyfikacjaPodpieta) {
+    $("#f_symbol").addEventListener("input", debounce(rozpoznajTypZSymbolu, 300));
+    $("#f_typ").addEventListener("change", () => { typWybranyRecznie = true; });
+    $("#f_symbol").dataset.klasyfikacjaPodpieta = "1";
+  }
+  rozpoznajTypZSymbolu();
   $("#f_symbol").value = b ? b.symbol : "";
   $("#f_d").value = b && b.d != null ? b.d : "";
   $("#f_D").value = b && b.D != null ? b.D : "";
@@ -584,6 +593,30 @@ function podepnijOpisTypu() {
     sel.addEventListener("change", pokazOpisTypu);
     sel.dataset.opisPodpiety = "1";
   }
+}
+
+// Typ rozpoznawany W TRAKCIE PISANIA symbolu, tak samo jak w appce na telefonie.
+// Pytamy o to serwer (/api/classify), zamiast powielać reguły w JavaScripcie -
+// trzecia kopia tych samych reguł prędzej czy później zaczęłaby mówić co innego.
+let typWybranyRecznie = false;
+
+async function rozpoznajTypZSymbolu() {
+  const symbol = $("#f_symbol").value.trim();
+  const info = $("#typZOznaczenia");
+  if (!symbol) { if (info) info.textContent = ""; return; }
+  try {
+    const r = await api(`/api/classify?symbol=${encodeURIComponent(symbol)}`);
+    if (info) {
+      info.textContent = r.typ
+        ? (typWybranyRecznie && r.typ !== $("#f_typ").value
+            ? `Z oznaczenia wynika: ${r.typ} (zostawiono Twój wybór)`
+            : "Kategoria rozpoznana z oznaczenia"
+              + (r.otwor ? `, otwór ${r.otwor} mm` : ""))
+        : "Nie rozpoznano typu z oznaczenia - wybierz ręcznie";
+    }
+    // Ręczna decyzja użytkownika ma pierwszeństwo nad automatem.
+    if (r.typ && !typWybranyRecznie) fillTypeSelect($("#f_typ"), r.typ);
+  } catch (e) { /* offline albo błąd - milczymy, to tylko podpowiedź */ }
 }
 
 function pokazOpisTypu() {
