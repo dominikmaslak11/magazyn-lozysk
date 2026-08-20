@@ -1,6 +1,6 @@
 # Lista zakupów: 7 nowych półek w Regale 2
 
-Data: 2026-08-20 (aktualizacja: dzielimy też górną przestrzeń)
+Data: 2026-08-20 (górna przestrzeń dzielona, siódma półka węższa)
 
 ## Co i po co
 
@@ -20,17 +20,26 @@ wkrętów.
 
 ## Skąd biorą się półki
 
-| źródło | ile półek | uwaga |
+| źródło | ile półek | wymiar |
 |---|---|---|
-| **stara deska z blatu biurka** (już w warsztacie) | 1 | 124 × 52 × 2 cm → docinasz do 85,5 × 49,5 |
-| **arkusz OSB-3 nr 1** | 5 | plus pas 2500 × 391 na wszystkie przegrody |
-| **arkusz OSB-3 nr 2** | 1 | zostaje 4 zapasowe półki na Regał 1 |
+| **arkusz OSB-3** (jeden) | 5 | 855 × 495 mm |
+| **stara deska z blatu biurka** | 1 | 855 × 495 mm |
+| **pas odpadowy z arkusza** | 1 | **855 × 391 mm — węższa** |
 
-**Dlaczego drugi arkusz.** Z jednego arkusza wychodzi dokładnie 5 półek, deska daje
-szóstą — na siedem brakuje jednej. Policzyłem, czy da się ją wykroić z pasa odpadowego
-(dwa kawałki złączone wzdłuż): da się, ale wtedy z tego pasa zostaje materiał tylko
-na 3 przegrody z 9 potrzebnych. **Siedem półek i dziewięć przegród nie mieści się
-w 3,77 m², które daje arkusz plus deska** — potrzeba 3,83 m².
+**Wszystko mieści się w jednym arkuszu**, ale tylko dzięki temu, że siódma półka jest
+płytsza: 39 cm zamiast 49,5 cm. Sprawdziłem oba warianty:
+
+| siódma półka | przegród z reszty pasa | wynik |
+|---|---|---|
+| **węższa, 855 × 391** | 6 + 2 z odpadu deski = **8** (potrzeba 7) | ✅ mieści się |
+| ze szwem, 855 × (391+104) | 3 + 2 = 5 (potrzeba 7) | ❌ brakuje dwóch |
+
+Sklejana półka zjada dwa kawałki po 855 mm z pasa i zostaje za mało na przegrody.
+Węższa zjada jeden — i wszystko się spina.
+
+**Węższą daj na samą górę.** Brakujące 10 cm głębokości jest z tyłu najwyższej półki,
+czyli dokładnie tam, gdzie i tak byś nie sięgnął. Tracisz 8,9 dm² z ok. 256 dm²
+zysku, czyli 3,5% — za 92 zł oszczędności.
 
 Prześwit po zamontowaniu: **18,7 cm** na poziom (mieści stos 13,7 cm — np. 2 sztuki
 uc209 albo 5 sztuk 6020).
@@ -67,11 +76,12 @@ w pionie) pod przednią i tylną krawędzią, wzdłuż 86 cm.
 
 | produkt | kod (Leroy) | cena | ilość |
 |---|---|---|---|
-| Listwa montażowa sosnowa 20 × 30 × 2700 mm, Floorpol | **45216185** | ~12 zł | **3** |
+| Listwa montażowa sosnowa 20 × 30 × 2700 mm, Floorpol | **45216185** | ~12 zł | **4** |
 
-Potrzeba ok. 7 m — **tylko na podpory boczne** (2 × 50 cm na półkę, 7 półek).
-Usztywnienia nie kupujemy: robią je przegrody wycięte z odpadu, i to lepiej
-(0,35 mm ugięcia zamiast 1,5 mm). Trzy listwy po 2,7 m dają 8,1 m.
+Potrzeba ok. 8,7 m: **7 m na podpory boczne** (2 × 50 cm na każdą z 7 półek)
+i **1,7 m na usztywnienie nowej górnej półki**, bo w górnej przestrzeni nie ma przegród.
+W dolnej przestrzeni usztywnienia nie kupujemy — robią je przegrody z odpadu, i to
+lepiej (0,35 mm ugięcia zamiast 1,5 mm). Cztery listwy po 2,7 m dają 10,8 m.
 
 ## 3. Wkręty — długość wynika ze ścianki 2 cm
 
@@ -94,14 +104,14 @@ pęka i pęcznieje przy wkręcaniu na siłę. Wkręcaj w płaszczyznę ścianki,
 
 | pozycja | koszt |
 |---|---|
-| OSB-3 18 mm × 2 arkusze | 208 zł |
-| listwy 20 × 30 × 2700 mm × 3 | ~36 zł |
+| OSB-3 18 mm × 1 arkusz | 104 zł |
+| listwy 20 × 30 × 2700 mm × 4 | ~48 zł |
 | wkręty, 2 opakowania | ~45 zł |
-| **razem** | **~289 zł** |
+| **razem** | **~197 zł** |
 
-Względem poprzedniej wersji: **+56 zł za dwa dodatkowe poziomy** (drugi arkusz kosztuje
-104 zł, ale listew potrzeba trzy zamiast siedmiu — usztywnienie robią przegrody).
-W zapasie zostają 4 gotowe półki na Regał 1.
+Dziewięć poziomów w Regale 2 za cenę jednego arkusza. Wariant z drugim arkuszem
+i pełnowymiarową siódmą półką kosztowałby 289 zł — **92 zł więcej za 8,9 dm²**
+głębokości, której na najwyższej półce i tak nie wykorzystasz.
 
 Plus ewentualna opłata za cięcie.
 

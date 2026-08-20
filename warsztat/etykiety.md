@@ -1,6 +1,6 @@
 # Etykiety na lokalizacje — co wpisać w drukarkę
 
-Taśma 12 mm, tekst wpisywany ręcznie. **29 etykiet** (po przebudowie Regału 2).
+Taśma 12 mm, tekst wpisywany ręcznie. **27 etykiet** (po przebudowie Regału 2).
 
 ---
 
@@ -53,12 +53,16 @@ R2-P6-A     R2-P6-B
 R2-P7-A     R2-P7-B
 ```
 
-Górna przestrzeń (46 cm) dzielona na 2 poziomy po 22,1 cm:
+Górna przestrzeń (46 cm) dzielona na 2 poziomy po 22,1 cm, **bez przegród**
+(usztywnia je listwa), więc bez liter A/B:
 
 ```
-R2-P8-A     R2-P8-B
-R2-P9-A     R2-P9-B
+R2-P8
+R2-P9
 ```
+
+**P9 jest płytsza** — 39 cm zamiast 49,5 cm. Warto to dopisać na etykiecie
+albo zapamiętać, żeby nie planować tam najgłębszych pozycji.
 
 Numeracja biegnie **od dołu przez cały regał**, bez resetowania na granicy dawnych
 przestrzeni — z punktu widzenia szukania łożyska to jeden regał, a nie dwa.
