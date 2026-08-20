@@ -1,6 +1,6 @@
 # Etykiety na lokalizacje — co wpisać w drukarkę
 
-Taśma 12 mm, tekst wpisywany ręcznie. **26 etykiet** (po przebudowie Regału 2).
+Taśma 12 mm, tekst wpisywany ręcznie. **29 etykiet** (po przebudowie Regału 2).
 
 ---
 
@@ -39,7 +39,9 @@ R1-P6
 R1-P7
 ```
 
-### Regał 2 — 7 nowych poziomów z przegrodami + istniejąca górna półka
+### Regał 2 — 9 poziomów, wszystkie z przegrodami
+
+Dolna przestrzeń (142 cm) dzielona na 7 poziomów po 18,7 cm:
 
 ```
 R2-P1-A     R2-P1-B
@@ -49,11 +51,17 @@ R2-P4-A     R2-P4-B
 R2-P5-A     R2-P5-B
 R2-P6-A     R2-P6-B
 R2-P7-A     R2-P7-B
-R2-P8
 ```
 
-Górna półka (dzisiejsza „Półka 2 (góra)", 46 cm prześwitu) zostaje bez przegrody
-i dostaje numer **P8** — jest nad siódmym nowym poziomem.
+Górna przestrzeń (46 cm) dzielona na 2 poziomy po 22,1 cm:
+
+```
+R2-P8-A     R2-P8-B
+R2-P9-A     R2-P9-B
+```
+
+Numeracja biegnie **od dołu przez cały regał**, bez resetowania na granicy dawnych
+przestrzeni — z punktu widzenia szukania łożyska to jeden regał, a nie dwa.
 
 ### Regał 3 — bufor tymczasowy
 

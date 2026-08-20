@@ -186,3 +186,20 @@ albo poziomicą na każdym poziomie, a nie „na oko" od nowa przy każdej pół
 i błędy się sumują przez sześć poziomów. **Zmontuj pierwszą półkę, zmierz rzeczywisty
 prześwit, dopiero wtedy tnij przegrodę.** Za krótka nie robi nic — półka ugnie się
 do niej dopiero po obciążeniu. Za długa podnosi półkę nad podpory bocznych listew.
+
+
+---
+
+## Drugi arkusz — jedno cięcie
+
+Po podziale górnej przestrzeni Regału 2 potrzeba **siódmej półki**, a z pierwszego
+arkusza i deski wychodzi sześć. Drugi arkusz obsługujesz jednym cięciem:
+
+1. **Cięcie w poprzek na 855 mm** → pas 2500 × 855.
+2. **Jedno cięcie wzdłuż na 495 mm** → siódma półka 855 × 495.
+
+**Resztę zabierz w całości**: pas 2500 × 391 (jak z pierwszego arkusza) i kawałek
+2000 × 855, z którego wyjdą **4 kolejne półki**, gdy będziesz przebudowywał Regał 1.
+Nie tnij ich teraz — cały kawałek jest wart więcej niż cztery osobne.
+
+Razem na drugim arkuszu: **2 cięcia**.

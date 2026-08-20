@@ -1,25 +1,36 @@
-# Lista zakupów: 6 nowych półek w Regale 2
+# Lista zakupów: 7 nowych półek w Regale 2
 
-Data: 2026-08-19 (aktualizacja po znalezieniu starej deski)
+Data: 2026-08-20 (aktualizacja: dzielimy też górną przestrzeń)
 
 ## Co i po co
 
-Dolna półka Regału 2 ma **142 cm prześwitu** — to dziś zmarnowana przestrzeń.
-Podział na **7 poziomów** (czyli 6 nowych półek) daje ok. **219 dm² powierzchni**,
-więcej niż całe dzisiejsze Regały 1 + 2 razem wzięte (294 → 513 dm²).
+Regał 2 ma dziś dwie przestrzenie, obie marnowane:
+
+* **dolna, 142 cm prześwitu** → dzielimy na **7 poziomów** (6 nowych półek), po 18,7 cm
+* **górna, 46 cm prześwitu** → dzielimy na **2 poziomy** (1 nowa półka), po 22,1 cm
+
+Razem **7 nowych półek** i ok. **256 dm² powierzchni** — prawie tyle, co całe
+dzisiejsze Regały 1 + 2 razem wzięte.
+
+Górna przestrzeń miała 46 cm na łożyska grubości 2–5 cm; jeden podział zamienia
+zmarnowaną wysokość w drugą pełnowymiarową półkę.
 
 Regał jest **drewniany, ze starej szafy, ścianka ok. 2 cm** — to determinuje długość
 wkrętów.
 
 ## Skąd biorą się półki
 
-| źródło | ile | wymiar |
+| źródło | ile półek | uwaga |
 |---|---|---|
 | **stara deska z blatu biurka** (już w warsztacie) | 1 | 124 × 52 × 2 cm → docinasz do 85,5 × 49,5 |
-| **jeden arkusz OSB-3 18 mm** (do kupienia) | 5 | 250 × 125 cm → 5 × 85,5 × 49,5 |
+| **arkusz OSB-3 nr 1** | 5 | plus pas 2500 × 391 na wszystkie przegrody |
+| **arkusz OSB-3 nr 2** | 1 | zostaje 4 zapasowe półki na Regał 1 |
 
-Z arkusza wychodzi dokładnie 5 półek, więc bez deski szósta wymuszałaby zakup drugiego
-arkusza, z którego zużyłbyś jedną piątą. **Deska oszczędza 104 zł.**
+**Dlaczego drugi arkusz.** Z jednego arkusza wychodzi dokładnie 5 półek, deska daje
+szóstą — na siedem brakuje jednej. Policzyłem, czy da się ją wykroić z pasa odpadowego
+(dwa kawałki złączone wzdłuż): da się, ale wtedy z tego pasa zostaje materiał tylko
+na 3 przegrody z 9 potrzebnych. **Siedem półek i dziewięć przegród nie mieści się
+w 3,77 m², które daje arkusz plus deska** — potrzeba 3,83 m².
 
 Prześwit po zamontowaniu: **18,7 cm** na poziom (mieści stos 13,7 cm — np. 2 sztuki
 uc209 albo 5 sztuk 6020).
@@ -56,10 +67,11 @@ w pionie) pod przednią i tylną krawędzią, wzdłuż 86 cm.
 
 | produkt | kod (Leroy) | cena | ilość |
 |---|---|---|---|
-| Listwa montażowa sosnowa 20 × 30 × 2700 mm, Floorpol | **45216185** | ~12 zł | **7** |
+| Listwa montażowa sosnowa 20 × 30 × 2700 mm, Floorpol | **45216185** | ~12 zł | **3** |
 
-Potrzeba ok. 17 m: 10,3 m na usztywnienia (2 × 86 cm na półkę) i 6 m na podpory boczne
-(2 × 50 cm na półkę). Siedem listew po 2,7 m daje 18,9 m, z zapasem na docinanie.
+Potrzeba ok. 7 m — **tylko na podpory boczne** (2 × 50 cm na półkę, 7 półek).
+Usztywnienia nie kupujemy: robią je przegrody wycięte z odpadu, i to lepiej
+(0,35 mm ugięcia zamiast 1,5 mm). Trzy listwy po 2,7 m dają 8,1 m.
 
 ## 3. Wkręty — długość wynika ze ścianki 2 cm
 
@@ -82,10 +94,14 @@ pęka i pęcznieje przy wkręcaniu na siłę. Wkręcaj w płaszczyznę ścianki,
 
 | pozycja | koszt |
 |---|---|
-| OSB-3 18 mm × 1 arkusz | 104 zł |
-| listwy 20 × 30 × 2700 mm × 7 | ~84 zł |
+| OSB-3 18 mm × 2 arkusze | 208 zł |
+| listwy 20 × 30 × 2700 mm × 3 | ~36 zł |
 | wkręty, 2 opakowania | ~45 zł |
-| **razem** | **~235 zł** |
+| **razem** | **~289 zł** |
+
+Względem poprzedniej wersji: **+56 zł za dwa dodatkowe poziomy** (drugi arkusz kosztuje
+104 zł, ale listew potrzeba trzy zamiast siedmiu — usztywnienie robią przegrody).
+W zapasie zostają 4 gotowe półki na Regał 1.
 
 Plus ewentualna opłata za cięcie.
 
