@@ -213,6 +213,7 @@ def zbuduj(sciezka: Path) -> Path:
 
     rysunek_montazowy(pdf)
     plan_przegrod(pdf)
+    plan_deski(pdf)
     pdf.output(str(sciezka))
     return sciezka
 
@@ -435,6 +436,132 @@ def plan_przegrod(pdf) -> None:
 def POLKA_GLEB_P() -> float:
     """Glebokosc polki - tyle ma przegroda na dlugosc."""
     return PAS
+
+
+
+
+# ============================================ STARA DESKA (strona 4) ===
+
+DESKA_DL, DESKA_SZER, DESKA_GRUB = 1240.0, 520.0, 20.0
+
+
+def plan_deski(pdf) -> None:
+    """Stara deska z blatu biurka: co jest polka, a co przegroda."""
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.set_y(12)
+    pdf.cell(0, 7, "Stara deska z blatu biurka - 1 polka + 2 przegrody", align="C",
+              new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 9)
+    pdf.cell(0, 5, f"{DESKA_DL:.0f} x {DESKA_SZER:.0f} x {DESKA_GRUB:.0f} mm   |   "
+                    f"3 ciecia   |   wykorzystanie 94%",
+              align="C", new_x="LMARGIN", new_y="NEXT")
+
+    S = 0.17
+    x0, y0 = 40.0, 46.0
+    dl, szer = DESKA_DL * S, DESKA_SZER * S
+
+    # --- POLKA ---
+    pdf.set_draw_color(90, 90, 90)
+    pdf.set_line_width(0.4)
+    pdf.set_fill_color(197, 224, 180)
+    pdf.rect(x0, y0, POLKA_DL * S, POLKA_GLEB_P() * S, style="FD")
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.set_xy(x0, y0 + POLKA_GLEB_P() * S / 2 - 7)
+    pdf.cell(POLKA_DL * S, 6, "POLKA", align="C")
+    pdf.set_font("Helvetica", "", 9)
+    pdf.set_xy(x0, y0 + POLKA_GLEB_P() * S / 2)
+    pdf.cell(POLKA_DL * S, 5, f"{POLKA_DL:.0f} x {POLKA_GLEB_P():.0f} mm", align="C")
+    pdf.set_font("Helvetica", "", 7)
+    pdf.set_xy(x0, y0 + POLKA_GLEB_P() * S / 2 + 6)
+    pdf.cell(POLKA_DL * S, 4, "(najwyzsza w dolnej przestrzeni)", align="C")
+
+    # --- PRZEGRODY ---
+    x_p = x0 + (POLKA_DL + RZAZ) * S
+    reszta = DESKA_DL - POLKA_DL - RZAZ
+    for r in (0, 1):
+        yy = y0 + r * (PRZEGRODA_WYS + RZAZ) * S
+        pdf.set_fill_color(207, 226, 243)
+        pdf.rect(x_p, yy, reszta * S, PRZEGRODA_WYS * S, style="FD")
+        pdf.set_font("Helvetica", "B", 8)
+        pdf.set_xy(x_p, yy + PRZEGRODA_WYS * S / 2 - 5)
+        pdf.cell(reszta * S, 4, f"PRZEGRODA {7+r}", align="C")
+        pdf.set_font("Helvetica", "", 7)
+        pdf.set_xy(x_p, yy + PRZEGRODA_WYS * S / 2 - 1)
+        pdf.cell(reszta * S, 4, f"{PRZEGRODA_WYS:.0f} x {POLKA_GLEB_P():.0f}", align="C")
+
+    # pasek 3 mm pod przegrodami
+    pdf.set_fill_color(245, 235, 200)
+    pdf.rect(x_p, y0 + 2 * (PRZEGRODA_WYS + RZAZ) * S, reszta * S,
+              (POLKA_GLEB_P() - 2 * PRZEGRODA_WYS - RZAZ) * S, style="FD")
+
+    # --- pasek odpadowy ze zwezenia ---
+    pdf.set_fill_color(245, 235, 200)
+    pdf.rect(x0, y0 + (POLKA_GLEB_P() + RZAZ) * S, dl,
+              (DESKA_SZER - POLKA_GLEB_P() - RZAZ) * S, style="FD")
+    pdf.set_font("Helvetica", "", 7)
+    pdf.set_text_color(120, 120, 120)
+    pdf.set_xy(x0, y0 + (POLKA_GLEB_P() + RZAZ) * S + 0.5)
+    pdf.cell(dl, 4, f"odpad ze zwezenia: {DESKA_DL:.0f} x 21 mm", align="C")
+    pdf.set_text_color(0, 0, 0)
+
+    # obrys deski
+    pdf.set_draw_color(0, 0, 0)
+    pdf.set_line_width(0.9)
+    pdf.rect(x0, y0, dl, szer)
+
+    # linie ciec
+    pdf.set_draw_color(200, 0, 0)
+    pdf.set_line_width(0.8)
+    y1 = y0 + (POLKA_GLEB_P() + RZAZ / 2) * S
+    pdf.line(x0 - 6, y1, x0 + dl + 3, y1)                                  # 1 - zwezenie
+    x2 = x0 + (POLKA_DL + RZAZ / 2) * S
+    pdf.line(x2, y0 - 6, x2, y0 + (POLKA_GLEB_P()) * S + 2)                # 2 - polka
+    y3 = y0 + (PRZEGRODA_WYS + RZAZ / 2) * S
+    pdf.line(x_p - 3, y3, x0 + dl + 3, y3)                                 # 3 - przegrody
+    for xc, yc, nr in ((x0 - 12, y1, "1"), (x2, y0 - 12, "2"), (x0 + dl + 7, y3, "3")):
+        pdf.set_fill_color(200, 0, 0)
+        pdf.ellipse(xc - 2.6, yc - 2.6, 5.2, 5.2, style="F")
+        pdf.set_text_color(255, 255, 255)
+        pdf.set_font("Helvetica", "B", 8)
+        pdf.set_xy(xc - 4, yc - 2.1)
+        pdf.cell(8, 4, nr, align="C")
+        pdf.set_text_color(0, 0, 0)
+
+    # wymiary
+    pdf.set_font("Helvetica", "", 8)
+    pdf.set_xy(x0, y0 + szer + 5)
+    pdf.cell(dl, 5, f"{DESKA_DL:.0f} mm", align="C")
+
+    yt = y0 + szer + 20
+    pdf.set_xy(16, yt)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 6, "Kolejnosc", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 8.5)
+    for nr, tresc in (
+        ("1", f"wzdluz calej deski: zwezenie {DESKA_SZER:.0f} -> {POLKA_GLEB_P():.0f} mm "
+               f"(odpada pasek {DESKA_DL:.0f} x 21 mm)"),
+        ("2", f"w poprzek na {POLKA_DL:.0f} mm -> POLKA {POLKA_DL:.0f} x {POLKA_GLEB_P():.0f}, "
+               f"zostaje kawalek {reszta:.0f} x {POLKA_GLEB_P():.0f}"),
+        ("3", f"ten kawalek na pol -> DWIE PRZEGRODY {PRZEGRODA_WYS:.0f} x {POLKA_GLEB_P():.0f} "
+               f"(2 x 187 + rzaz = 378 <= {reszta:.0f}, zapas 3 mm)"),
+    ):
+        pdf.set_x(16)
+        pdf.set_font("Helvetica", "B", 8.5)
+        pdf.cell(10, 5, nr)
+        pdf.set_font("Helvetica", "", 8.5)
+        pdf.cell(0, 5, tresc, new_x="LMARGIN", new_y="NEXT")
+
+    pdf.ln(2)
+    pdf.set_font("Helvetica", "B", 8.5)
+    for linia in (
+        "Deska ma 20 mm, reszta polek 18 - to nie przeszkadza, rozstaw jest przeliczony.",
+        "Blat biurka to laminowana plyta wiorowa: ZABEZPIECZ KRAWEDZIE po cieciu",
+        "(obrzeze, silikon albo farba) - laminat chroni tylko plaszczyzny, odsloniety kant pecznieje.",
+        "Ta deska daje polke NAJWYZSZA W DOLNEJ PRZESTRZENI (spod na 1233 mm nad dnem).",
+    ):
+        pdf.set_x(16)
+        pdf.cell(0, 4.6, linia, new_x="LMARGIN", new_y="NEXT")
 
 
 if __name__ == "__main__":

@@ -229,3 +229,35 @@ na 855 mm.
 
 **Obecny plan wykorzystuje 3,61 m² z 3,77 m², czyli 96%.** Zostaje: pasek 9 × 855 mm,
 trzy paski 13 × 495 mm i kawałek 148 × 391 mm. Tego już się sensownie nie zagospodaruje.
+
+---
+
+## Stara deska z blatu biurka — co jest czym
+
+**Tak, deska jest wykorzystana.** Daje **jedną półkę i dwie przegrody** — bez niej
+trzeba by kupić drugi arkusz.
+
+Deska: **1240 × 520 × 20 mm**, laminowana płyta wiórowa.
+
+| cięcie | co robisz | co powstaje |
+|---|---|---|
+| **1** | wzdłuż całej deski, zwężenie 520 → 495 mm | odpada pasek 1240 × 21 mm |
+| **2** | w poprzek na 855 mm | **PÓŁKA 855 × 495** + kawałek 381 × 495 |
+| **3** | ten kawałek na pół | **2 × PRZEGRODA 187 × 495** |
+
+Kontrola cięcia 3: 2 × 187 + rzaz = 378 mm ≤ 381 mm, zapas 3 mm.
+
+**Wykorzystanie deski: 94%.** Do kosza idzie tylko pasek ze zwężenia i 3 mm ścinki.
+
+### Gdzie to trafia
+
+- **Półka z deski** to **najwyższa półka dolnej przestrzeni** — spód na wysokości
+  1233 mm nad dnem. Ma 20 mm zamiast 18, ale rozstaw jest już to uwzględnia.
+- **Przegrody 7 i 8** dołączają do sześciu wyciętych z arkusza. Razem osiem,
+  a potrzeba siedmiu — jedna zapasowa.
+
+### Uwaga o laminacie
+
+Blat biurka to laminowana wiórowa: **zabezpiecz krawędzie po cięciu** obrzeżem,
+silikonem albo choćby farbą. Laminat chroni tylko płaszczyzny, a odsłonięty kant
+w wilgotnym warsztacie pęcznieje. Krawędź schowana pod listwą jest już osłonięta.
