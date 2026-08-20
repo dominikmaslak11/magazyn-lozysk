@@ -203,3 +203,29 @@ arkusza i deski wychodzi sześć. Drugi arkusz obsługujesz jednym cięciem:
 Nie tnij ich teraz — cały kawałek jest wart więcej niż cztery osobne.
 
 Razem na drugim arkuszu: **2 cięcia**.
+
+---
+
+## Czy węższe półki poprawiłyby wykorzystanie płyty? Nie
+
+Sprawdzone dla różnych głębokości. Długość półki (855 mm) jest zadana szerokością
+regału i nie podlega negocjacji — zmieniać można tylko głębokość:
+
+| głębokość | półek z arkusza | pole półek | pusty pas z tyłu regału |
+|---|---|---|---|
+| **495 mm** | **5** | **2,12 m²** | **0,5 cm** |
+| 470 mm | 5 | 2,01 m² | 3 cm |
+| 440 mm | 5 | 1,88 m² | 6 cm |
+| 413 mm | 6 | 2,12 m² | 8,7 cm |
+| 400 mm | 6 | 2,05 m² | 10 cm |
+
+**Pole półek jest praktycznie stałe** — 5 × 495 = 2475 mm, 6 × 413 = 2478 mm.
+Płytsze półki nie dają więcej powierzchni, tylko więcej poziomów, a przy tym marnują
+głębokość regału: z tyłu każdej zostaje pusty pas, do którego nic nie wejdzie.
+
+Sprawdzone też, czy da się wykroić 7 półek pełnej głębokości z jednego arkusza —
+we wszystkich orientacjach wychodzi **maksimum 5**. Reszta arkusza jest za krótka
+na 855 mm.
+
+**Obecny plan wykorzystuje 3,61 m² z 3,77 m², czyli 96%.** Zostaje: pasek 9 × 855 mm,
+trzy paski 13 × 495 mm i kawałek 148 × 391 mm. Tego już się sensownie nie zagospodaruje.

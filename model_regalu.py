@@ -23,7 +23,8 @@ import Part
 
 REGAL_SZER = 860.0        # wewnętrzna szerokość regału (zmierzona)
 REGAL_GLEB = 500.0        # głębokość
-PRZESTRZEN = 1420.0       # prześwit dolnej półki - tyle mamy do podziału
+PRZESTRZEN = 1420.0       # prześwit DOLNEJ przestrzeni - tyle dzielimy przegrodami
+GORNA = 460.0             # prześwit GÓRNEJ przestrzeni (nad dzisiejszą półką 2)
 SCIANKA = 20.0            # grubość ścianki starej szafy
 
 POLKA_DL = 855.0          # 860 minus 5 mm luzu, żeby półka weszła
@@ -34,7 +35,11 @@ DESKA_GRUB = 20.0         # stara deska z blatu biurka (jedna z sześciu)
 LISTWA_SZER = 20.0        # podpory boczne
 LISTWA_WYS = 30.0
 
-POLEK = 6                 # nowych półek -> 7 poziomów
+POLEK = 6                 # nowych półek w dolnej przestrzeni -> 7 poziomów
+# Górna przestrzeń: jedna nowa półka -> 2 poziomy. Jest PŁYTSZA (391 zamiast 495),
+# bo wychodzi z pasa odpadowego arkusza - patrz warsztat/plan-ciecia.md. Brakujące
+# 10 cm jest z tyłu najwyższej półki, czyli tam, gdzie i tak się nie sięga.
+POLKA_GORNA_GLEB = 391.0
 
 KOLOR_OSB = (0.83, 0.72, 0.51)
 KOLOR_DESKA = (0.45, 0.31, 0.22)
@@ -73,8 +78,10 @@ def zbuduj():
     komora = (PRZESTRZEN - (POLEK - 1) * POLKA_GRUB - DESKA_GRUB) / (POLEK + 1)
 
     # Ścianki boczne - tylko dla kontekstu, żeby było widać, w czym to siedzi.
+    # Obejmują OBIE przestrzenie: dolną, istniejącą półkę i górną.
+    wys_calkowita = PRZESTRZEN + POLKA_GRUB + GORNA
     for x in (-SCIANKA, REGAL_SZER):
-        klocek(doc, "Scianka", SCIANKA, REGAL_GLEB, PRZESTRZEN, (x, 0, 0), KOLOR_SCIANKA)
+        klocek(doc, "Scianka", SCIANKA, REGAL_GLEB, wys_calkowita, (x, 0, 0), KOLOR_SCIANKA)
 
     luz = (REGAL_SZER - POLKA_DL) / 2      # po 2,5 mm z każdej strony
 
@@ -95,9 +102,24 @@ def zbuduj():
         klocek(doc, f"Przegroda_{i+1}", POLKA_GRUB, POLKA_GLEB, komora,
                 (REGAL_SZER / 2 - POLKA_GRUB / 2, 0, z - komora), KOLOR_PRZEGRODA)
 
-    # Przegroda w najwyższej komorze (nad ostatnią półką) - domyka układ.
+    # Przegroda w najwyższej komorze dolnej przestrzeni - domyka układ.
     klocek(doc, "Przegroda_gorna", POLKA_GRUB, POLKA_GLEB, komora,
             (REGAL_SZER / 2 - POLKA_GRUB / 2, 0, wysokosci[-1] + DESKA_GRUB), KOLOR_PRZEGRODA)
+
+    # ---- GÓRNA PRZESTRZEŃ ----
+    # Istniejąca półka regału (dzisiejsza "Półka 2"), nad nią 46 cm do podziału.
+    z_gora = PRZESTRZEN + POLKA_GRUB
+    klocek(doc, "Polka_istniejaca", REGAL_SZER, REGAL_GLEB, POLKA_GRUB,
+            (0, 0, PRZESTRZEN), KOLOR_SCIANKA)
+
+    komora_gora = (GORNA - POLKA_GRUB) / 2
+    z_nowa = z_gora + komora_gora
+    klocek(doc, "Polka_gorna_wezsza", POLKA_DL, POLKA_GORNA_GLEB, POLKA_GRUB,
+            (luz, 0, z_nowa), KOLOR_OSB)
+    # Bez przegród - usztywnienie robi listwa pod przednią i tylną krawędzią.
+    for x in (0.0, REGAL_SZER - LISTWA_SZER):
+        klocek(doc, "Listwa_gorna", LISTWA_SZER, POLKA_GORNA_GLEB, LISTWA_WYS,
+                (x, 0, z_nowa - LISTWA_WYS), KOLOR_LISTWA)
 
     doc.recompute()
     return doc, wysokosci, komora
@@ -115,7 +137,10 @@ def main():
     step = katalog / "regal-2.step"
     Part.export([o for o in doc.Objects if hasattr(o, "Shape")], str(step))
 
-    print(f"\nModel: {POLEK} półek, {POLEK + 1} poziomów")
+    komora_gora = (GORNA - POLKA_GRUB) / 2
+    print(f"\nModel: {POLEK + 1} nowych półek, {POLEK + 1 + 2} poziomów")
+    print(f"Górna przestrzeń: 2 poziomy po {komora_gora:.0f} mm, "
+           f"półka płytsza ({POLKA_GORNA_GLEB:.0f} mm)")
     print(f"Komora (prześwit): {komora:.1f} mm")
     print("Spody półek nad dnem przestrzeni:")
     for i, z in enumerate(wysokosci, 1):
