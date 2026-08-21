@@ -48,7 +48,7 @@ class Ustawienie:
 
 class PlanCiecia(FPDF):
     def header(self) -> None:
-        if self.page_no() != 1:
+        if self.page_no() != (2 if WARIANT != "sklep" else 1):
             return
         self.set_font("Helvetica", "B", 15)
         self.cell(0, 8, "Plan ciecia - 6 polek + material na przegrody", align="C", new_x="LMARGIN",
@@ -178,11 +178,87 @@ def rysuj(pdf, u) -> None:
 WARIANT = "wlasny"
 
 
+def strona_tytulowa(pdf) -> None:
+    """Pierwsza strona dla obslugi sklepu - co zamawiam i czego NIE."""
+    pdf.add_page()
+    pdf.set_y(24)
+    pdf.set_font("Helvetica", "B", 20)
+    pdf.cell(0, 10, "ZLECENIE CIECIA", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 11)
+    pdf.cell(0, 6, "Leroy Merlin Kalisz   |   Dominik Maslak   |   dominikmaslak11@gmail.com",
+              align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(10)
+
+    pdf.set_x(20)
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.cell(0, 8, "1. Plyta OSB-3 18 mm, arkusz 2500 x 1250 mm  -  KUPUJE, TNE SAM",
+              new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_x(26)
+    pdf.cell(0, 6, "Nie zlecam ciecia. Plan ciecia na stronach 2-4 - dla mnie, nie dla Panstwa.",
+              new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(6)
+
+    pdf.set_x(20)
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.cell(0, 8, "2. Plyta meblowa laminowana BIALA 18 mm  -  PROSZE O DOCIECIE",
+              new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(2)
+
+    pdf.set_x(26)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.set_fill_color(214, 234, 214)
+    pdf.cell(150, 10, "     6 formatek     755 x 450 mm", border=1, fill=True,
+              new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(3)
+    pdf.set_x(26)
+    pdf.set_font("Helvetica", "", 10)
+    for linia in (
+        "Lacznie 2,04 m2. Prosze o EXPRESS (ten sam dzien), jesli to mozliwe.",
+        "Obrzeze: prosze o oklejenie jednego dluzszego boku (755 mm) w kazdej formatce,",
+        "jesli macie taka usluge. Jesli nie - kupie rolke i zrobie sam.",
+    ):
+        pdf.set_x(26)
+        pdf.cell(0, 5.6, linia, new_x="LMARGIN", new_y="NEXT")
+
+    pdf.ln(10)
+    pdf.set_x(20)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.cell(0, 7, "Czego NIE zlecam", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 9.5)
+    for linia in (
+        "Przegrod z arkusza OSB - ich wysokosc ustale dopiero po zamontowaniu pierwszej polki.",
+        "Starej deski z blatu biurka (moj material) - potne w domu.",
+    ):
+        pdf.set_x(26)
+        pdf.cell(0, 5.4, linia, new_x="LMARGIN", new_y="NEXT")
+
+    pdf.ln(8)
+    pdf.set_x(20)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.cell(0, 7, "Co jest dalej w tym dokumencie", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 9.5)
+    for nr, opis in (
+        ("2", "plan ciecia arkusza OSB (tne sam)"),
+        ("3", "widok zabudowy regalu"),
+        ("4", "przegrody z odpadu"),
+        ("5", "ciecie starej deski - w domu"),
+        ("6", "widok zabudowy szafy - stad wymiar 755 x 450"),
+        ("7", "lista zakupow"),
+        ("8", "kalkulacja kosztow ciecia"),
+    ):
+        pdf.set_x(26)
+        pdf.cell(10, 5.4, f"str. {nr}")
+        pdf.cell(0, 5.4, opis, new_x="LMARGIN", new_y="NEXT")
+
+
 def zbuduj(sciezka: Path, wariant: str = "wlasny") -> Path:
     global WARIANT
     WARIANT = wariant
     pdf = PlanCiecia(orientation="L", unit="mm", format="A4")
     pdf.set_auto_page_break(False)
+    if WARIANT != "sklep":
+        strona_tytulowa(pdf)
     pdf.add_page()
 
     u = Ustawienie(x=38, y=40)
@@ -227,6 +303,8 @@ def zbuduj(sciezka: Path, wariant: str = "wlasny") -> Path:
     plan_deski(pdf)
     plan_szaf(pdf)
     lista_zakupow(pdf)
+    if WARIANT != "sklep":
+        koszty_ciecia(pdf)
     pdf.output(str(sciezka))
     return sciezka
 
@@ -804,6 +882,115 @@ def lista_dla_sklepu(pdf) -> None:
     ):
         pdf.set_x(14)
         pdf.cell(0, 4.8, linia, new_x="LMARGIN", new_y="NEXT")
+
+
+# ================================== KOSZTY CIECIA (Leroy Kalisz) ===
+
+CENA_CIECIA = 3.0        # standard, termin 2-3 dni
+CENA_EXPRESS = 6.0       # tego samego dnia
+# Ceny podane telefonicznie przez Leroy Merlin Kalisz, 2026-08-21.
+
+CIEC_OSB = 9             # arkusz: 1 poprzeczne + 4 wzdluzne + 4 na dolnym pasie
+CIEC_BIALA = 6           # 6 formatek 755x450 z arkusza 2800x2070
+CIEC_DOM_PRZEGRODY = 4   # podzial kawalkow na przegrody - PO pomiarze, w domu
+CIEC_DOM_DESKA = 3       # stara deska z biurka - nie ich material
+MATERIAL = 320.0
+
+
+def koszty_ciecia(pdf) -> None:
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 15)
+    pdf.set_y(12)
+    pdf.cell(0, 7, "KOSZT CIECIA - cztery scenariusze", align="C",
+              new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 9)
+    pdf.cell(0, 5, f"Leroy Merlin Kalisz: ciecie proste {CENA_CIECIA:.0f} zl (termin 2-3 dni), "
+                    f"EXPRESS tego samego dnia {CENA_EXPRESS:.0f} zl",
+              align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(5)
+
+    # --- ile ciec i gdzie ---
+    pdf.set_x(16)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 6, "Ile ciec i gdzie", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 8.5)
+    for co, ile, gdzie in (
+        ("Arkusz OSB-3 (5 polek + 7. polka + 3 kawalki na przegrody)", f"{CIEC_OSB}", "LEROY"),
+        ("Plyta biala - 6 formatek 755 x 450", f"{CIEC_BIALA}", "LEROY"),
+        ("Podzial kawalkow na przegrody 187 x 495", f"{CIEC_DOM_PRZEGRODY}", "W DOMU"),
+        ("Stara deska z blatu biurka", f"{CIEC_DOM_DESKA}", "W DOMU"),
+    ):
+        pdf.set_x(20)
+        pdf.cell(120, 5, co)
+        pdf.cell(14, 5, ile, align="C")
+        pdf.set_font("Helvetica", "B", 8.5)
+        pdf.cell(0, 5, gdzie, new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("Helvetica", "", 8.5)
+
+    pdf.ln(2)
+    pdf.set_x(20)
+    pdf.set_font("Helvetica", "I", 8)
+    for linia in (
+        "Przegrod NIE zlecaj w Leroy. Wysokosc 187 mm to wyliczenie - realna wychodzi",
+        "z pomiaru po zamontowaniu pierwszej polki. Ciecie w ciemno kosztowaloby 12 zl",
+        "i moglo sie nie zgadzac.",
+        "Starej deski Leroy nie potnie - to nie ich material.",
+    ):
+        pdf.set_x(20)
+        pdf.cell(0, 4.4, linia, new_x="LMARGIN", new_y="NEXT")
+
+    # --- tabela scenariuszy ---
+    pdf.ln(5)
+    kol = (108, 22, 26, 32, 34)
+    pdf.set_x(16)
+    pdf.set_font("Helvetica", "B", 8.5)
+    pdf.set_fill_color(228, 228, 228)
+    for t, sz in zip(("Scenariusz", "Ciec", "Za ciecie", "Termin", "RAZEM"), kol):
+        pdf.cell(sz, 7, t, border=1, align="C", fill=True)
+    pdf.ln()
+
+    scenariusze = [
+        ("A. Wszystko tnie Leroy, termin standardowy", CIEC_OSB + CIEC_BIALA, CENA_CIECIA, "2-3 dni"),
+        ("B. OSB tne sam w kaciku, biala w Leroy", CIEC_BIALA, CENA_CIECIA, "2-3 dni"),
+        ("C. Wszystko tnie Leroy, EXPRESS", CIEC_OSB + CIEC_BIALA, CENA_EXPRESS, "ten sam dzien"),
+        ("D. OSB tne sam, biala EXPRESS", CIEC_BIALA, CENA_EXPRESS, "ten sam dzien"),
+    ]
+    pdf.set_font("Helvetica", "", 8.5)
+    for i, (opis, ile, cena, termin) in enumerate(scenariusze):
+        koszt = ile * cena
+        pdf.set_x(16)
+        if i == 3:
+            pdf.set_font("Helvetica", "B", 8.5)
+            pdf.set_fill_color(214, 234, 214)
+            wypelnij = True
+        else:
+            wypelnij = False
+        pdf.cell(kol[0], 7, opis, border=1, fill=wypelnij)
+        pdf.cell(kol[1], 7, str(ile), border=1, align="C", fill=wypelnij)
+        pdf.cell(kol[2], 7, f"{koszt:.0f} zl", border=1, align="C", fill=wypelnij)
+        pdf.cell(kol[3], 7, termin, border=1, align="C", fill=wypelnij)
+        pdf.cell(kol[4], 7, f"{MATERIAL + koszt:.0f} zl", border=1, align="C", fill=wypelnij)
+        pdf.ln()
+        pdf.set_font("Helvetica", "", 8.5)
+
+    pdf.ln(4)
+    pdf.set_x(16)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 6, "Rekomendacja: scenariusz D", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 8.5)
+    for linia in (
+        "Biala plyta MUSI byc ciecia w sklepie - jest widoczna w szafie, a ciecie reczna",
+        "pilarka zostawia poszarpana krawedz, ktorej obrzeze nie zakryje. 6 ciec, 36 zl",
+        "za express, i wyjezdzasz z gotowymi formatkami tego samego dnia.",
+        "",
+        "OSB tniesz sam: to warsztat, krawedzi nie widac, a 27 zl za dziewiec ciec",
+        "przy 104-zlotowym arkuszu to ponad jedna czwarta ceny plyty.",
+        "",
+        "Roznica A kontra D: 9 zl. Roznica B kontra D: 18 zl za to, ze nie wracasz",
+        "po trzech dniach po odbior.",
+    ):
+        pdf.set_x(16)
+        pdf.cell(0, 4.7, linia, new_x="LMARGIN", new_y="NEXT")
 
 
 if __name__ == "__main__":

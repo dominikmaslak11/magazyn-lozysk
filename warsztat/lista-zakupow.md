@@ -72,8 +72,28 @@ wyjdzie równiej.*
 | Dwie szafy na ubrania (poz. 2, 6, 7) | ~123 zł |
 | **RAZEM** | **~320 zł** |
 
-Plus opłata za docięcie płyty laminowanej — zależy od sklepu, **zapytaj przez telefon
-przed wyjazdem**.
+### Cięcie — ceny potwierdzone telefonicznie (Leroy Kalisz, 2026-08-21)
+
+**3 zł za jedno cięcie proste**, termin 2–3 dni · **6 zł — express, tego samego dnia**
+
+| scenariusz | cięć | za cięcie | termin | RAZEM |
+|---|---|---|---|---|
+| A. wszystko tnie Leroy | 15 | 45 zł | 2–3 dni | 365 zł |
+| B. OSB sam, biała standardowo | 6 | 18 zł | 2–3 dni | 338 zł |
+| C. wszystko Leroy, express | 15 | 90 zł | ten sam dzień | 410 zł |
+| **D. OSB sam, biała express** | **6** | **36 zł** | **ten sam dzień** | **356 zł** |
+
+**Rekomendacja: D.** Białą płytę **musi** ciąć sklep — jest widoczna w szafie, a ręczna
+pilarka zostawia poszarpaną krawędź, której obrzeże nie zakryje. OSB tniesz sam: to
+warsztat, krawędzi nie widać, a 27 zł za dziewięć cięć przy arkuszu za 104 zł to ponad
+ćwierć ceny płyty.
+
+Za 9 zł więcej niż wariant A wyjeżdżasz z gotowymi formatkami **tego samego dnia**,
+zamiast wracać po trzech.
+
+**Czego nie zlecaj:** przegród (wysokość ustalisz dopiero po zamontowaniu pierwszej
+półki — cięcie w ciemno to 12 zł i ryzyko pomyłki) ani starej deski (Leroy nie tnie
+cudzego materiału).
 
 ---
 
