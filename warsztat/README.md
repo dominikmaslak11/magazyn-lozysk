@@ -18,6 +18,7 @@ i ilości łożysk), a nie szacowane na oko - przy każdym dokumencie jest sekcj
 | [zapytanie-arsen.pdf](zapytanie-arsen.pdf) | zapytanie ofertowe wysłane do Arsena 2026-08-21 |
 | [projekt-arsen.pdf](projekt-arsen.pdf) | ten sam projekt bez kodów i cen konkurencji - do wysłania po odpowiedzi |
 | [email-do-arsena.md](email-do-arsena.md) · [email-do-bartka-chatbot.md](email-do-bartka-chatbot.md) | szkice wiadomości |
+| [zlecenie-leroy.pdf](zlecenie-leroy.pdf) | **2 kartki do zostawienia na ladzie** — samo zlecenie docięcia |
 | [porownanie-leroy-castorama.md](porownanie-leroy-castorama.md) | gdzie taniej: porównanie cen obu sieci |
 | [etykiety.md](etykiety.md) | teksty do wpisania w drukarkę etykiet - 26 lokalizacji |
 | [plan-ciecia.md](plan-ciecia.md) | kartka do sklepu: wymiary i kolejność cięć, z uwzględnieniem rzazu |
