@@ -99,8 +99,11 @@ def plan_polek(wysokosc_mm: float, szerokosc_mm: float, glebokosc_mm: float,
     if m is None:
         return {"blad": f"Nie znam materiału '{material}'. Dostępne: "
                         + ", ".join(sorted(stolarz.MATERIALY))}
-    p = stolarz.Przestrzen("zabudowa", wysokosc_mm, szerokosc_mm, glebokosc_mm,
-                            scianka_mm)
+    # Przestrzen ma 'nazwa' na KONCU, nie na poczatku - podanie argumentow
+    # pozycyjnie wpisywalo nazwe w pole wysokosci i wywracalo rachunek.
+    p = stolarz.Przestrzen(wysokosc=wysokosc_mm, szerokosc=szerokosc_mm,
+                            glebokosc=glebokosc_mm, scianka=scianka_mm,
+                            nazwa="zabudowa")
     plan = stolarz.zaplanuj(p, m, ile_polek, obciazenie_kg)
     return {
         "poziomow": plan.poziomy,

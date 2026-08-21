@@ -9,6 +9,7 @@ WYMIARY przelicza cały model — łącznie z rozstawem półek, bo grubości s�
 od prześwitu przed podziałem.
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -79,7 +80,10 @@ def main():
         zbuduj_szafe(doc, nr * (SZEROKOSC + 2 * SCIANKA + 120.0), nr + 1)
     doc.recompute()
 
-    katalog = Path(__file__).resolve().parent / "warsztat"
+    # Katalog wynikow: domyslnie obok kodu, ale na serwerze katalog z kodem
+    # to klon gita - zapisywanie do niego brudzi produkcje.
+    katalog = Path(os.environ.get("LOZYSKA_WYNIKI",
+                                  Path(__file__).resolve().parent)) / "warsztat"
     katalog.mkdir(exist_ok=True)
     fcstd = katalog / "szafa.FCStd"
     doc.saveAs(str(fcstd))
