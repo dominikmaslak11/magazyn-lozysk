@@ -48,7 +48,7 @@ class Ustawienie:
 
 class PlanCiecia(FPDF):
     def header(self) -> None:
-        if self.page_no() != (6 if WARIANT != "sklep" else 1):
+        if self.page_no() != (6 if WARIANT != "sklep" else 2):
             return
         self.set_font("Helvetica", "B", 15)
         self.cell(0, 8, "Plan ciecia - 6 polek + material na przegrody", align="C", new_x="LMARGIN",
@@ -178,6 +178,85 @@ def rysuj(pdf, u) -> None:
 WARIANT = "wlasny"
 
 
+def strona_tytulowa_arsen(pdf) -> None:
+    """Strona tytulowa wersji zostawianej w sklepie - bez kodow i cen konkurencji."""
+    pdf.add_page()
+    pdf.set_y(22)
+    pdf.set_font("Helvetica", "B", 20)
+    pdf.cell(0, 10, "PROJEKT I ZAPOTRZEBOWANIE MATERIALOWE", align="C",
+              new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 11)
+    pdf.cell(0, 6, "Dominik Maslak   |   dominikmaslak11@gmail.com", align="C",
+              new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(8)
+
+    pdf.set_x(20)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.multi_cell(170, 5.6,
+        "Dokument wygenerowany automatycznie przez aplikacje, ktora prowadzi projekt "
+        "stolarski od wymiarow przestrzeni do listy zakupow: liczy rozstaw polek, "
+        "sprawdza ugiecie pod obciazeniem, robi model 3D i uklada plan ciecia arkusza "
+        "z uwzglednieniem rzazu pily.")
+    pdf.ln(6)
+
+    pdf.set_x(20)
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.cell(0, 8, "Dwa projekty", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 10)
+    for tytul, opis in (
+        ("Regal warsztatowy", "przebudowa starej szafy - 9 poziomow z jednego arkusza OSB"),
+        ("Dwie szafy na ubrania", "po 3 polki, formatki z plyty laminowanej bialej"),
+    ):
+        pdf.set_x(26)
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.cell(48, 5.8, tytul)
+        pdf.set_font("Helvetica", "", 10)
+        pdf.cell(0, 5.8, opis, new_x="LMARGIN", new_y="NEXT")
+
+    pdf.ln(6)
+    pdf.set_x(20)
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.cell(0, 8, "O co prosze", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 10)
+    for linia in (
+        "1.  Informacje, ktore pozycje z zapotrzebowania (ostatnia strona) macie w sprzedazy.",
+        "2.  Wycene tych pozycji.",
+        "3.  Odpowiedz, czy tniecie plyte na wymiar i ile kosztuje ciecie.",
+        "4.  Informacje, czy okleicie ciete krawedzie obrzezem.",
+    ):
+        pdf.set_x(26)
+        pdf.cell(0, 5.8, linia, new_x="LMARGIN", new_y="NEXT")
+
+    pdf.ln(4)
+    pdf.set_x(20)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.cell(0, 7, "Pytanie dodatkowe: uzyteczne odpady", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 9.5)
+    pdf.set_x(26)
+    pdf.multi_cell(164, 5.2,
+        "Czy zostaja Panstwu scinki po docinaniu plyt dla klientow, od ok. 40 x 40 cm wzwyz? "
+        "W projekcie regalu przegrody usztywniajace wyszly wlasnie z pasa, ktory normalnie "
+        "bylby odpadem - dzieki temu wykorzystanie arkusza siegnelo 96%. Chetnie kupie "
+        "albo odbiore takie kawalki.")
+
+    pdf.ln(6)
+    pdf.set_x(20)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.cell(0, 7, "Zawartosc dokumentu", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 9.5)
+    for nr, opis in (
+        ("2", "plan ciecia arkusza OSB"),
+        ("3", "widok zabudowy regalu warsztatowego"),
+        ("4", "przegrody wycinane z odpadu"),
+        ("5", "ciecie wlasnego materialu (stara deska)"),
+        ("6", "widok zabudowy szafy - skad wymiar formatek 755 x 450"),
+        ("7", "ZAPOTRZEBOWANIE MATERIALOWE - do wypelnienia"),
+    ):
+        pdf.set_x(26)
+        pdf.cell(12, 5.4, f"str. {nr}")
+        pdf.cell(0, 5.4, opis, new_x="LMARGIN", new_y="NEXT")
+
+
 def przekladka(pdf) -> None:
     """Wyrazna granica miedzy czescia dla sklepu a czescia do wlasnej roboty."""
     pdf.add_page()
@@ -278,6 +357,8 @@ def zbuduj(sciezka: Path, wariant: str = "wlasny") -> Path:
     WARIANT = wariant
     pdf = PlanCiecia(orientation="L", unit="mm", format="A4")
     pdf.set_auto_page_break(False)
+    if WARIANT == "sklep":
+        strona_tytulowa_arsen(pdf)
     if WARIANT != "sklep":
         # CZESC 1 - dla sklepu: zlecenie, co z tego powstanie, koszty, zakupy
         strona_tytulowa(pdf)
