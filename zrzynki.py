@@ -24,6 +24,7 @@ półka 855 x 495 mm, przegroda 495 x 187 mm, cięcie 3 zł (6 zł express).
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 from dataclasses import dataclass
@@ -416,8 +417,12 @@ def main(argv: list[str] | None = None) -> int:
     print(raport(w))
 
     if a.pdf or a.mail:
-        cel = Path(__file__).resolve().parent / "warsztat" / (
-            f"odpad-{dl:.0f}x{szer:.0f}-{a.cena:.0f}zl.pdf")
+        # Domyślnie obok kodu, ale na serwerze katalog z kodem to klon gita -
+        # sypanie do niego wygenerowanych plików brudzi produkcję. Stąd
+        # LOZYSKA_WYNIKI, ustawiane po stronie serwera.
+        katalog = Path(os.environ.get("LOZYSKA_WYNIKI",
+                                       Path(__file__).resolve().parent / "warsztat"))
+        cel = katalog / f"odpad-{dl:.0f}x{szer:.0f}-{a.cena:.0f}zl.pdf"
         buduj_pdf(w, cel)
         print(f"\n  PDF: {cel}")
         if a.mail:
