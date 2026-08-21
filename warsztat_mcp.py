@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import os
 import subprocess
-import time
 import sys
 from pathlib import Path
 from typing import Any
@@ -139,9 +138,17 @@ def model_3d(ktory: str) -> dict:
         return {"blad": "Nie ma freecadcmd. Instalacja: apt install freecad-python3"}
 
     WYNIKI.mkdir(parents=True, exist_ok=True)
-    # Znacznik czasu PRZED uruchomieniem: inaczej zwrócilibyśmy zawartość całego
-    # katalogu i pytanie o szafę pokazywałoby też pliki regału z poprzedniego razu.
-    przed = time.time()
+
+    # Zdjęcie katalogu PRZED uruchomieniem. Porównanie po czasie modyfikacji nie
+    # wystarcza: modele liczą się w sekundę, więc pliki z poprzedniego wywołania
+    # mieszczą się w każdym rozsądnym oknie tolerancji i pytanie o regał
+    # pokazywało też pliki szafy.
+    def zdjecie() -> dict[Path, float]:
+        return {p: p.stat().st_mtime_ns for p in (WYNIKI / "warsztat").glob("*")
+                if p.suffix.lower() in (".fcstd", ".step")} \
+            if (WYNIKI / "warsztat").exists() else {}
+
+    przed = zdjecie()
     try:
         # Uruchamiamy w katalogu wyników, bo skrypty zapisują obok siebie -
         # a katalog z kodem to klon gita i ma zostać czysty.
@@ -151,9 +158,8 @@ def model_3d(ktory: str) -> dict:
     except subprocess.TimeoutExpired:
         return {"blad": f"FreeCAD liczył dłużej niż {LIMIT_FREECAD_S} s i został przerwany."}
 
-    pliki = sorted(str(p) for p in (WYNIKI / "warsztat").glob("*")
-                   if p.suffix.lower() in (".fcstd", ".step")
-                   and p.stat().st_mtime >= przed - 1)
+    po = zdjecie()
+    pliki = sorted(str(f) for f, znacznik in po.items() if przed.get(f) != znacznik)
     return {"model": opis, "kod_wyjscia": wynik.returncode,
             "pliki": pliki,
             "wyjscie": (wynik.stdout or wynik.stderr)[-1500:]}
