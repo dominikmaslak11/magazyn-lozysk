@@ -36,7 +36,10 @@ from pathlib import Path
 
 import database as db
 
-KATALOG_DANYCH = Path.home() / ".lozyska_data"
+# Ten sam katalog co baza (database.DB_DIR), więc honoruje LOZYSKA_DATA_DIR.
+# Wcześniej było tu na sztywno ~/.lozyska_data i przy uruchomieniu spod konta usługi
+# na serwerze plik z hasłem szukałby się w niewłaściwym miejscu.
+KATALOG_DANYCH = db.DB_DIR
 SMTP_CONFIG = KATALOG_DANYCH / "smtp.json"
 
 
