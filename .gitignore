@@ -31,3 +31,16 @@ API_Keys.txt
 *api*key*.json
 ai_keys.json
 .env
+
+# Notatka robocza do wznowienia rozmowy. Zostaje LOKALNIE: zawiera adres w sieci
+# nakladkowej, publiczna nazwe Funnela i nazwe hosta - a to repozytorium jest
+# publiczne i zgodnie z WDROZENIE.md nie opisuje prywatnej sieci.
+SESJA.md
+
+# Rejestracja serwera MCP dla Claude Code. Zawiera bezwzgledne sciezki do venva
+# na konkretnej maszynie, wiec u nikogo innego by nie zadzialala. Odtworzenie:
+#   claude mcp add nadzorca --scope project -- $PWD/venv/bin/python $PWD/nadzorca.py
+.mcp.json
+
+# Ustawienia lokalne Claude Code i jego pliki tymczasowe - dotycza tej maszyny.
+.claude/

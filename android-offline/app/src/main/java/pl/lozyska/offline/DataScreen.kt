@@ -42,43 +42,69 @@ fun DataScreen(vm: OfflineViewModel) {
         Card {
             Column(Modifier.padding(16.dp)) {
                 Text("Synchronizacja z serwerem", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "Wpisz adres komputera z uruchomionym serwerem Magazynu Łożysk (python server.py), " +
-                        "np. 192.168.1.23:8420, albo adres Tailscale (100.x.x.x:8420) dla dostępu spoza domu. " +
-                        "Appka synchronizuje się automatycznie przy otwarciu i co ok. godzinę w tle, gdy jest " +
-                        "połączenie - baza na telefonie działa też w pełni offline między synchronizacjami.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
-                )
-                OutlinedTextField(
-                    value = urlField, onValueChange = { urlField = it },
-                    label = { Text("Adres serwera") }, singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = tokenField, onValueChange = { tokenField = it },
-                    label = { Text("Token dostępu") }, singleLine = true,
-                    supportingText = {
-                        Text(
-                            "Wypisuje się w konsoli przy starcie serwera; leży też w pliku " +
-                                "~/.lozyska_data/token.txt na komputerze z serwerem.",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                )
+
+                if (BuildConfig.KONFIGURACJA_ZASZYTA) {
+                    // Wariant z wkompilowaną konfiguracją: pola do wpisywania adresu i tokenu
+                    // byłyby tu wyłącznie sposobem na przypadkowe zepsucie działającej appki -
+                    // i tak zostałyby nadpisane przy następnym starcie.
+                    Text(
+                        "Połączenie z serwerem jest ustawione fabrycznie - nie trzeba niczego " +
+                            "wpisywać. Appka synchronizuje się sama przy otwarciu i co około " +
+                            "godzinę, a między synchronizacjami działa w pełni offline.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
+                    )
+                } else {
+                    Text(
+                        "Wpisz adres komputera z uruchomionym serwerem Magazynu Łożysk (python server.py), " +
+                            "np. 192.168.1.23:8420, albo adres Tailscale (100.x.x.x:8420) dla dostępu spoza domu. " +
+                            "Appka synchronizuje się automatycznie przy otwarciu i co ok. godzinę w tle, gdy jest " +
+                            "połączenie - baza na telefonie działa też w pełni offline między synchronizacjami.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
+                    )
+                    OutlinedTextField(
+                        value = urlField, onValueChange = { urlField = it },
+                        label = { Text("Adres serwera") }, singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = tokenField, onValueChange = { tokenField = it },
+                        label = { Text("Token dostępu") }, singleLine = true,
+                        supportingText = {
+                            Text(
+                                "Wypisuje się w konsoli przy starcie serwera; leży też w pliku " +
+                                    "~/.lozyska_data/token.txt na komputerze z serwerem.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    )
+                }
+
                 Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(
                         enabled = !syncing,
                         onClick = {
                             scope.launch {
-                                vm.setServerUrl(urlField)
-                                vm.setAuthToken(tokenField)
+                                if (!BuildConfig.KONFIGURACJA_ZASZYTA) {
+                                    vm.setServerUrl(urlField)
+                                    vm.setAuthToken(tokenField)
+                                }
                                 vm.syncNow()
                             }
                         },
-                    ) { Text(if (syncing) "Synchronizuję..." else "Zapisz i synchronizuj teraz") }
+                    ) {
+                        Text(
+                            when {
+                                syncing -> "Synchronizuję..."
+                                BuildConfig.KONFIGURACJA_ZASZYTA -> "Synchronizuj teraz"
+                                else -> "Zapisz i synchronizuj teraz"
+                            }
+                        )
+                    }
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(syncStatusText(lastSyncAt, lastSyncStatus), style = MaterialTheme.typography.bodySmall,

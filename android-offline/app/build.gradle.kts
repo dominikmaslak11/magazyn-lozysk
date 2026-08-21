@@ -1,8 +1,41 @@
+import groovy.json.JsonSlurper
+// Import jawny: w skrypcie Gradle 'java' to rozszerzenie projektu, które przesłania
+// pakiet java.*, więc zapis java.util.Properties() się nie kompiluje.
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kotlin.compose)
+}
+
+// ---------------------------------------------------------------- wariant taty --
+//
+// Wersja dla telefonu, który NIE jest w tailnecie: adres serwera i token są wkompilowane,
+// więc użytkownik nie konfiguruje niczego. Jedno i drugie czytamy z plików POZA
+// repozytorium, żeby token nie trafił do gita - nawet gdy repo zostaje publiczne.
+//
+//   ~/.lozyska_data/tokeny.json             -> {"tata": "<token>"}   (python tokeny.py --dodaj tata)
+//   ~/.lozyska_data/tata-build.properties   -> serverUrl=https://...
+//
+// Brak plików psuje TYLKO wariant 'tata'; wariant 'moje' buduje się normalnie.
+
+val katalogDanych = File(System.getProperty("user.home"), ".lozyska_data")
+
+fun tokenTaty(): String? {
+    val plik = File(katalogDanych, "tokeny.json")
+    if (!plik.exists()) return null
+    @Suppress("UNCHECKED_CAST")
+    val mapa = JsonSlurper().parse(plik) as? Map<String, Any?> ?: return null
+    return (mapa["tata"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
+}
+
+fun adresDlaTaty(): String? {
+    val plik = File(katalogDanych, "tata-build.properties")
+    if (!plik.exists()) return null
+    val p = Properties().apply { plik.inputStream().use { load(it) } }
+    return p.getProperty("serverUrl")?.trim()?.takeIf { it.isNotEmpty() }
 }
 
 android {
@@ -15,6 +48,34 @@ android {
         targetSdk = 34
         versionCode = 14
         versionName = "1.13.0"
+    }
+
+    flavorDimensions += "odbiorca"
+    productFlavors {
+        create("moje") {
+            dimension = "odbiorca"
+            isDefault = true
+            // Zachowanie bez zmian: adres i token wpisuje się w ekranie Dane.
+            buildConfigField("String", "ZASZYTY_ADRES", "\"\"")
+            buildConfigField("String", "ZASZYTY_TOKEN", "\"\"")
+            buildConfigField("boolean", "KONFIGURACJA_ZASZYTA", "false")
+        }
+        create("tata") {
+            dimension = "odbiorca"
+            // Osobny applicationId, żeby obie wersje dały się mieć na jednym telefonie
+            // (przydaje się do sprawdzenia wariantu taty przed wgraniem mu go).
+            applicationIdSuffix = ".tata"
+            // Nazwa appki jest w app/src/tata/res/values/strings.xml - zestaw źródeł wariantu
+            // przesłania main. resValue() by tu nie zadziałało: zderzyłoby się z app_name z main.
+
+            val token = tokenTaty()
+            val adres = adresDlaTaty()
+            // Pusta wartość zamiast błędu: dzięki temu ./gradlew tasks i synchronizacja
+            // w Android Studio działają bez tych plików. Brak wykrywamy przy pakowaniu.
+            buildConfigField("String", "ZASZYTY_ADRES", "\"${adres ?: ""}\"")
+            buildConfigField("String", "ZASZYTY_TOKEN", "\"${token ?: ""}\"")
+            buildConfigField("boolean", "KONFIGURACJA_ZASZYTA", "true")
+        }
     }
 
     buildTypes {
@@ -35,6 +96,25 @@ android {
         buildConfig = true
     }
 }
+
+// Wariant taty spakowany bez konfiguracji dałby APK, które po instalacji nie łączy się
+// z niczym - i którego NIE DA SIĘ naprawić z telefonu, bo ekran ustawień jest tam ukryty.
+// Lepiej zatrzymać budowanie z czytelnym komunikatem niż wydać taką paczkę.
+tasks.matching { it.name.startsWith("assembleTata") || it.name.startsWith("bundleTata") }
+    .configureEach {
+        doFirst {
+            val braki = buildList {
+                if (tokenTaty() == null)
+                    add("token 'tata' w ~/.lozyska_data/tokeny.json" +
+                        "  ->  python tokeny.py --dodaj tata")
+                if (adresDlaTaty() == null)
+                    add("serverUrl w ~/.lozyska_data/tata-build.properties" +
+                        "  ->  serverUrl=https://nazwa.ts.net")
+            }
+            if (braki.isNotEmpty())
+                error("Brak konfiguracji wariantu 'tata':\n  - " + braki.joinToString("\n  - "))
+        }
+    }
 
 dependencies {
     implementation(libs.androidx.core.ktx)

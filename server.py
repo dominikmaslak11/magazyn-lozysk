@@ -10,13 +10,14 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
 import os
 import secrets
 import tempfile
 from dataclasses import asdict
 from pathlib import Path
 
-from flask import (Flask, abort, jsonify, redirect, render_template, request,
+from flask import (Flask, abort, g, jsonify, redirect, render_template, request,
                     send_file, session, url_for)
 
 import ai_assist
@@ -30,14 +31,19 @@ app = Flask(__name__)
 
 # ------------------------------------------------------------ autoryzacja ----
 #
-# Serwer jest chroniony pojedynczym, współdzielonym tokenem. To celowo prosty model,
-# dopasowany do tego, czym ta appka jest: prywatnym magazynem jednej osoby/warsztatu,
-# a nie systemem wielu kont z rolami.
+# Serwer chronią NAZWANE tokeny - po jednym na urządzenie. Wcześniej był jeden token
+# współdzielony przez wszystko; zmieniło się to, kiedy do magazynu dostał dostęp
+# telefon, który nie jest w tailnecie (patrz DOSTEP-TATA.md). Przy jednym kluczu
+# zgubienie tego telefonu zmuszałoby do zmiany tokenu WSZĘDZIE - w obu moich
+# telefonach i w przeglądarce. Przy nazwanych unieważnia się jedno urządzenie.
 #
-# Token leży w ~/.lozyska_data/token.txt (obok bazy, POZA katalogiem z kodem, żeby
-# git pull nigdy go nie nadpisał) i generuje się sam przy pierwszym starcie.
+# Gdzie leżą (obok bazy, POZA katalogiem z kodem, żeby git pull ich nie nadpisał):
+#   * ~/.lozyska_data/token.txt    - token właściciela, generowany przy pierwszym
+#                                    starcie. Zostaje, bo mają go już wgrane telefony.
+#   * ~/.lozyska_data/tokeny.json  - {"nazwa": "token"} dla pozostałych urządzeń.
+#                                    Zarządzanie: python tokeny.py --pomoc
 #
-# Jak trafia w żądaniu (dowolny z trzech sposobów):
+# Jak token trafia w żądaniu (dowolny z trzech sposobów):
 #   * nagłówek  X-Auth-Token: <token>     <- tego używa appka Android
 #   * nagłówek  Authorization: Bearer <token>
 #   * ciasteczko sesji, po zalogowaniu przez stronę /login (wersja webowa)
@@ -52,6 +58,8 @@ app = Flask(__name__)
 
 AUTH_DISABLED = os.environ.get("LOZYSKA_AUTH_DISABLED", "") == "1"
 TOKEN_PATH = db.DB_DIR / "token.txt"
+TOKENY_PATH = db.DB_DIR / "tokeny.json"
+WLASCICIEL = "wlasciciel"
 # Ścieżki dostępne bez tokenu (patrz komentarz wyżej).
 PUBLIC_ENDPOINTS = {"api_version", "login", "static", "manifest", "service_worker"}
 
@@ -73,9 +81,36 @@ def _load_or_create_token() -> str:
 
 
 AUTH_TOKEN = _load_or_create_token()
-# Klucz sesji jest wyprowadzony z tokenu, więc jest stały między restartami (nie wylogowuje
-# przeglądarki przy każdym starcie), a jednocześnie unieważnia się razem ze zmianą tokenu.
+# Klucz sesji jest wyprowadzony z tokenu WŁAŚCICIELA, nie z całego zbioru. Gdyby zależał
+# od wszystkich, dodanie urządzenia wylogowywałoby przeglądarkę.
 app.secret_key = hashlib.sha256(("sesja:" + AUTH_TOKEN).encode()).digest()
+
+
+def _tokeny() -> dict[str, str]:
+    """Nazwa urządzenia -> token. Czytane przy każdym żądaniu, bo unieważnienie
+    tokenu musi działać od razu, bez restartu usługi."""
+    wszystkie = {WLASCICIEL: AUTH_TOKEN}
+    try:
+        dodatkowe = json.loads(TOKENY_PATH.read_text())
+    except (OSError, ValueError):
+        return wszystkie
+    if isinstance(dodatkowe, dict):
+        for nazwa, token in dodatkowe.items():
+            if isinstance(token, str) and token.strip() and nazwa != WLASCICIEL:
+                wszystkie[str(nazwa)] = token.strip()
+    return wszystkie
+
+
+def _dopasuj_token(podany: str | None) -> str | None:
+    """Zwraca nazwę urządzenia albo None. Porównanie w stałym czasie i BEZ przerwania
+    pętli na trafieniu - inaczej czas odpowiedzi zdradzałby, który token pasuje."""
+    if not podany:
+        return None
+    trafienie = None
+    for nazwa, token in _tokeny().items():
+        if secrets.compare_digest(podany, token):
+            trafienie = nazwa
+    return trafienie
 
 
 def _token_from_request() -> str | None:
@@ -90,14 +125,13 @@ def _token_from_request() -> str | None:
 
 @app.before_request
 def _require_token():
+    g.kto = None
     if AUTH_DISABLED or request.endpoint in PUBLIC_ENDPOINTS:
         return None
-    # compare_digest zamiast == : porównanie w stałym czasie, żeby nie dało się
-    # zgadywać tokenu mierząc czas odpowiedzi.
-    supplied = _token_from_request()
-    if supplied and secrets.compare_digest(supplied, AUTH_TOKEN):
-        return None
-    if session.get("auth") and secrets.compare_digest(str(session.get("auth")), AUTH_TOKEN):
+    kto = _dopasuj_token(_token_from_request()) or _dopasuj_token(
+        str(session.get("auth")) if session.get("auth") else None)
+    if kto:
+        g.kto = kto
         return None
     if request.path.startswith("/api/"):
         return jsonify({"error": "Brak autoryzacji - podaj token (nagłówek X-Auth-Token)."}), 401
@@ -111,8 +145,8 @@ def login():
     error = None
     if request.method == "POST":
         supplied = (request.form.get("token") or "").strip()
-        if secrets.compare_digest(supplied, AUTH_TOKEN):
-            session["auth"] = AUTH_TOKEN
+        if _dopasuj_token(supplied):
+            session["auth"] = supplied
             session.permanent = True
             return redirect(request.args.get("next") or url_for("index"))
         error = "Nieprawidłowy token."

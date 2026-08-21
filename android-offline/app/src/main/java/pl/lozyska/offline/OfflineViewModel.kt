@@ -38,6 +38,19 @@ class OfflineViewModel(application: Application) : AndroidViewModel(application)
     private val syncSettings = SyncSettingsRepository(application)
     private val syncEngine = SyncEngine(application)
 
+    init {
+        // Wariant dla telefonu spoza tailnetu: adres i token są wkompilowane, więc wpisujemy
+        // je do DataStore przy każdym starcie. Nadpisujemy ZAWSZE, nie tylko przy pustym -
+        // dzięki temu wymiana tokenu sprowadza się do przebudowania i wgrania APK, bez
+        // proszenia kogokolwiek o grzebanie w ustawieniach telefonu.
+        if (BuildConfig.KONFIGURACJA_ZASZYTA) {
+            viewModelScope.launch {
+                syncSettings.setServerUrl(normalizeBaseUrl(BuildConfig.ZASZYTY_ADRES))
+                syncSettings.setAuthToken(BuildConfig.ZASZYTY_TOKEN)
+            }
+        }
+    }
+
     private val _search = MutableStateFlow("")
     val search: StateFlow<String> = _search
 

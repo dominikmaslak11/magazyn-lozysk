@@ -1,0 +1,5 @@
+<resources>
+    <!-- Zestaw źródeł wariantu przesłania main/res. Inna nazwa niż w mojej wersji,
+         żeby na jednym telefonie dało się mieć obie i nie pomylić ich przy testach. -->
+    <string name="app_name">Magazyn Łożysk (tata)</string>
+</resources>
