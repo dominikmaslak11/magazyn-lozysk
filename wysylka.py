@@ -117,7 +117,7 @@ TYPY_MIME = {
 
 
 def wyslij_email(do: str, temat: str, tresc: str, zalaczniki: list[Path] | None = None,
-                  na_sucho: bool = False) -> str:
+                  na_sucho: bool = False, nadawca: str | None = None) -> str:
     """Wysyła e-mail przez SMTP. `na_sucho` pokazuje, co by poszło, i nic nie wysyła."""
     ust = UstawieniaSmtp.wczytaj()
     if ust is None:
@@ -127,7 +127,10 @@ def wyslij_email(do: str, temat: str, tresc: str, zalaczniki: list[Path] | None 
                 f"Potem: chmod 600 {SMTP_CONFIG}")
 
     wiadomosc = EmailMessage()
-    wiadomosc["From"] = ust.nadawca
+    # Domyślnie nadajemy z aliasu +magazyn, żeby wiadomości z programu dało się
+    # filtrować. Przy pierwszym kontakcie z firmą alias wygląda jednak dziwnie -
+    # stąd możliwość nadpisania zwykłym adresem.
+    wiadomosc["From"] = nadawca or ust.nadawca
     wiadomosc["To"] = do
     wiadomosc["Subject"] = temat
     wiadomosc.set_content(tresc)
@@ -143,7 +146,7 @@ def wyslij_email(do: str, temat: str, tresc: str, zalaczniki: list[Path] | None 
         opis_zal = ", ".join(f"{z.name} ({z.stat().st_size/1024:.0f} kB)"
                               for z in (zalaczniki or [])) or "brak"
         return (f"[PRÓBA NA SUCHO - nic nie wysłano]\n"
-                f"Od:        {ust.nadawca}\nDo:        {do}\nTemat:     {temat}\n"
+                f"Od:        {nadawca or ust.nadawca}\nDo:        {do}\nTemat:     {temat}\n"
                 f"Serwer:    {ust.host}:{ust.port}\nZalaczniki: {opis_zal}\n\n{tresc}")
 
     with smtplib.SMTP(ust.host, ust.port, timeout=20) as s:
@@ -170,6 +173,7 @@ def main() -> int:
                     help="wypisz link otwierający WhatsAppa z gotową treścią")
     p.add_argument("--zalacznik", type=Path, action="append", default=[],
                     help="plik do dolaczenia (mozna podac wielokrotnie)")
+    p.add_argument("--nadawca", help="nadpisz adres nadawcy (domyslnie alias z konfiguracji)")
     p.add_argument("--na-sucho", action="store_true",
                     help="pokaż, co poszłoby, ale NIE wysyłaj")
     args = p.parse_args()
@@ -197,7 +201,7 @@ def main() -> int:
 
     if args.email:
         print(wyslij_email(args.email, args.temat, tresc, zalaczniki=args.zalacznik,
-                            na_sucho=args.na_sucho))
+                            na_sucho=args.na_sucho, nadawca=args.nadawca))
     return 0
 
 

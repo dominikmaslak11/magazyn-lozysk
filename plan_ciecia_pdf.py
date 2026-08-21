@@ -61,7 +61,10 @@ class PlanCiecia(FPDF):
     def footer(self) -> None:
         self.set_y(-12)
         self.set_font("Helvetica", "I", 8)
-        self.cell(0, 5, "Magazyn Lozysk - warsztat/plan-ciecia.md", align="C")
+        self.cell(0, 5,
+                   "Projekt wygenerowany automatycznie - Magazyn Lozysk"
+                   if WARIANT == "sklep" else "Magazyn Lozysk - warsztat/plan-ciecia.md",
+                   align="C")
 
 
 def rysuj(pdf, u) -> None:
@@ -169,7 +172,15 @@ def rysuj(pdf, u) -> None:
     pdf.cell(22, 5, f"{ARKUSZ_SZER - POLKA_DL - RZAZ:.0f}", align="R")
 
 
-def zbuduj(sciezka: Path) -> Path:
+# Wariant dokumentu. "wlasny" ma kody i ceny Leroya - do reki przy zakupach.
+# "sklep" jest neutralny: bez kodow konkurencji i bez cen, za to z kolumnami
+# do wypelnienia. Ten sam rysunek techniczny, inna ostatnia strona.
+WARIANT = "wlasny"
+
+
+def zbuduj(sciezka: Path, wariant: str = "wlasny") -> Path:
+    global WARIANT
+    WARIANT = wariant
     pdf = PlanCiecia(orientation="L", unit="mm", format="A4")
     pdf.set_auto_page_break(False)
     pdf.add_page()
@@ -666,6 +677,8 @@ def plan_szaf(pdf) -> None:
 # ==================================================== LISTA ZAKUPOW (str. 6) ===
 
 def lista_zakupow(pdf) -> None:
+    if WARIANT == "sklep":
+        return lista_dla_sklepu(pdf)
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 15)
     pdf.set_y(12)
@@ -731,8 +744,73 @@ def lista_zakupow(pdf) -> None:
         pdf.cell(0, 4.8, linia, new_x="LMARGIN", new_y="NEXT")
 
 
+def lista_dla_sklepu(pdf) -> None:
+    """Ostatnia strona w wersji dla sklepu: zapotrzebowanie bez kodow i cen konkurencji,
+    za to z kolumnami do wypelnienia przez sprzedawce."""
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 15)
+    pdf.set_y(12)
+    pdf.cell(0, 7, "ZAPOTRZEBOWANIE MATERIALOWE", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 9)
+    pdf.cell(0, 5, "dwa projekty - regal warsztatowy i polki do dwoch szaf",
+              align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(5)
+
+    kol = (96, 24, 26, 26, 26)
+    pdf.set_x(14)
+    pdf.set_font("Helvetica", "B", 8.5)
+    pdf.set_fill_color(228, 228, 228)
+    for tekst, szer in zip(("Pozycja", "Ilosc", "Macie?", "Cena j.", "Termin"), kol):
+        pdf.cell(szer, 7, tekst, border=1, align="C", fill=True)
+    pdf.ln()
+
+    pdf.set_font("Helvetica", "", 8)
+    pozycje = [
+        ("Plyta OSB-3 18 mm, arkusz 2500 x 1250 mm", "1 szt."),
+        ("Plyta wiorowa laminowana BIALA 18 mm, dociecie na wymiar", "2,04 m2"),
+        ("     -> 6 formatek 755 x 450 mm, obrzeze na 1 dluzszym boku", ""),
+        ("Listwa sosnowa 20 x 30 mm, dl. 2,7 m (lub kantowka 20x30)", "4 szt."),
+        ("Wkrety do drewna 4 x 35 mm, ocynkowane", "100 szt."),
+        ("Wkrety do drewna 3,5 x 30 mm, ocynkowane", "100 szt."),
+        ("Podporki do polek, kolek 5 mm, metalowe", "24 szt."),
+        ("Obrzeze melaminowe biale 18-19 mm z klejem, rolka 5 m", "2 szt."),
+        ("USLUGA: ciecie plyty na wymiar", "9 ciec"),
+        ("Uzyteczne odpady po docinaniu, od ok. 40 x 40 cm", "wg dostepnosci"),
+    ]
+    for opis, ile in pozycje:
+        pdf.set_x(14)
+        pdf.cell(kol[0], 7.5, opis, border=1)
+        pdf.cell(kol[1], 7.5, ile, border=1, align="C")
+        for szer in kol[2:]:
+            pdf.cell(szer, 7.5, "", border=1)
+        pdf.ln()
+
+    pdf.ln(6)
+    pdf.set_x(14)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 6, "Uwagi do zamowienia", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 8.5)
+    for linia in (
+        "Wkrety NIE dluzsze niz podane: scianka regalu ma 20 mm, scianka szafy 16 mm.",
+        "Dluzszy wkret przebije ja na wylot.",
+        "",
+        "Plyta biala jest widoczna w otwartej szafie - ciete krawedzie wymagaja obrzeza.",
+        "Jesli oklejacie w ramach uslugi, prosze o wycene zamiast rolki.",
+        "",
+        "Jesli czesc pozycji odpada, prosze o wycene reszty - i tak wole kupic na miejscu.",
+        "",
+        "Rysunki na poprzednich stronach pokazuja, do czego te materialy sluza:",
+        "plan ciecia arkusza, widok zabudowy regalu i widok zabudowy szafy.",
+    ):
+        pdf.set_x(14)
+        pdf.cell(0, 4.8, linia, new_x="LMARGIN", new_y="NEXT")
+
+
 if __name__ == "__main__":
     import sys
-    cel = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("warsztat/plan-ciecia.pdf")
+    wariant = "sklep" if "--sklep" in sys.argv else "wlasny"
+    argi = [a for a in sys.argv[1:] if not a.startswith("--")]
+    domyslny = "warsztat/projekt-arsen.pdf" if wariant == "sklep" else "warsztat/plan-ciecia.pdf"
+    cel = Path(argi[0]) if argi else Path(domyslny)
     cel.parent.mkdir(parents=True, exist_ok=True)
-    print("Zapisano:", zbuduj(cel))
+    print("Zapisano:", zbuduj(cel, wariant))
