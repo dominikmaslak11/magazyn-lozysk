@@ -289,7 +289,14 @@ def buduj_pdf(w: Wycena, sciezka: Path) -> Path:
     Font DejaVu, nie Helvetica: opisy układu pochodzą ze stolarz.py i mają polskie
     znaki, na których wbudowany font fpdf się wywraca (tak samo robi pdf_labels.py).
     """
+    import logging
+
     from fpdf import FPDF
+
+    # fontTools przy osadzaniu fontu wypisuje setki linii o podzbiorach glifów.
+    # Przy serwerze MCP (protokół po stdio) taki hałas jest w najlepszym razie
+    # nieczytelny, w najgorszym rozjeżdża strumień. Nikomu to nie jest potrzebne.
+    logging.getLogger("fontTools").setLevel(logging.WARNING)
 
     fonty = Path(__file__).resolve().parent / "fonts"
     pdf = FPDF(orientation="P", unit="mm", format="A4")
