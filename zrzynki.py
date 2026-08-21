@@ -5,14 +5,20 @@ kawałek OSB z ceną i masz kilkanaście sekund na decyzję. Pytanie nie brzmi �
 to kosztuje", tylko **ile kosztuje JEDNA PÓŁKA z tego kawałka** w porównaniu
 z pełnym arkuszem za 104 zł.
 
-    python zrzynki.py 1200x600 25
+    python zrzynki.py 1200x600 25              # ciecie zlecone, 3 zl za ciecie
+    python zrzynki.py 1200x600 25 --express    # ten sam dzien, 6 zl za ciecie
+    python zrzynki.py 1200x600 25 --bez-ciecia # tniesz sam
     python zrzynki.py 1200x600 25 --pdf --mail
 
 Odpad, z którego nie wyjdzie ani jedna półka, nie jest bezwartościowy — przegrody
 też są potrzebne, a na nie starczą małe kawałki. Dlatego liczymy jedno i drugie.
 
+Koszt docinania jest doliczany PO OBU STRONACH porównania — do odpadu i do pełnego
+arkusza. Bez tego rachunek kłamie na korzyść odpadów: mały kawałek daje mało półek,
+ale cięć wymaga prawie tyle samo co duży.
+
 Liczby biorą się z tego samego miejsca co plan cięcia (stolarz.py): rzaz 4 mm,
-półka 855 x 495 mm, przegroda 495 x 187 mm.
+półka 855 x 495 mm, przegroda 495 x 187 mm, cięcie 3 zł (6 zł express).
 """
 
 from __future__ import annotations
@@ -29,13 +35,13 @@ from stolarz import OSB_18, Material, Polka, rozkroj
 POLKA = Polka(855.0, 495.0)
 PRZEGRODA = Polka(495.0, 187.0)
 
-# Ile formatek wychodzi z pełnego arkusza i po ile wtedy sztuka. To są progi,
-# poniżej których odpad się opłaca.
-ODNIESIENIE_SZTUK = rozkroj(OSB_18, POLKA, 1).sztuk_z_arkusza
-ODNIESIENIE_CENA = (OSB_18.cena_arkusza or 0.0) / max(1, ODNIESIENIE_SZTUK)
+# Cennik docinania w Leroy Kalisz, potwierdzony telefonicznie 2026-08-21.
+CIECIE_ZWYKLE = 3.0    # termin 2-3 dni
+CIECIE_EXPRESS = 6.0   # ten sam dzien
 
-PRZEGROD_Z_ARKUSZA = rozkroj(OSB_18, PRZEGRODA, 1).sztuk_z_arkusza
-PRZEGRODA_CENA = (OSB_18.cena_arkusza or 0.0) / max(1, PRZEGROD_Z_ARKUSZA)
+# Resztka mniejsza niż to nie wymaga osobnego cięcia - mieści się w obrzynie
+# krawędzi arkusza.
+RESZTKA_BEZ_CIECIA_MM = 20.0
 
 # Poniżej tylu procent ceny odniesienia mówimy "bierz". Powyżej 100% - "nie".
 # Między 85% a 100% oszczędność jest realna, ale niewielka, więc zwracamy uwagę,
@@ -44,6 +50,69 @@ PROG_OKAZJA = 0.85
 
 # Mniej niż tyle przegród to nie jest powód, żeby wozić do domu osobny kawałek.
 MIN_PRZEGROD = 2
+
+
+def liczba_ciec(plyta_dl: float, plyta_szer: float,
+                 formatka_dl: float, formatka_szer: float) -> tuple[int, int]:
+    """Ile prostych cięć, żeby wyjąć z płyty jak najwięcej takich formatek.
+
+    Model gilotynowy, bo tak tnie piła panelowa w markecie: najpierw płyta idzie
+    na pasy, potem każdy pas na formatki. Cięcia w poprzek pasa nie da się zrobić
+    inaczej - stąd mnożenie przez liczbę pasów.
+
+    Zwraca (liczba_ciec, liczba_formatek). Sprawdza obie orientacje i wybiera tę,
+    która daje więcej formatek; przy remisie tę tańszą w cięciach.
+    """
+    def wariant(dl_f, szer_f):
+        wzdluz = int((plyta_dl + RZAZ) // (dl_f + RZAZ))
+        wszerz = int((plyta_szer + RZAZ) // (szer_f + RZAZ))
+        if wzdluz < 1 or wszerz < 1:
+            return 999, 0
+        # pasy w poprzek szerokości płyty
+        resztka_szer = plyta_szer - wszerz * szer_f - (wszerz - 1) * RZAZ
+        ciec_na_pasy = (wszerz - 1) + (1 if resztka_szer > RESZTKA_BEZ_CIECIA_MM else 0)
+        # każdy pas rozcinany na formatki wzdłuż długości
+        resztka_dl = plyta_dl - wzdluz * dl_f - (wzdluz - 1) * RZAZ
+        ciec_w_pasie = (wzdluz - 1) + (1 if resztka_dl > RESZTKA_BEZ_CIECIA_MM else 0)
+        return ciec_na_pasy + wszerz * ciec_w_pasie, wzdluz * wszerz
+
+    a = wariant(formatka_dl, formatka_szer)
+    b = wariant(formatka_szer, formatka_dl)
+    # więcej formatek wygrywa; przy tylu samo - mniej cięć
+    return min([a, b], key=lambda w: (-w[1], w[0]))
+
+
+RZAZ = 4.0
+
+
+def ukladanie(plyta_dl: float, plyta_szer: float,
+              form_dl: float, form_szer: float) -> tuple[float, float]:
+    """Jak ułożyć formatkę na płycie, żeby zmieściło się jej najwięcej.
+
+    Zwraca (bok wzdłuż długości płyty, bok wzdłuż szerokości). Jedyne źródło
+    prawdy o orientacji - i rysunek, i liczenie muszą z niego korzystać, żeby
+    kartka pokazywała to samo, co tabela nad nią.
+    """
+    def ile(a, b):
+        return int((plyta_dl + RZAZ) // (a + RZAZ)) * int((plyta_szer + RZAZ) // (b + RZAZ))
+
+    return ((form_dl, form_szer) if ile(form_dl, form_szer) >= ile(form_szer, form_dl)
+            else (form_szer, form_dl))
+
+# Pełny arkusz z docinaniem w sklepie - to jest realny punkt odniesienia teraz,
+# gdy cięcie zlecamy. Bez doliczenia cięć porównanie kłamie na korzyść odpadów.
+_C_ARK, ODNIESIENIE_SZTUK = liczba_ciec(2500.0, 1250.0, 855.0, 495.0)
+CIEC_ARKUSZA = _C_ARK
+PRZEGROD_Z_ARKUSZA = rozkroj(OSB_18, PRZEGRODA, 1).sztuk_z_arkusza
+
+
+def cena_polki_z_arkusza(cena_ciecia: float) -> float:
+    return ((OSB_18.cena_arkusza or 0.0) + CIEC_ARKUSZA * cena_ciecia) / max(1, ODNIESIENIE_SZTUK)
+
+
+def cena_przegrody_z_arkusza(cena_ciecia: float) -> float:
+    c, _ = liczba_ciec(2500.0, 1250.0, 495.0, 187.0)
+    return ((OSB_18.cena_arkusza or 0.0) + c * cena_ciecia) / max(1, PRZEGROD_Z_ARKUSZA)
 
 
 @dataclass
@@ -55,30 +124,47 @@ class Wycena:
     przegrod: int
     uklad_polek: str
     uklad_przegrod: str
+    ciec_polki: int = 0
+    ciec_przegrod: int = 0
+    cena_ciecia: float = CIECIE_ZWYKLE
 
     @property
     def pole_m2(self) -> float:
         return self.dlugosc * self.szerokosc / 1e6
 
     @property
+    def koszt_ciecia(self) -> float:
+        ile = self.ciec_polki if self.polek else self.ciec_przegrod
+        return ile * self.cena_ciecia
+
+    @property
+    def koszt_calkowity(self) -> float:
+        return self.cena + self.koszt_ciecia
+
+    @property
     def cena_za_polke(self) -> float | None:
-        return self.cena / self.polek if self.polek else None
+        return self.koszt_calkowity / self.polek if self.polek else None
 
     @property
     def cena_za_m2(self) -> float:
         return self.cena / self.pole_m2 if self.pole_m2 else 0.0
 
     @property
+    def odniesienie(self) -> float:
+        """Ile kosztuje półka z pełnego arkusza PRZY TEJ SAMEJ cenie cięcia."""
+        return cena_polki_z_arkusza(self.cena_ciecia)
+
+    @property
     def stosunek(self) -> float | None:
-        """Cena półki z odpadu / cena półki z pełnego arkusza."""
+        """Cena półki z odpadu / cena półki z pełnego arkusza. Obie z cięciem."""
         c = self.cena_za_polke
-        if c is None or not ODNIESIENIE_CENA:
+        if c is None or not self.odniesienie:
             return None
-        return c / ODNIESIENIE_CENA
+        return c / self.odniesienie
 
     @property
     def cena_za_przegrode(self) -> float | None:
-        return self.cena / self.przegrod if self.przegrod else None
+        return self.koszt_calkowity / self.przegrod if self.przegrod else None
 
     @property
     def werdykt(self) -> str:
@@ -87,7 +173,8 @@ class Wycena:
             # kilkadziesiąt. Ale oceniamy je tak samo jak półki: po cenie sztuki,
             # a nie po samej liczbie.
             c = self.cena_za_przegrode
-            if self.przegrod >= MIN_PRZEGROD and c is not None and c <= PRZEGRODA_CENA:
+            prog = cena_przegrody_z_arkusza(self.cena_ciecia)
+            if self.przegrod >= MIN_PRZEGROD and c is not None and c <= prog:
                 return "TYLKO NA PRZEGRODY"
             return "NIE"
 
@@ -103,14 +190,20 @@ class Wycena:
         return "NIE"
 
 
-def wyceniaj(dlugosc: float, szerokosc: float, cena: float) -> Wycena:
+def wyceniaj(dlugosc: float, szerokosc: float, cena: float,
+             cena_ciecia: float = CIECIE_ZWYKLE) -> Wycena:
     # Odpad to po prostu arkusz o innym formacie - dzięki temu liczy to ten sam
     # kod co plan cięcia, razem z rzazem i obiema orientacjami.
     plyta = Material("odpad OSB-3 18 mm", 18.0, OSB_18.E, (dlugosc, szerokosc), cena)
     rp = rozkroj(plyta, POLKA, 1)
     rz = rozkroj(plyta, PRZEGRODA, 1)
+    cp, _ = liczba_ciec(dlugosc, szerokosc, POLKA.dlugosc, POLKA.glebokosc)
+    cz, _ = liczba_ciec(dlugosc, szerokosc, PRZEGRODA.dlugosc, PRZEGRODA.glebokosc)
     return Wycena(dlugosc, szerokosc, cena, rp.sztuk_z_arkusza, rz.sztuk_z_arkusza,
-                  rp.uklad, rz.uklad)
+                  rp.uklad, rz.uklad,
+                  ciec_polki=cp if rp.sztuk_z_arkusza else 0,
+                  ciec_przegrod=cz if rz.sztuk_z_arkusza else 0,
+                  cena_ciecia=cena_ciecia)
 
 
 def wymiary_z_tekstu(tekst: str) -> tuple[float, float]:
@@ -140,16 +233,22 @@ def raport(w: Wycena) -> str:
     ]
     if w.polek:
         L += [
+            f"  ciec do zlecenia   : {w.ciec_polki} x {w.cena_ciecia:.0f} zl "
+            f"= {w.koszt_ciecia:.0f} zl",
+            f"  RAZEM              : {w.koszt_calkowity:.2f} zl "
+            f"({w.cena:.0f} zl plyta + {w.koszt_ciecia:.0f} zl ciecie)",
+            "",
             f"  cena za polke      : {w.cena_za_polke:.2f} zl",
-            f"  z pelnego arkusza  : {ODNIESIENIE_CENA:.2f} zl "
-            f"({ODNIESIENIE_SZTUK} polek za {OSB_18.cena_arkusza:.0f} zl)",
+            f"  z pelnego arkusza  : {w.odniesienie:.2f} zl "
+            f"({ODNIESIENIE_SZTUK} polek, {OSB_18.cena_arkusza:.0f} zl "
+            f"+ {CIEC_ARKUSZA} ciec)",
             f"  stosunek           : {w.stosunek*100:.0f}% ceny z arkusza",
             "",
         ]
     L.append(f"  WERDYKT: {w.werdykt}")
 
     if w.werdykt == "BIERZ":
-        oszcz = (ODNIESIENIE_CENA - w.cena_za_polke) * w.polek
+        oszcz = (w.odniesienie - w.cena_za_polke) * w.polek
         L.append(f"  Oszczedzasz {oszcz:.0f} zl w porownaniu z pelnym arkuszem.")
     elif w.werdykt == "NA GRANICY":
         L.append("  Taniej, ale nieznacznie. Doliczy sie osobne ciecie i przewiezienie")
@@ -157,8 +256,8 @@ def raport(w: Wycena) -> str:
     elif w.werdykt == "TYLKO NA PRZEGRODY":
         L.append(f"  Polka sie nie zmiesci, ale wyjdzie {w.przegrod} przegrod po "
                  f"{w.cena_za_przegrode:.2f} zl")
-        L.append(f"  (z pelnego arkusza: {PRZEGRODA_CENA:.2f} zl). Przegrody i tak "
-                 f"trzeba z czegos zrobic.")
+        L.append(f"  (z pelnego arkusza: {cena_przegrody_z_arkusza(w.cena_ciecia):.2f} zl). "
+                 f"Przegrody i tak trzeba z czegos zrobic.")
     else:
         if w.polek == 0 and w.przegrod < MIN_PRZEGROD:
             L.append("  Za maly kawalek: ani polka, ani sensowna liczba przegrod.")
@@ -219,9 +318,12 @@ def buduj_pdf(w: Wycena, sciezka: Path) -> Path:
         ("Powierzchnia", f"{w.pole_m2:.2f} m2   ({w.cena_za_m2:.0f} zl/m2)"),
         ("Polek 855 x 495", str(w.polek)),
         ("Przegrod 495 x 187", str(w.przegrod)),
+        ("Ciec do zlecenia", f"{w.ciec_polki if w.polek else w.ciec_przegrod} x "
+                              f"{w.cena_ciecia:.0f} zl = {w.koszt_ciecia:.0f} zl"),
+        ("RAZEM z cieciem", f"{w.koszt_calkowity:.2f} zl"),
         ("Cena za polke", f"{w.cena_za_polke:.2f} zl" if w.polek else "-"),
-        ("Z pelnego arkusza", f"{ODNIESIENIE_CENA:.2f} zl "
-                               f"({ODNIESIENIE_SZTUK} szt. z arkusza 104 zl)"),
+        ("Z pelnego arkusza", f"{w.odniesienie:.2f} zl "
+                               f"({ODNIESIENIE_SZTUK} szt., 104 zl + {CIEC_ARKUSZA} ciec)"),
     ):
         pdf.set_x(18)
         pdf.set_font("DejaVu", "B", 10)
@@ -246,8 +348,12 @@ def buduj_pdf(w: Wycena, sciezka: Path) -> Path:
     if w.polek:
         # Rysujemy tylko ten układ, który dał więcej sztuk - żeby kartka pokazywała
         # to, co realnie masz zrobić, a nie obie możliwości naraz.
-        pion = "obrocona" in w.uklad_polek
-        fd, fs = (POLKA.glebokosc, POLKA.dlugosc) if pion else (POLKA.dlugosc, POLKA.glebokosc)
+        #
+        # Orientację liczymy z wymiarów, a NIE z opisu tekstowego. Opis ze stolarz.py
+        # jest dla człowieka ("formatka obrócona o 90 stopni") i sprawdzanie w nim
+        # podłańcucha już raz zawiodło przez polski znak - rysunek pokazywał wtedy
+        # 2 półki zamiast 3.
+        fd, fs = ukladanie(w.dlugosc, w.szerokosc, POLKA.dlugosc, POLKA.glebokosc)
         pdf.set_fill_color(205, 232, 205)
         pdf.set_line_width(0.3)
         n = 0
@@ -287,6 +393,11 @@ def main(argv: list[str] | None = None) -> int:
         description="Czy odpad OSB w markecie sie oplaca - wycena przy polce w sklepie.")
     p.add_argument("wymiary", help="np. 1200x600 (mm) albo '120x60 cm'")
     p.add_argument("cena", type=float, help="cena odpadu w zlotych")
+    p.add_argument("--express", action="store_true",
+                   help=f"ciecie tego samego dnia ({CIECIE_EXPRESS:.0f} zl zamiast "
+                        f"{CIECIE_ZWYKLE:.0f} zl za ciecie)")
+    p.add_argument("--bez-ciecia", action="store_true",
+                   help="tniesz sam - nie doliczaj kosztu uslugi")
     p.add_argument("--pdf", action="store_true", help="zapisz kartke PDF")
     p.add_argument("--mail", metavar="ADRES", nargs="?", const="dominikmaslak11@gmail.com",
                    help="wyslij PDF na e-mail (domyslnie na wlasny adres)")
@@ -300,7 +411,8 @@ def main(argv: list[str] | None = None) -> int:
     if dl < szer:
         dl, szer = szer, dl  # dłuższy bok zawsze pierwszy
 
-    w = wyceniaj(dl, szer, a.cena)
+    stawka = 0.0 if a.bez_ciecia else (CIECIE_EXPRESS if a.express else CIECIE_ZWYKLE)
+    w = wyceniaj(dl, szer, a.cena, stawka)
     print(raport(w))
 
     if a.pdf or a.mail:
