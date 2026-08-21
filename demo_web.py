@@ -14,6 +14,7 @@ Okno zostaje otwarte po zakończeniu — można dalej klikać ręcznie.
 
 from __future__ import annotations
 
+import os
 import argparse
 import sys
 import time
@@ -26,7 +27,10 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-ADRES_DOMYSLNY = "http://100.94.180.125:8420"
+# Adresu serwera NIE zapisujemy w kodzie - to repozytorium jest publiczne i zgodnie
+# z WDROZENIE.md nie opisuje prywatnej sieci. Podaj go przez --adres albo zmienną
+# LOZYSKA_ADRES; domyślnie pokaz celuje w serwer uruchomiony lokalnie.
+ADRES_DOMYSLNY = os.environ.get("LOZYSKA_ADRES", "http://127.0.0.1:8420")
 TOKEN_PLIK = Path.home() / ".lozyska_data" / "token.txt"
 ZRZUTY = Path(__file__).resolve().parent / "warsztat" / "pokaz"
 
