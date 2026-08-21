@@ -117,15 +117,21 @@ def _skrot(zadanie: dict) -> dict:
     Pełna odpowiedź Vikunji ma ~40 pól (reakcje, załączniki, awatary autorów);
     wpuszczanie tego do kontekstu modelu to czysta strata miejsca.
     """
+    def dzien(znacznik: str | None) -> str | None:
+        # Vikunja zwraca rok zerowy zamiast pustej daty. Bez tego filtra w odpowiedzi
+        # ląduje "0001-01-01", co czyta się jak termin z przeszłości - czyli każde
+        # zadanie bez terminu wyglądałoby na przeterminowane.
+        return znacznik[:10] if _ustawiona(znacznik) else None
+
     return {
         "id": zadanie["id"],
         "tytul": zadanie.get("title"),
         "zrobione": zadanie.get("done", False),
         "postep_proc": round((zadanie.get("percent_done") or 0) * 100),
         "priorytet": PRIORYTETY.get(zadanie.get("priority") or 0, "?"),
-        "start": (zadanie.get("start_date") or "")[:10] or None,
-        "koniec": (zadanie.get("end_date") or "")[:10] or None,
-        "termin": (zadanie.get("due_date") or "")[:10] or None,
+        "start": dzien(zadanie.get("start_date")),
+        "koniec": dzien(zadanie.get("end_date")),
+        "termin": dzien(zadanie.get("due_date")),
         "projekt_id": zadanie.get("project_id"),
     }
 

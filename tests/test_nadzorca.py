@@ -71,6 +71,18 @@ class TestSkrot:
     def test_pusta_data_to_none_a_nie_pusty_string(self):
         assert nadzorca._skrot({"id": 1, "end_date": ""})["koniec"] is None
 
+    def test_rok_zerowy_nie_wycieka_jako_data(self):
+        # Vikunja zwraca 0001-01-01 zamiast pustej daty. Puszczenie tego dalej
+        # sprawia, ze kazde zadanie BEZ terminu czyta sie jak przeterminowane.
+        s = nadzorca._skrot({"id": 1, "start_date": "0001-01-01T00:00:00Z",
+                              "end_date": "0001-01-01T00:00:00Z",
+                              "due_date": "0001-01-01T00:00:00Z"})
+        assert (s["start"], s["koniec"], s["termin"]) == (None, None, None)
+
+    def test_prawdziwa_data_przechodzi(self):
+        s = nadzorca._skrot({"id": 1, "due_date": "2026-09-01T09:00:00Z"})
+        assert s["termin"] == "2026-09-01"
+
     def test_priorytet_slownie(self):
         assert nadzorca._skrot({"id": 1, "priority": 5})["priorytet"] == "TERAZ"
         assert nadzorca._skrot({"id": 1, "priority": 0})["priorytet"] == "-"
