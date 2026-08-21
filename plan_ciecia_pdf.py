@@ -48,7 +48,7 @@ class Ustawienie:
 
 class PlanCiecia(FPDF):
     def header(self) -> None:
-        if self.page_no() != (2 if WARIANT != "sklep" else 1):
+        if self.page_no() != (6 if WARIANT != "sklep" else 1):
             return
         self.set_font("Helvetica", "B", 15)
         self.cell(0, 8, "Plan ciecia - 6 polek + material na przegrody", align="C", new_x="LMARGIN",
@@ -178,6 +178,26 @@ def rysuj(pdf, u) -> None:
 WARIANT = "wlasny"
 
 
+def przekladka(pdf) -> None:
+    """Wyrazna granica miedzy czescia dla sklepu a czescia do wlasnej roboty."""
+    pdf.add_page()
+    pdf.set_y(70)
+    pdf.set_font("Helvetica", "B", 22)
+    pdf.cell(0, 12, "DALSZE STRONY - DLA MNIE", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 12)
+    pdf.ln(4)
+    for linia in (
+        "Ponizsze rysunki dotycza roboty, ktora wykonam sam:",
+        "",
+        "plan ciecia arkusza OSB w kaciku majsterkowicza,",
+        "montaz polek i przegrod w regale,",
+        "ciecie starej deski z blatu biurka w domu.",
+        "",
+        "Obsluga sklepu ich nie potrzebuje.",
+    ):
+        pdf.cell(0, 7, linia, align="C", new_x="LMARGIN", new_y="NEXT")
+
+
 def strona_tytulowa(pdf) -> None:
     """Pierwsza strona dla obslugi sklepu - co zamawiam i czego NIE."""
     pdf.add_page()
@@ -239,14 +259,15 @@ def strona_tytulowa(pdf) -> None:
     pdf.cell(0, 7, "Co jest dalej w tym dokumencie", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "", 9.5)
     for nr, opis in (
-        ("2", "plan ciecia arkusza OSB (tne sam)"),
-        ("3", "widok zabudowy regalu"),
-        ("4", "przegrody z odpadu"),
-        ("5", "ciecie starej deski - w domu"),
-        ("6", "widok zabudowy szafy - stad wymiar 755 x 450"),
-        ("7", "lista zakupow"),
-        ("8", "kalkulacja kosztow ciecia"),
+        ("2", "widok zabudowy szafy - stad wymiar formatek 755 x 450"),
+        ("3", "lista zakupow"),
+        ("4", "kalkulacja kosztow ciecia"),
+        ("", ""),
+        ("5-8", "plan ciecia OSB, montaz regalu i deski - do mojej roboty"),
     ):
+        if not nr:
+            pdf.ln(2)
+            continue
         pdf.set_x(26)
         pdf.cell(10, 5.4, f"str. {nr}")
         pdf.cell(0, 5.4, opis, new_x="LMARGIN", new_y="NEXT")
@@ -258,9 +279,15 @@ def zbuduj(sciezka: Path, wariant: str = "wlasny") -> Path:
     pdf = PlanCiecia(orientation="L", unit="mm", format="A4")
     pdf.set_auto_page_break(False)
     if WARIANT != "sklep":
+        # CZESC 1 - dla sklepu: zlecenie, co z tego powstanie, koszty, zakupy
         strona_tytulowa(pdf)
-    pdf.add_page()
+        plan_szaf(pdf)
+        lista_zakupow(pdf)
+        koszty_ciecia(pdf)
+        przekladka(pdf)
 
+    # CZESC 2 - dla mnie: plan ciecia arkusza i montaz
+    pdf.add_page()
     u = Ustawienie(x=38, y=40)
     rysuj(pdf, u)
 
@@ -301,10 +328,9 @@ def zbuduj(sciezka: Path, wariant: str = "wlasny") -> Path:
     rysunek_montazowy(pdf)
     plan_przegrod(pdf)
     plan_deski(pdf)
-    plan_szaf(pdf)
-    lista_zakupow(pdf)
-    if WARIANT != "sklep":
-        koszty_ciecia(pdf)
+    if WARIANT == "sklep":
+        plan_szaf(pdf)
+        lista_zakupow(pdf)
     pdf.output(str(sciezka))
     return sciezka
 
