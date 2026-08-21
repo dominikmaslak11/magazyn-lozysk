@@ -10,6 +10,8 @@ i ilości łożysk), a nie szacowane na oko - przy każdym dokumencie jest sekcj
 
 | plik | co zawiera |
 |------|------------|
+| [lista-zakupow.md](lista-zakupow.md) | **jedna lista na oba projekty**, ułożona działami sklepu |
+| [szafy-na-ubrania.md](szafy-na-ubrania.md) | półki do dwóch szaf: obliczenia, formatki, obrzeże |
 | [lista-zakupow-polki-regal-2.md](lista-zakupow-polki-regal-2.md) | płyta, listwy i wkręty na 6 nowych półek w Regale 2 |
 | [zamowienie-leroy-kody.md](zamowienie-leroy-kody.md) | kody produktów do zamówienia przez internet |
 | [porownanie-leroy-castorama.md](porownanie-leroy-castorama.md) | gdzie taniej: porównanie cen obu sieci |

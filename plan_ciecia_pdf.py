@@ -214,6 +214,8 @@ def zbuduj(sciezka: Path) -> Path:
     rysunek_montazowy(pdf)
     plan_przegrod(pdf)
     plan_deski(pdf)
+    plan_szaf(pdf)
+    lista_zakupow(pdf)
     pdf.output(str(sciezka))
     return sciezka
 
@@ -562,6 +564,171 @@ def plan_deski(pdf) -> None:
     ):
         pdf.set_x(16)
         pdf.cell(0, 4.6, linia, new_x="LMARGIN", new_y="NEXT")
+
+
+# ================================================ SZAFY NA UBRANIA (str. 5) ===
+
+SZAFA = (1200.0, 760.0, 470.0)     # wysokosc x szerokosc x glebokosc wnetrza
+SZAFA_SCIANKA = 16.0
+SZAFA_POLEK = 3
+SZAFA_POLKA = (755.0, 450.0)
+SZAFA_GRUB = 18.0
+SZAF = 2
+
+
+def plan_szaf(pdf) -> None:
+    """Drugi projekt: polki do dwoch szaf na ubrania."""
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.set_y(12)
+    pdf.cell(0, 7, "Szafy na ubrania - 3 polki w kazdej z dwoch", align="C",
+              new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 9)
+    k = (SZAFA[0] - SZAFA_POLEK * SZAFA_GRUB) / (SZAFA_POLEK + 1)
+    pdf.cell(0, 5, f"Przestrzen {SZAFA[0]:.0f} x {SZAFA[1]:.0f} x {SZAFA[2]:.0f} mm, "
+                    f"scianka {SZAFA_SCIANKA:.0f} mm   |   4 poziomy po {k:.0f} mm",
+              align="C", new_x="LMARGIN", new_y="NEXT")
+
+    S = 0.105
+    x0, y0 = 40.0, 34.0
+    szer, wys = SZAFA[1] * S, SZAFA[0] * S
+
+    def py(z):
+        return y0 + wys - z * S
+
+    pdf.set_draw_color(60, 60, 60)
+    pdf.set_line_width(0.4)
+    pdf.set_fill_color(205, 200, 190)
+    for x in (x0 - SZAFA_SCIANKA * S, x0 + szer):
+        pdf.rect(x, y0, SZAFA_SCIANKA * S, wys, style="FD")
+    for z in (-SZAFA_SCIANKA, SZAFA[0]):
+        pdf.rect(x0 - SZAFA_SCIANKA * S, py(z + SZAFA_SCIANKA),
+                  szer + 2 * SZAFA_SCIANKA * S, SZAFA_SCIANKA * S, style="FD")
+
+    z = k
+    for i in range(1, SZAFA_POLEK + 1):
+        pdf.set_fill_color(250, 250, 248)
+        pdf.rect(x0, py(z + SZAFA_GRUB), szer, SZAFA_GRUB * S, style="FD")
+        yy = py(z + SZAFA_GRUB / 2)
+        pdf.set_draw_color(140, 140, 140)
+        pdf.set_line_width(0.2)
+        pdf.line(x0 + szer, yy, x0 + szer + 5, yy)
+        pdf.set_font("Helvetica", "B", 7.5)
+        pdf.set_xy(x0 + szer + 6, yy - 2)
+        pdf.cell(40, 4, f"{z + SZAFA_GRUB:.0f} mm")
+        pdf.set_draw_color(60, 60, 60)
+        pdf.set_line_width(0.4)
+        z += SZAFA_GRUB + k
+
+    pdf.set_draw_color(0, 0, 0)
+    pdf.set_line_width(0.8)
+    pdf.rect(x0, y0, szer, wys)
+    pdf.set_font("Helvetica", "", 8)
+    pdf.set_xy(x0, y0 + wys + 4)
+    pdf.cell(szer, 5, f"{SZAFA[1]:.0f} mm", align="C")
+
+    X = 150.0
+    pdf.set_xy(X, 36)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 6, "Formatki do zamowienia (na wymiar)", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 9)
+    for linia in (
+        f"{SZAF * SZAFA_POLEK} x   {SZAFA_POLKA[0]:.0f} x {SZAFA_POLKA[1]:.0f} mm",
+        "plyta meblowa laminowana BIALA 18 mm",
+        "",
+        f"755 = {SZAFA[1]:.0f} minus 5 mm luzu",
+        f"450 zamiast {SZAFA[2]:.0f} - 2 cm zapasu na zawiasy",
+        f"razem {SZAF * SZAFA_POLEK * SZAFA_POLKA[0] * SZAFA_POLKA[1] / 1e6:.2f} m2",
+    ):
+        pdf.set_x(X)
+        pdf.cell(0, 5, linia, new_x="LMARGIN", new_y="NEXT")
+
+    pdf.ln(3)
+    pdf.set_x(X)
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.cell(0, 5, "Dlaczego 18 mm, a nie 16 jak scianki", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 8.5)
+    for linia in (
+        "Rozpietosc 76 cm. Ugiecie po latach, granica 3,8 mm:",
+        "   16 mm:  15 kg -> 3,8 mm   20 kg -> 5,1 mm  za duzo",
+        "   18 mm:  15 kg -> 2,7 mm   20 kg -> 3,6 mm  OK",
+        "",
+        "POSCIELI I KOCOW (25-30 kg) na te polki nie kladz -",
+        "wygna kazda plyte na tej rozpietosci.",
+        "",
+        "Cieta krawedz bialej plyty to gola wiorowa - oklej",
+        "obrzezem przednie krawedzie, razem 4,5 m.",
+    ):
+        pdf.set_x(X)
+        pdf.cell(0, 4.6, linia, new_x="LMARGIN", new_y="NEXT")
+
+
+# ==================================================== LISTA ZAKUPOW (str. 6) ===
+
+def lista_zakupow(pdf) -> None:
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 15)
+    pdf.set_y(12)
+    pdf.cell(0, 7, "LISTA ZAKUPOW - jeden wyjazd, dwa projekty", align="C",
+              new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 9)
+    pdf.cell(0, 5, "ulozona dzialami sklepu", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(4)
+
+    dzialy = [
+        ("DZIAL PLYT", [
+            ("OSB-3 18 mm, arkusz 250 x 125 cm (kod 43226043)", "1 szt.", "104 zl"),
+            ("plyta laminowana BIALA 18 mm - DOCIETA NA WYMIAR", "2,04 m2", "~78 zl"),
+            ("     zamowienie: 6 formatek 755 x 450 mm", "", ""),
+        ]),
+        ("DZIAL DREWNA", [
+            ("listwa montazowa sosnowa 20 x 30 x 2700 (kod 45216185)", "4 szt.", "~48 zl"),
+        ]),
+        ("DZIAL METALOWY", [
+            ("wkrety do drewna 4 x 35 mm, OCYNKOWANE", "100 szt.", "~25 zl"),
+            ("wkrety do drewna 3,5 x 30 mm, OCYNKOWANE", "100 szt.", "~20 zl"),
+            ("podporki do polek, kolek 5 mm", "24 szt.", "~15 zl"),
+        ]),
+        ("DZIAL WYKONCZENIA", [
+            ("obrzeze melaminowe biale 18-19 mm, rolka 5 m", "1-2 szt.", "~30 zl"),
+        ]),
+    ]
+    for naglowek, pozycje in dzialy:
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.set_x(18)
+        pdf.cell(0, 6, naglowek, new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("Helvetica", "", 9)
+        for co, ile, cena in pozycje:
+            pdf.set_x(22)
+            pdf.cell(150, 5.4, co)
+            pdf.cell(28, 5.4, ile)
+            pdf.cell(0, 5.4, cena, new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(2)
+
+    pdf.ln(2)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.set_x(18)
+    pdf.cell(150, 6, "RAZEM")
+    pdf.cell(0, 6, "~320 zl", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 8.5)
+    pdf.set_x(18)
+    pdf.cell(0, 5, "   (regal na lozyska ~197 zl + szafy ~123 zl, plus oplata za dociecie)",
+              new_x="LMARGIN", new_y="NEXT")
+
+    pdf.ln(5)
+    pdf.set_font("Helvetica", "B", 9.5)
+    pdf.set_x(18)
+    pdf.cell(0, 5, "NA CO UWAZAC", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 8.5)
+    for linia in (
+        "Wkretow NIE zaokraglaj w gore: scianka regalu ma 20 mm, scianka szafy 16 -",
+        "wkret 40 mm przebije jedna i druga na wylot.",
+        "Nie bierz wkretow nierdzewnych, sa kilka razy drozsze i do wnetrza niepotrzebne.",
+        "Nie bierz calego arkusza bialej plyty: 220 zl za 5,8 m2, gdy potrzebujesz 2 m2.",
+        "Zapytaj PRZEZ TELEFON o cene dociecia - zalezy od sklepu i potrafi zaskoczyc.",
+    ):
+        pdf.set_x(22)
+        pdf.cell(0, 4.8, linia, new_x="LMARGIN", new_y="NEXT")
 
 
 if __name__ == "__main__":
