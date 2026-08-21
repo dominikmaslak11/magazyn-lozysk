@@ -14,8 +14,8 @@ Okno zostaje otwarte po zakończeniu — można dalej klikać ręcznie.
 
 from __future__ import annotations
 
-import os
 import argparse
+import os
 import sys
 import time
 from pathlib import Path
