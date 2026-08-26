@@ -27,6 +27,8 @@ POLKA_REGAL = (855.0, 495.0)
 POLKA_GORNA = (855.0, 391.0)   # płytsza, bo wychodzi z pasa odpadowego
 PRZEGRODA = (495.0, 192.0)     # komora przy półkach 11 mm (przy 18 mm było 187)
 POLKA_SZAFA = (755.0, 450.0)
+LISTWA_REGAL = (495.0, 30.0)   # 12 szt., podpory boczne pod półki regału
+LISTWA_SZAFA = (450.0, 20.0)   # 12 szt., podpory boczne pod półki szafy
 PASEK = (755.0, 40.0)          # usztywnienie pod przednią krawędzią półki szafy
 # 40 mm, nie 60: rachunek ugięcia daje minimum 27 mm, a 40 mm zostawia zapas
 # (1,69 mm przy granicy 3,77). Węższy pasek = mniej materiału na paski
@@ -49,6 +51,7 @@ class Kawalek:
 OSB = (222, 196, 145)
 PRZEG = (170, 195, 225)
 PASKI = (200, 215, 180)
+LISTWY = (215, 195, 225)
 
 
 def uklad_regalu() -> list[Kawalek]:
@@ -95,6 +98,22 @@ def uklad_szafy() -> list[Kawalek]:
     y2 = POLKA_SZAFA[0] + RZAZ
     k.append(Kawalek(0, y2, *POLKA_SZAFA, "półka 6\n755x450", OSB))
     k.append(Kawalek(0, y2 + POLKA_SZAFA[1] + RZAZ, *PASEK, "pasek 6", PASKI))
+
+    # Listwy nośne z tego samego arkusza (decyzja 26.08) - zamiast kupowania
+    # sosny. Kosztuje to kawałek dużego odpadu: zostaje 1743 x 277 zamiast
+    # 1743 x 493, czyli już nie wyjdzie z niego półka. Świadomy wybór.
+    x0 = POLKA_SZAFA[0] + RZAZ
+    for wiersz in range(4):
+        for kol in range(3):
+            k.append(Kawalek(x0 + kol * (LISTWA_REGAL[0] + RZAZ),
+                             y2 + wiersz * (LISTWA_REGAL[1] + RZAZ),
+                             *LISTWA_REGAL, "", LISTWY))
+    y3 = y2 + 4 * (LISTWA_REGAL[1] + RZAZ)
+    for wiersz in range(4):
+        for kol in range(3):
+            k.append(Kawalek(x0 + kol * (LISTWA_SZAFA[0] + RZAZ),
+                             y3 + wiersz * (LISTWA_SZAFA[1] + RZAZ),
+                             *LISTWA_SZAFA, "", LISTWY))
     return k
 
 
@@ -177,7 +196,7 @@ def lista(pdf, wiersze: list[tuple[str, str, int]], naglowek: str, y: float) -> 
             pdf.rect(14 + i * 5, y + 0.8, 3.6, 3.6)
         pdf.set_xy(14 + ile * 5 + 4, y)
         pdf.cell(0, 5, f"{ile} x  {nazwa}   —   {wymiar}")
-        y += 6.5
+        y += 5.5
 
 
 def strona_zasad(pdf) -> None:
@@ -253,23 +272,25 @@ def zbuduj(sciezka: Path) -> Path:
                 ("przegrody", f"495 x {KOMORA_REGAL:.0f} mm", 6)],
           "Z tego arkusza wychodzi:", 168)
     pdf.set_font("DejaVu", "", 9.5)
-    pdf.set_xy(14, 197)
+    pdf.set_xy(14, 194)
     pdf.cell(0, 5, "+ ze starej deski z biurka: 1 półka 855 x 495 i 2 przegrody  ->  razem 8 przegród")
 
     rysuj_arkusz(pdf, uklad_szafy(), "Arkusz 2 — SZAFA NA UBRANIA ROBOCZE",
                  "OSB-3 11 mm, 2500 x 1250 mm, wyrzynarka (rzaz 2 mm)",
-                 adnotacje=[(1750, 640, "zielone z prawej: 5 pasków 40 x 755 mm"),
-                            (800, 950, "ODPAD 1740 x 490 mm — ZOSTAW W CAŁOŚCI"),
-                            (800, 1010, "(wyjdą z niego jeszcze dwie półki 755 x 450)"),
-                            (800, 1195, "zielony pasek na dole: pasek 6")])
+                 adnotacje=[(830, 1010, "ODPAD 1740 x 277 mm — jeden kawałek, nie tnij"),
+                            (830, 1075, "fiolet: 12 listew 495x30 (regał) + 12 listew 450x20 (szafa)"),
+                            (830, 1140, "zielone: 6 pasków usztywniających 755 x 40 mm"),
+                            (830, 1205, "(pięć w skrawku z prawej, szósty pod półką 6)")])
     lista(pdf, [("półki", "755 x 450 mm", 6),
-                ("paski usztywniające", "755 x 40 mm", 6)],
-          "Z tego arkusza wychodzi:", 168)
+                ("paski usztywniające", "755 x 40 mm", 6),
+                ("listwy nośne do REGAŁU", "495 x 30 mm", 12),
+                ("listwy nośne do SZAFY", "450 x 20 mm", 12)],
+          "Z tego arkusza wychodzi:", 166)
     pdf.set_font("DejaVu", "", 9.5)
-    pdf.set_xy(14, 191)
+    pdf.set_xy(14, 196)
     pdf.cell(0, 5, "Pasek idzie pod PRZEDNIĄ krawędź półki, na sztorc. Bez niego półka ugnie się 12,6 mm.")
-    pdf.set_xy(14, 197)
-    pdf.cell(0, 5, "Odpad zostaje JEDNYM kawałkiem 1740 x 490 mm — nie tnij go na drobne.")
+    pdf.set_xy(14, 202)
+    pdf.cell(0, 5, "Listwy nośne też z tego arkusza — sosny nie kupujemy. Odpad: 1740 x 277 mm.")
 
     strona_zasad(pdf)
     pdf.output(str(sciezka))
