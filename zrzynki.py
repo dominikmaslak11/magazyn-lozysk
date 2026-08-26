@@ -30,11 +30,12 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+import stolarz
 from stolarz import OSB_18, Material, Polka, rozkroj
 
 # Formatki z planu Regału 2 — patrz plan_ciecia_pdf.py.
 POLKA = Polka(855.0, 495.0)
-PRZEGRODA = Polka(495.0, 187.0)
+PRZEGRODA = Polka(495.0, 192.0)   # komora urosla, bo polki sa cienesze (11 zamiast 18 mm)
 
 # Cennik docinania w Leroy Kalisz, potwierdzony telefonicznie 2026-08-21.
 CIECIE_ZWYKLE = 3.0    # termin 2-3 dni
@@ -85,6 +86,12 @@ def liczba_ciec(plyta_dl: float, plyta_szer: float,
 
 RZAZ = 4.0
 
+# Rzaz zalezy od NARZEDZIA, nie od miejsca ciecia. Pila panelowa w markecie zjada
+# ~4 mm, wyrzynarka ~2 mm. To nie kosmetyka: przy szerokosci 1250 mm dwa milimetry
+# na ciecie potrafia zmienic liczbe formatek, ktore wyjda z plyty.
+RZAZ_PILA_PANELOWA = 4.0
+RZAZ_WYRZYNARKA = 2.0
+
 
 def ukladanie(plyta_dl: float, plyta_szer: float,
               form_dl: float, form_szer: float) -> tuple[float, float]:
@@ -105,6 +112,22 @@ def ukladanie(plyta_dl: float, plyta_szer: float,
 _C_ARK, ODNIESIENIE_SZTUK = liczba_ciec(2500.0, 1250.0, 855.0, 495.0)
 CIEC_ARKUSZA = _C_ARK
 PRZEGROD_Z_ARKUSZA = rozkroj(OSB_18, PRZEGRODA, 1).sztuk_z_arkusza
+
+
+def ustaw_rzaz(mm: float) -> None:
+    """Ustawia szerokosc rzazu w CALYM rachunku i przelicza wartosci odniesienia.
+
+    Musi ruszyc tez stolarz.RZAZ_MM, bo liczba formatek pochodzi z rozkroj(),
+    a liczba ciec z liczba_ciec() - kazda czyta wlasna stala. Gdyby rozjechaly
+    sie na dwoch wartosciach, tabela mowilaby co innego niz rysunek. Dokladnie
+    ten blad juz tu byl (patrz TestRysunekZgadzaSieZTabela) i kosztowal
+    jedna polke za malo.
+    """
+    global RZAZ, CIEC_ARKUSZA, ODNIESIENIE_SZTUK, PRZEGROD_Z_ARKUSZA
+    RZAZ = float(mm)
+    stolarz.RZAZ_MM = float(mm)
+    CIEC_ARKUSZA, ODNIESIENIE_SZTUK = liczba_ciec(2500.0, 1250.0, 855.0, 495.0)
+    PRZEGROD_Z_ARKUSZA = rozkroj(OSB_18, PRZEGRODA, 1).sztuk_z_arkusza
 
 
 def cena_polki_z_arkusza(cena_ciecia: float) -> float:
@@ -227,6 +250,8 @@ def raport(w: Wycena) -> str:
     L = [
         f"ODPAD OSB-3 18 mm:  {w.dlugosc:.0f} x {w.szerokosc:.0f} mm "
         f"({w.pole_m2:.2f} m2)   cena {w.cena:.2f} zl   ({w.cena_za_m2:.0f} zl/m2)",
+        f"NARZEDZIE: {'tniemy sami' if w.cena_ciecia == 0 else 'pila panelowa w markecie'}"
+        f"   rzaz {RZAZ:.0f} mm",
         "",
         f"  polek 855 x 495 mm : {w.polek}" + (f"   ({w.uklad_polek})" if w.polek else ""),
         f"  przegrod 495 x 187 : {w.przegrod}",
@@ -234,8 +259,10 @@ def raport(w: Wycena) -> str:
     ]
     if w.polek:
         L += [
-            f"  ciec do zlecenia   : {w.ciec_polki} x {w.cena_ciecia:.0f} zl "
-            f"= {w.koszt_ciecia:.0f} zl",
+            (f"  ciec do zrobienia  : {w.ciec_polki} (za darmo, ale to robota taty)"
+             if w.cena_ciecia == 0 else
+             f"  ciec do zlecenia   : {w.ciec_polki} x {w.cena_ciecia:.0f} zl "
+             f"= {w.koszt_ciecia:.0f} zl"),
             f"  RAZEM              : {w.koszt_calkowity:.2f} zl "
             f"({w.cena:.0f} zl plyta + {w.koszt_ciecia:.0f} zl ciecie)",
             "",
@@ -247,6 +274,17 @@ def raport(w: Wycena) -> str:
             "",
         ]
     L.append(f"  WERDYKT: {w.werdykt}")
+
+    if w.cena_ciecia == 0 and w.polek:
+        L += [
+            "",
+            "  UWAGA - WYRZYNARKA TNIE INACZEJ NIZ PILA PANELOWA:",
+            "  * brzeszczot ucieka na dlugim cieciu - bez prowadnicy albo",
+            "    przykreconej listwy 855 mm potrafi zejsc 3-5 mm z linii;",
+            "  * OSB wyrywa od gory, wiec dobra strona ma byc SPODEM;",
+            "  * polka wchodzi miedzy boki regalu: tnij 2-3 mm PONIZEJ wymiaru.",
+            "    Za waska da sie podeprzec, za szerokiej nie wcisniesz.",
+        ]
 
     if w.werdykt == "BIERZ":
         oszcz = (w.odniesienie - w.cena_za_polke) * w.polek
@@ -406,6 +444,11 @@ def main(argv: list[str] | None = None) -> int:
                         f"{CIECIE_ZWYKLE:.0f} zl za ciecie)")
     p.add_argument("--bez-ciecia", action="store_true",
                    help="tniesz sam - nie doliczaj kosztu uslugi")
+    p.add_argument("--wyrzynarka", action="store_true",
+                   help=f"tata tnie wyrzynarka w domu: rzaz {RZAZ_WYRZYNARKA:.0f} mm "
+                        f"zamiast {RZAZ_PILA_PANELOWA:.0f} mm i zero kosztu ciecia")
+    p.add_argument("--rzaz", type=float, metavar="MM",
+                   help=f"szerokosc rzazu w mm (domyslnie {RZAZ_PILA_PANELOWA:.0f} - pila panelowa)")
     p.add_argument("--pdf", action="store_true", help="zapisz kartke PDF")
     p.add_argument("--mail", metavar="ADRES", nargs="?", const="dominikmaslak11@gmail.com",
                    help="wyslij PDF na e-mail (domyslnie na wlasny adres)")
@@ -419,7 +462,16 @@ def main(argv: list[str] | None = None) -> int:
     if dl < szer:
         dl, szer = szer, dl  # dłuższy bok zawsze pierwszy
 
-    stawka = 0.0 if a.bez_ciecia else (CIECIE_EXPRESS if a.express else CIECIE_ZWYKLE)
+    # Kolejnosc ma znaczenie: rzaz musi byc ustawiony ZANIM cokolwiek policzymy,
+    # bo od niego zalezy liczba formatek i cena odniesienia.
+    if a.rzaz is not None:
+        ustaw_rzaz(a.rzaz)
+    elif a.wyrzynarka:
+        ustaw_rzaz(RZAZ_WYRZYNARKA)
+
+    # Wyrzynarka w domu = nikt nie placi za ciecie.
+    stawka = 0.0 if (a.bez_ciecia or a.wyrzynarka) else (
+        CIECIE_EXPRESS if a.express else CIECIE_ZWYKLE)
     w = wyceniaj(dl, szer, a.cena, stawka)
     print(raport(w))
 

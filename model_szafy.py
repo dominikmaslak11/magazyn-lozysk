@@ -24,7 +24,7 @@ GLEBOKOSC = 470.0        # głębokość wnętrza
 SCIANKA = 16.0           # grubość ścianki szafy
 
 POLEK = 3                # -> 4 poziomy
-POLKA_GRUB = 18.0
+POLKA_GRUB = 11.0        # OSB-3 11 mm, kupione 25.08.2026
 POLKA_DL = SZEROKOSC - 5.0        # 5 mm luzu, żeby weszła
 POLKA_GLEB = 450.0                # płytsza od wnętrza: 2 cm zapasu na zawiasy i drzwi
 

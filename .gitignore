@@ -48,3 +48,6 @@ SESJA.md
 # Wyceny odpadow generowane na biezaco przy kazdym zapytaniu - to wyniki, nie
 # dokumenty projektu. Trwale dokumenty w warsztat/ maja wlasne nazwy i sa sledzone.
 warsztat/odpad-*.pdf
+
+# Kopie zapasowe FreeCAD - powstaja przy kazdym zapisie modelu.
+warsztat/*.FCBak

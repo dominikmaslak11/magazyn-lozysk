@@ -30,7 +30,7 @@ SCIANKA = 20.0            # grubość ścianki starej szafy
 
 POLKA_DL = 855.0          # 860 minus 5 mm luzu, żeby półka weszła
 POLKA_GLEB = 495.0
-POLKA_GRUB = 18.0         # OSB-3
+POLKA_GRUB = 11.0        # OSB-3 11 mm, kupione 25.08.2026
 DESKA_GRUB = 20.0         # stara deska z blatu biurka (jedna z sześciu)
 
 LISTWA_SZER = 20.0        # podpory boczne

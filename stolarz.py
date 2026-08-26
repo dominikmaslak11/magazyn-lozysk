@@ -53,12 +53,15 @@ class Material:
 # Wartości E przyjęte ostrożnie — producenci podają wyższe, ale płyta z marketu
 # rzadko trafia w górną granicę normy.
 OSB_18 = Material("OSB-3 18 mm", 18.0, 3500.0, (2500.0, 1250.0), 104.0)
+# Kupione 2026-08-25 w Leroy: 56,97 zl za arkusz. Tansze OD 8 mm (71,29 zl),
+# ktore jest jednoczesnie slabsze - dlatego 8 mm nie ma tu wcale.
+OSB_11 = Material("OSB-3 11 mm", 11.0, 3500.0, (2500.0, 1250.0), 56.97)
 WIOROWA_18 = Material("wiórowa surowa 18 mm", 18.0, 2800.0, (2800.0, 2070.0), 230.0)
 LAMINOWANA_18 = Material("laminowana biała 18 mm", 18.0, 2800.0, (2800.0, 2070.0), None)
 LAMINOWANA_16 = Material("laminowana biała 16 mm", 16.0, 2800.0, (2800.0, 2070.0), None)
 SKLEJKA_18 = Material("sklejka 18 mm", 18.0, 7000.0, (2500.0, 1250.0), None)
 
-MATERIALY = {m.nazwa: m for m in (OSB_18, WIOROWA_18, LAMINOWANA_18, LAMINOWANA_16, SKLEJKA_18)}
+MATERIALY = {m.nazwa: m for m in (OSB_18, OSB_11, WIOROWA_18, LAMINOWANA_18, LAMINOWANA_16, SKLEJKA_18)}
 
 
 @dataclass
