@@ -37,6 +37,13 @@ PASEK = (755.0, 40.0)          # usztywnienie pod przednią krawędzią półki 
 KOMORA_REGAL = 192.0
 KOMORA_SZAFA = 292.0
 
+# Stara deska z blatu biurka - laminowana wiórowa, GRUBSZA niż OSB.
+# Idzie wyłącznie do regału: Dominik dopuszcza tam 20 mm i więcej, ale w szafie
+# na ubrania wszystko ma być z 11 mm OSB, żeby wyglądało jednolicie.
+DESKA = (1240.0, 520.0)
+DESKA_GRUB = 20.0
+LISTWA_DESKA = (495.0, 23.0)   # z paska po zwężeniu 520 -> 495
+
 
 @dataclass
 class Kawalek:
@@ -52,6 +59,7 @@ OSB = (222, 196, 145)
 PRZEG = (170, 195, 225)
 PASKI = (200, 215, 180)
 LISTWY = (215, 195, 225)
+DESKA_KOLOR = (196, 164, 132)
 
 
 def uklad_regalu() -> list[Kawalek]:
@@ -119,6 +127,24 @@ def uklad_szafy() -> list[Kawalek]:
 
 # ------------------------------------------------------------------- PDF ----
 
+def uklad_deski() -> list[Kawalek]:
+    """Rozkrój blatu biurka. Trzy cięcia, prawie zero odpadu.
+
+    Sedno: pasek, który odpada przy zwężeniu 520 -> 495 mm, NIE jest odpadem.
+    Wychodzą z niego dwie listwy nośne - dokładnie te dwie, których brakowało
+    do siódmej półki regału. Bez tego trzeba by dokupić sosnę.
+    """
+    k: list[Kawalek] = []
+    k.append(Kawalek(0, 0, 855.0, 495.0, "PÓŁKA z deski\n855x495\n(grubość 20 mm)", DESKA_KOLOR))
+    x = 855.0 + RZAZ
+    k.append(Kawalek(x, 0, PRZEGRODA[1], PRZEGRODA[0], "przegroda\n192x495", PRZEG))
+    # pasek ze zwężenia - dwie listwy nośne
+    y = 495.0 + RZAZ
+    for i in range(2):
+        k.append(Kawalek(i * (LISTWA_DESKA[0] + RZAZ), y, *LISTWA_DESKA, "", LISTWY))
+    return k
+
+
 def _pdf() -> FPDF:
     pdf = FPDF(orientation="L", unit="mm", format="A4")
     fonty = Path(__file__).resolve().parent / "fonts"
@@ -133,7 +159,8 @@ RYS_X, RYS_Y, RYS_SKALA = 12.0, 30.0, 0.106   # arkusz 2500 mm -> 265 mm papieru
 
 
 def rysuj_arkusz(pdf, kawalki: list[Kawalek], tytul: str, podtytul: str,
-                 adnotacje: list[tuple[float, float, str]] | None = None) -> None:
+                 adnotacje: list[tuple[float, float, str]] | None = None,
+                 arkusz: tuple[float, float] = ARKUSZ) -> None:
     pdf.add_page()
     pdf.set_font("DejaVu", "B", 16)
     pdf.set_xy(12, 10)
@@ -142,10 +169,11 @@ def rysuj_arkusz(pdf, kawalki: list[Kawalek], tytul: str, podtytul: str,
     pdf.set_xy(12, 19)
     pdf.cell(0, 5, podtytul)
 
-    X0, Y0, SKALA = RYS_X, RYS_Y, RYS_SKALA
+    X0, Y0 = RYS_X, RYS_Y
+    SKALA = 265.0 / arkusz[0]        # skala z szerokości - deska jest krótsza od arkusza
     pdf.set_line_width(0.5)
     pdf.set_draw_color(60, 60, 60)
-    pdf.rect(X0, Y0, ARKUSZ[0] * SKALA, ARKUSZ[1] * SKALA)
+    pdf.rect(X0, Y0, arkusz[0] * SKALA, arkusz[1] * SKALA)
 
     for k in kawalki:
         x, y = X0 + k.x * SKALA, Y0 + k.y * SKALA
@@ -178,10 +206,10 @@ def rysuj_arkusz(pdf, kawalki: list[Kawalek], tytul: str, podtytul: str,
 
     # Wymiary arkusza przy krawędziach - żeby nie trzeba było ufać skali.
     pdf.set_font("DejaVu", "", 8)
-    pdf.set_xy(X0, Y0 + ARKUSZ[1] * SKALA + 1.5)
-    pdf.cell(ARKUSZ[0] * SKALA, 5, "2500 mm", align="C")
-    pdf.set_xy(X0 + ARKUSZ[0] * SKALA + 2, Y0 + ARKUSZ[1] * SKALA / 2 - 2)
-    pdf.cell(20, 4, "1250 mm")
+    pdf.set_xy(X0, Y0 + arkusz[1] * SKALA + 1.5)
+    pdf.cell(arkusz[0] * SKALA, 5, f"{arkusz[0]:.0f} mm", align="C")
+    pdf.set_xy(X0 + arkusz[0] * SKALA + 2, Y0 + arkusz[1] * SKALA / 2 - 2)
+    pdf.cell(20, 4, f"{arkusz[1]:.0f} mm")
 
 
 def lista(pdf, wiersze: list[tuple[str, str, int]], naglowek: str, y: float) -> None:
@@ -291,6 +319,27 @@ def zbuduj(sciezka: Path) -> Path:
     pdf.cell(0, 5, "Pasek idzie pod PRZEDNIĄ krawędź półki, na sztorc. Bez niego półka ugnie się 12,6 mm.")
     pdf.set_xy(14, 202)
     pdf.cell(0, 5, "Listwy nośne też z tego arkusza — sosny nie kupujemy. Odpad: 1740 x 277 mm.")
+
+    rysuj_arkusz(pdf, uklad_deski(), "Stara DESKA z blatu biurka — do REGAŁU",
+                 "laminowana wiórowa 1240 x 520 x 20 mm, wyrzynarka (rzaz 2 mm)",
+                 adnotacje=[(1055, 200, "reszta 189 x 495 — zapas"),
+                            (1000, 460, "fiolet: 2 listwy 495 x 23 mm"),
+                            (1000, 505, "z paska po zwężeniu 520 -> 495")],
+                 arkusz=DESKA)
+    lista(pdf, [("półka (20 mm, do regału)", "855 x 495 mm", 1),
+                ("przegroda", "495 x 192 mm", 1),
+                ("listwy nośne (20 mm)", "495 x 23 mm", 2)],
+          "Z deski wychodzi:", 158)
+    pdf.set_font("DejaVu", "", 9.5)
+    pdf.set_xy(14, 182)
+    pdf.cell(0, 5, "Kolejność: 1) zwęź całą deskę 520 -> 495 mm  2) odetnij półkę 855  "
+                   "3) z reszty jedna przegroda  4) pasek na dwie listwy")
+    pdf.set_xy(14, 188)
+    pdf.cell(0, 5, "Laminat chroni tylko płaszczyzny — ZABEZPIECZ KRAWĘDZIE po cięciu "
+                   "(obrzeże, silikon albo farba).")
+    pdf.set_xy(14, 194)
+    pdf.cell(0, 5, "Te dwie listwy idą pod SIÓDMĄ (górną) półkę regału. To dokładnie te, "
+                   "których brakowało.")
 
     strona_zasad(pdf)
     pdf.output(str(sciezka))
