@@ -28,7 +28,9 @@ POLKA_GORNA = (855.0, 391.0)   # płytsza, bo wychodzi z pasa odpadowego
 PRZEGRODA = (495.0, 192.0)     # komora przy półkach 11 mm (przy 18 mm było 187)
 POLKA_SZAFA = (755.0, 450.0)
 LISTWA_REGAL = (495.0, 30.0)   # 12 szt., podpory boczne pod półki regału
-LISTWA_SZAFA = (450.0, 20.0)   # 12 szt., podpory boczne pod półki szafy
+LISTWA_SZAFA = (450.0, 30.0)   # 12 szt., podpory boczne pod półki szafy
+# 30 mm, nie 20 (decyzja 27.08): jedna szerokość listwy w całym projekcie.
+# Mniej pomyłek przy trasowaniu i jedno ustawienie prowadnicy na wszystko.
 PASEK = (755.0, 40.0)          # usztywnienie pod przednią krawędzią półki szafy
 # 40 mm, nie 60: rachunek ugięcia daje minimum 27 mm, a 40 mm zostawia zapas
 # (1,69 mm przy granicy 3,77). Węższy pasek = mniej materiału na paski
@@ -110,17 +112,20 @@ def uklad_szafy() -> list[Kawalek]:
     k.append(Kawalek(0, y2, *POLKA_SZAFA, "półka 6\n755x450", OSB))
 
     x0 = POLKA_SZAFA[0] + RZAZ
+    # Wszystkie listwy maja teraz 30 mm, wiec ida w jednym bloku i wystarczy
+    # RAZ ustawic prowadnice. Kolejnosc: najpierw dlugie (regal), potem krotsze.
     n = 0
-    for wiersz in range(2):                       # pozostałe 5 listew regału
+    y = y2
+    for wiersz in range(2):                       # pozostale 5 listew regalu
         for kol in range(3):
             if n >= 5:
                 break
             k.append(Kawalek(x0 + kol * (LISTWA_REGAL[0] + RZAZ),
-                             y2 + wiersz * (LISTWA_REGAL[1] + RZAZ),
+                             y + wiersz * (LISTWA_REGAL[1] + RZAZ),
                              *LISTWA_REGAL, "", LISTWY))
             n += 1
     y3 = y2 + 2 * (LISTWA_REGAL[1] + RZAZ)
-    for wiersz in range(4):                       # 12 listew szafy
+    for wiersz in range(4):                       # 12 listew szafy, juz 30 mm
         for kol in range(3):
             k.append(Kawalek(x0 + kol * (LISTWA_SZAFA[0] + RZAZ),
                              y3 + wiersz * (LISTWA_SZAFA[1] + RZAZ),
@@ -308,19 +313,19 @@ def zbuduj(sciezka: Path) -> Path:
 
     rysuj_arkusz(pdf, uklad_szafy(), "Arkusz 2 — SZAFA NA UBRANIA ROBOCZE",
                  "OSB-3 11 mm, 2500 x 1250 mm, wyrzynarka (rzaz 2 mm)",
-                 adnotacje=[(830, 990, "fiolet: 12 listew regału 495x30 + 12 listew szafy 450x20"),
+                 adnotacje=[(830, 990, "fiolet: 12 listew regału 495x30 + 12 listew szafy 450x30 — jedna szerokość"),
                             (830, 1055, "(siedem listew regału stoi w skrawku z prawej)"),
                             (830, 1130, "ODPAD — jeden kawałek, materiał na zapasowe"),
                             (830, 1195, "przegrody i na paski, gdyby półki jednak zwisały")])
     lista(pdf, [("półki", "755 x 450 mm", 6),
                 ("listwy nośne do REGAŁU", "495 x 30 mm", 12),
-                ("listwy nośne do SZAFY", "450 x 20 mm", 12)],
+                ("listwy nośne do SZAFY", "450 x 30 mm", 12)],
           "Z tego arkusza wychodzi:", 166)
     pdf.set_font("DejaVu", "", 9.5)
     pdf.set_xy(14, 196)
     pdf.cell(0, 5, "Pasków usztywniających NIE tniemy - decyzja z 27.08. Gdyby półka zwisała, dokleisz je pózniej.")
     pdf.set_xy(14, 202)
-    pdf.cell(0, 5, "Listwy nośne też z tego arkusza — sosny nie kupujemy. Odpad: 1740 x 340 mm — wiekszy niz wczesniej.")
+    pdf.cell(0, 5, "Listwy nośne też z tego arkusza — sosny nie kupujemy. Odpad: 1740 x 300 mm — zmiesci sie w nim zapasowa przegroda.")
 
     rysuj_arkusz(pdf, uklad_deski(), "Stara DESKA z blatu biurka — do REGAŁU",
                  "laminowana wiórowa 1240 x 520 x 20 mm, wyrzynarka (rzaz 2 mm)",
