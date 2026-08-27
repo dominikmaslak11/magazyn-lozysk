@@ -83,41 +83,44 @@ def uklad_regalu() -> list[Kawalek]:
 
 
 def uklad_szafy() -> list[Kawalek]:
-    """Arkusz 2, układ dobrany tak, żeby ODPAD ZOSTAŁ JEDNYM PROSTOKĄTEM.
+    """Arkusz 2 po rezygnacji z pasków usztywniających (decyzja 27.08).
 
-    Poprzednia wersja kładła półki 3 x 2 i paski pod spodem - odpad rozpadał się
-    wtedy na wąski pas 2500 x 260 i skrawek z boku. Tutaj pięć półek idzie
-    obróconych w górnym pasie, paski chowają się PIONOWO w skrawku z prawej,
-    którego i tak nie da się użyć na nic innego, a szósta półka i ostatni pasek
-    schodzą do lewej kolumny.
+    Pasków nie ma, bo Dominik ocenia, że przy jego obciążeniu płyta 11 mm jest
+    dość sztywna. Rachunek mówi 12,6 mm ugięcia przy 20 kg i 3,2 mm przy 5 kg -
+    czyli wszystko zależy od tego, ile realnie na tych półkach wyląduje.
+    Decyzja jest ODWRACALNA: pasek dokleja się od spodu bez rozbierania mebla,
+    a materiał na niego zostaje w odpadzie.
 
-    Efekt: 1740 x 490 mm wolnego w jednym kawałku (0,85 m2) zamiast paska.
-    To materiał na dwie kolejne półki, a nie na podpałkę. Sprawdzone programem
-    liczącym największy pusty prostokąt - patrz pakowanie.py w notatkach sesji.
+    Zysk z rezygnacji to głównie MNIEJ ROBOTY (sześć wąskich formatek mniej),
+    a nie materiał - paski i tak siedziały w skrawku, którego nie dało się
+    użyć inaczej. Ten skrawek bierze teraz listwy nośne, przez co duży odpad
+    rośnie z 277 do ponad 330 mm.
     """
     k: list[Kawalek] = []
-    for i in range(5):                                   # 5 półek obróconych
+    for i in range(5):
         k.append(Kawalek(i * (POLKA_SZAFA[1] + RZAZ), 0,
                          POLKA_SZAFA[1], POLKA_SZAFA[0], f"półka {i+1}\n450x755", OSB))
-    x_skrawek = 5 * (POLKA_SZAFA[1] + RZAZ)
-    for i in range(5):                                   # paski pionowo w skrawku
-        k.append(Kawalek(x_skrawek + i * (PASEK[1] + RZAZ), 0,
-                         PASEK[1], PASEK[0], "", PASKI))
+    # Skrawek z prawej: listwy regału stojąco - 495 mm mieści się w 755 mm wysokości.
+    x_skr = 5 * (POLKA_SZAFA[1] + RZAZ)
+    for i in range(7):
+        k.append(Kawalek(x_skr + i * (LISTWA_REGAL[1] + RZAZ), 0,
+                         LISTWA_REGAL[1], LISTWA_REGAL[0], "", LISTWY))
+
     y2 = POLKA_SZAFA[0] + RZAZ
     k.append(Kawalek(0, y2, *POLKA_SZAFA, "półka 6\n755x450", OSB))
-    k.append(Kawalek(0, y2 + POLKA_SZAFA[1] + RZAZ, *PASEK, "pasek 6", PASKI))
 
-    # Listwy nośne z tego samego arkusza (decyzja 26.08) - zamiast kupowania
-    # sosny. Kosztuje to kawałek dużego odpadu: zostaje 1743 x 277 zamiast
-    # 1743 x 493, czyli już nie wyjdzie z niego półka. Świadomy wybór.
     x0 = POLKA_SZAFA[0] + RZAZ
-    for wiersz in range(4):
+    n = 0
+    for wiersz in range(2):                       # pozostałe 5 listew regału
         for kol in range(3):
+            if n >= 5:
+                break
             k.append(Kawalek(x0 + kol * (LISTWA_REGAL[0] + RZAZ),
                              y2 + wiersz * (LISTWA_REGAL[1] + RZAZ),
                              *LISTWA_REGAL, "", LISTWY))
-    y3 = y2 + 4 * (LISTWA_REGAL[1] + RZAZ)
-    for wiersz in range(4):
+            n += 1
+    y3 = y2 + 2 * (LISTWA_REGAL[1] + RZAZ)
+    for wiersz in range(4):                       # 12 listew szafy
         for kol in range(3):
             k.append(Kawalek(x0 + kol * (LISTWA_SZAFA[0] + RZAZ),
                              y3 + wiersz * (LISTWA_SZAFA[1] + RZAZ),
@@ -305,20 +308,19 @@ def zbuduj(sciezka: Path) -> Path:
 
     rysuj_arkusz(pdf, uklad_szafy(), "Arkusz 2 — SZAFA NA UBRANIA ROBOCZE",
                  "OSB-3 11 mm, 2500 x 1250 mm, wyrzynarka (rzaz 2 mm)",
-                 adnotacje=[(830, 1010, "ODPAD 1740 x 277 mm — jeden kawałek, nie tnij"),
-                            (830, 1075, "fiolet: 12 listew 495x30 (regał) + 12 listew 450x20 (szafa)"),
-                            (830, 1140, "zielone: 6 pasków usztywniających 755 x 40 mm"),
-                            (830, 1205, "(pięć w skrawku z prawej, szósty pod półką 6)")])
+                 adnotacje=[(830, 990, "fiolet: 12 listew regału 495x30 + 12 listew szafy 450x20"),
+                            (830, 1055, "(siedem listew regału stoi w skrawku z prawej)"),
+                            (830, 1130, "ODPAD — jeden kawałek, materiał na zapasowe"),
+                            (830, 1195, "przegrody i na paski, gdyby półki jednak zwisały")])
     lista(pdf, [("półki", "755 x 450 mm", 6),
-                ("paski usztywniające", "755 x 40 mm", 6),
                 ("listwy nośne do REGAŁU", "495 x 30 mm", 12),
                 ("listwy nośne do SZAFY", "450 x 20 mm", 12)],
           "Z tego arkusza wychodzi:", 166)
     pdf.set_font("DejaVu", "", 9.5)
     pdf.set_xy(14, 196)
-    pdf.cell(0, 5, "Pasek idzie pod PRZEDNIĄ krawędź półki, na sztorc. Bez niego półka ugnie się 12,6 mm.")
+    pdf.cell(0, 5, "Pasków usztywniających NIE tniemy - decyzja z 27.08. Gdyby półka zwisała, dokleisz je pózniej.")
     pdf.set_xy(14, 202)
-    pdf.cell(0, 5, "Listwy nośne też z tego arkusza — sosny nie kupujemy. Odpad: 1740 x 277 mm.")
+    pdf.cell(0, 5, "Listwy nośne też z tego arkusza — sosny nie kupujemy. Odpad: 1740 x 340 mm — wiekszy niz wczesniej.")
 
     rysuj_arkusz(pdf, uklad_deski(), "Stara DESKA z blatu biurka — do REGAŁU",
                  "laminowana wiórowa 1240 x 520 x 20 mm, wyrzynarka (rzaz 2 mm)",
