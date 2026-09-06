@@ -17,6 +17,10 @@ enum class TypLozyska(val etykieta: String) {
     // (UC208 i ES208 to oba 40 x 80 mm). Różni je mocowanie na wale i szerokość pierścienia
     // wewnętrznego, więc jedno nie zastąpi drugiego przy naprawie maszyny.
     WSTAWKOWE_ES("wstawkowe (ES)"),
+    // Seria UD (ZVL) / 2xx-NPP-B (INA) / YAR (SKF). Najłatwiejsza do pomylenia z UC:
+    // UC205 i UD205 to oba 25 x 52 mm, ale UC ma poszerzony pierścień wewnętrzny
+    // z wkrętami dociskowymi (34,1 mm), a UD wchodzi na wał wciskiem (15 mm).
+    WSTAWKOWE_UD("wstawkowe (UD/NPP-B)"),
     // INA/Schaeffler. Osobny typ, bo mają TRZECIĄ konwencję oznaczeń: liczba w symbolu
     // to WPROST otwór w milimetrach (RAE35 = 35 mm), a nie kod otworu jak w ISO.
     WSTAWKOWE_RAE("wstawkowe (RAE/INA)"),
@@ -31,6 +35,10 @@ enum class TypLozyska(val etykieta: String) {
     WALCOWE("walcowe"),
     OPOROWE("oporowe"),
     IGIELKOWE("igiełkowe"),
+    // Numeracja CALOWA Timkena - trzecia konwencja oznaczeń, obok ISO i INA. Numer
+    // jest katalogowy: nie koduje otworu ani rozmiaru, więc reguła "dwie ostatnie
+    // cyfry x 5 mm" tu nie obowiązuje (patrz NO_BORE_CODE w BearingTypeClassifier).
+    STOZKOWE_CALOWE("stożkowe calowe (Timken)"),
 }
 
 data class KatalogWpis(val symbol: String, val d: Double, val dZew: Double, val b: Double, val typ: TypLozyska)

@@ -27,6 +27,12 @@ TYP_WSTAWKOWE = "wstawkowe (UC)"
 # pierścienia wewnętrznego, więc jedno nie zastępuje drugiego przy naprawie maszyny.
 # Muszą być osobnymi typami, żeby dało się je rozróżnić na liście i rozdzielić na półkach.
 TYP_WSTAWKOWE_ES = "wstawkowe (ES)"
+# Wstawkowe serii UD (ZVL) / 2xx-NPP-B (INA) / YAR (SKF). Czwarty typ wstawkowy i
+# NAJŁATWIEJSZY do pomylenia z UC, bo dzielą otwór i średnicę zewnętrzną: UC205 i
+# UD205 to oba 25 x 52 mm. Różni je SZEROKOŚĆ i mocowanie - UC ma poszerzony pierścień
+# wewnętrzny z wkrętami dociskowymi (34,1 mm), UD ma pierścień "dla pasowania" i wchodzi
+# na wał wciskiem (15 mm). Ponad dwukrotna różnica, więc jedno nie zastąpi drugiego.
+TYP_WSTAWKOWE_UD = "wstawkowe (UD/NPP-B)"
 # Stożkowe w numeracji CALOWEJ (Timken). Osobny typ, bo różni je nie konstrukcja,
 # tylko system oznaczeń - a to zmienia sposób czytania symbolu i dobór zamienników.
 TYP_STOZKOWE_CALOWE = "stożkowe calowe (Timken)"
@@ -52,6 +58,7 @@ TYP_OPOROWE = "oporowe"
 TYP_IGIELKOWE = "igiełkowe"
 
 ALL_TYPES = _TYPY_Z_KATALOGIEM + [TYP_WSTAWKOWE_ES, TYP_WSTAWKOWE_EX, TYP_WSTAWKOWE_RAE,
+              TYP_WSTAWKOWE_UD,
               TYP_STOZKOWE_CALOWE,
               TYP_SKOSNE, TYP_WALCOWE,
               TYP_OPOROWE, TYP_IGIELKOWE]
@@ -211,6 +218,22 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         "RAE35": (35, 72, 39),
     },
 
+    TYP_WSTAWKOWE_UD: {
+        # UWAGA na konwencję szerokości - jest INNA niż przy UC/ES/EX. Tam trzecia
+        # liczba to szerokość CAŁKOWITA (poszerzony pierścień wewnętrzny). Tutaj
+        # pierścień wewnętrzny NIE jest poszerzony, więc szerokość zewnętrzna i
+        # całkowita to ta sama liczba - katalogi podają wprost "total width T = 15".
+        #
+        # Porównanie, przez które łatwo się pomylić:
+        #   UC205  25 x 52 x 34,1   wkręty dociskowe, pierścień wystaje
+        #   UD205  25 x 52 x 15     wcisk, pierścień nie wystaje
+        #
+        # Zamienniki: INA 205-NPP-B / 205-XL-NPP-B, GOST 1726205, rodzina SKF YAR.
+        # Cr = 14 900 N, C0r = 7800 N, masa 0,129 kg.
+        # Źródła: albeco.com.pl (karta UD205 S ZVL), bearingsize.info (205-NPP-B INA).
+        "UD205": (25, 52, 15),
+    },
+
     TYP_STOZKOWE_CALOWE: {
         # Oznaczenia CALOWE (Timken i zamienniki) - inna numeracja niż ISO, więc reguła
         # "dwie ostatnie cyfry to kod otworu" tu NIE obowiązuje (patrz bore_from_symbol).
@@ -220,14 +243,27 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         # samego stożka, bo to on fizycznie leży na półce.
         # Źródło: cad.timken.com, karta 37431A.
         "37431A": (109.538, 132.745, 21.438),
+
+        # KOMPLET stożek + miska, czyli to, co zwykle kupuje się jako jedno łożysko.
+        # Osobny wpis, a nie poprawka powyższego, bo to dwie różne rzeczy na półce:
+        # komplet ma średnicę zewnętrzną MISKI (158,75 mm), a sam stożek jest węższy.
+        # Trzecia liczba to szerokość CAŁKOWITA T = 23,02 mm (sam stożek 21,438 mm,
+        # sama miska 15,875 mm).
+        #
+        # Uwaga na sklepy: lozyska24.eu podaje w tabeli T i B odwrotnie ("T = 21,438",
+        # "B = 23,02"), choć w nagłówku tej samej strony pisze 109,538 x 158,75 x 23,02.
+        # Katalog producenta rozstrzyga na korzyść nagłówka.
+        # Źródło: cad.timken.com, karta 37431A/37625.
+        "37431A/37625": (109.538, 158.75, 23.02),
     },
 }
 
-# Typy, których NIE da się rozpoznać z samego oznaczenia, bo używają innej numeracji
-# niż ISO. Klasyfikator zwraca dla nich uczciwe "nie wiem", a typ bierze się z katalogu
-# (wpis po symbolu) albo od użytkownika. Reguła "dwie ostatnie cyfry to kod otworu"
-# też ich nie dotyczy - patrz bore_from_symbol w bearing_types.py.
-TYPY_NIEROZPOZNAWALNE_Z_OZNACZENIA = {TYP_STOZKOWE_CALOWE}
+# Numeracja calowa była kiedyś wymieniona tu jako "nierozpoznawalna z oznaczenia"
+# (stała TYPY_NIEROZPOZNAWALNE_Z_OZNACZENIA). Nie jest już: klasyfikator zna serie
+# calowe Timkena z przedrostka (LM/HM/L/M/H...) oraz z jawnej listy numerów bez
+# przedrostka - patrz serie_lozysk.py i bearing_types.py. Reguła "dwie ostatnie cyfry
+# to kod otworu" nadal ich NIE dotyczy i pilnuje tego osobny warunek w
+# bore_from_symbol(); to dwie różne rzeczy i tylko druga jest tu wiecznie prawdziwa.
 
 # Płaskie widoki na potrzeby lookup.py / bazy danych.
 BEARING_DB: dict[str, tuple[float, float, float]] = {}

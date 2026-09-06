@@ -20,16 +20,27 @@ sys.path.insert(0, str(KATALOG))
 from bearing_types import bore_from_symbol, classify_symbol  # noqa: E402
 from lookup import _LETTER_PREFIXES, normalize_symbol  # noqa: E402
 from serie_lozysk import (BRAK_REGULY, KOD_ISO, SERIE, WPROST_MM,  # noqa: E402
-                           przedrostki_wszystkie)
+                           przedrostki_wszystkie, seria_dla)
 
 KOTLIN_KLASYFIKATOR = (KATALOG / "android-offline/app/src/main/java/pl/lozyska/offline"
                         / "BearingTypeClassifier.kt").read_text(encoding="utf-8")
 KOTLIN_REPOZYTORIUM = (KATALOG / "android-offline/app/src/main/java/pl/lozyska/offline/data"
                         / "Repository.kt").read_text(encoding="utf-8")
 
-# Przedrostki czysto liczbowe (jak calowe 37431A) nie są regułą prefiksową - typ
-# biorą z katalogu, więc nie ma ich w tabelach reguł.
+# Przedrostki czysto liczbowe (jak calowe 37431A/37625) nie są regułą prefiksową -
+# rozpoznaje je jawna lista, nie wzorzec, więc nie ma ich w tabelach przedrostków.
 LITEROWE = [p for p in przedrostki_wszystkie() if p[0].isalpha()]
+LICZBOWE = [p for p in przedrostki_wszystkie() if not p[0].isalpha()]
+
+
+def przykladowy_symbol(przedrostek: str) -> str:
+    """Przykładowe oznaczenie serii, zbudowane wg jej WŁASNEJ konwencji.
+
+    Nie da się użyć jednego "208" dla wszystkich: numery calowe Timkena mają 4-6 cyfr
+    i reguła celowo tylu wymaga, żeby "H208" (tuleja wciągana) nie udawało łożyska.
+    """
+    seria = seria_dla(przedrostek)
+    return f"{przedrostek}{seria.cyfry_przykladu if seria else '208'}"
 
 
 def test_kazdy_przedrostek_daje_zadeklarowany_typ():
@@ -37,9 +48,9 @@ def test_kazdy_przedrostek_daje_zadeklarowany_typ():
     bledy = []
     for seria in SERIE:
         for p in seria.przedrostki:
-            if not p[0].isalpha():
-                continue
-            symbol = f"{p}208"
+            # Wpisy liczbowe też muszą się zgadzać - tylko symbol buduje się inaczej,
+            # bo to całe oznaczenie, a nie przedrostek do doklejenia cyfr.
+            symbol = przykladowy_symbol(p) if p[0].isalpha() else p
             rozpoznany = classify_symbol(symbol)
             if rozpoznany != seria.typ:
                 bledy.append(f"{symbol}: rejestr mówi {seria.typ!r}, reguły {rozpoznany!r}")
@@ -55,7 +66,8 @@ def test_zadna_seria_nie_redukuje_sie_do_golych_cyfr():
     """
     bledy = []
     for p in LITEROWE:
-        for symbol in (f"{p}208", f"{p}.208.G2", f"{p} 208"):
+        cyfry = przykladowy_symbol(p)[len(p):]
+        for symbol in (f"{p}{cyfry}", f"{p}.{cyfry}.G2", f"{p} {cyfry}"):
             wynik = normalize_symbol(symbol)
             if not wynik.startswith(p):
                 bledy.append(f"{symbol!r} -> {wynik!r} (zgubiony przedrostek {p})")
@@ -66,14 +78,17 @@ def test_regula_otworu_zgodna_z_rejestrem():
     for seria in SERIE:
         for p in seria.przedrostki:
             if not p[0].isalpha():
+                assert bore_from_symbol(p) is None, (
+                    f"{p}: oznaczenie calowe nie koduje otworu, a program coś policzył")
                 continue
+            symbol = przykladowy_symbol(p)
             if seria.otwor == KOD_ISO:
                 assert bore_from_symbol(f"{p}208") == 40.0, f"{p}208 wg ISO to otwór 40 mm"
             elif seria.otwor == WPROST_MM:
                 assert bore_from_symbol(f"{p}35") == 35.0, f"{p}35 to otwór 35 mm wprost"
             elif seria.otwor == BRAK_REGULY:
-                assert bore_from_symbol(f"{p}208") is None, (
-                    f"{p}208: w tej serii kod otworu NIE obowiązuje, "
+                assert bore_from_symbol(symbol) is None, (
+                    f"{symbol}: w tej serii kod otworu NIE obowiązuje, "
                     f"a program coś policzył")
 
 

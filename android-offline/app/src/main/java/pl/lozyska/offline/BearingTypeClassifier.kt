@@ -20,6 +20,39 @@ package pl.lozyska.offline
  */
 object BearingTypeClassifier {
 
+    /**
+     * Serie CALOWE Timkena: L (light), M (medium), H (heavy) i złożenia LL/LM/HM/HH,
+     * plus EE i EH. Numer jest KATALOGOWY - nie koduje otworu ani rozmiaru.
+     *
+     * Cztery cyfry to minimum, nie ozdobnik: numery calowe mają ich 4-6 (L44643,
+     * LM11949, EE640192), a próg odsiewa dwa realne fałszywe trafienia - "H208"
+     * (tuleja wciągana) i "LM8UU" (łożysko liniowe). Przedrostka J (JLM, JH, JW...)
+     * tu NIE MA i to jest świadome: u Timkena oznacza on serię METRYCZNĄ, nie calową.
+     *
+     * Zadeklarowane PRZED PREFIX_RULES, bo `object` inicjalizuje pola w kolejności
+     * zapisu - odwrotna kolejność dałaby null w regule i wywrotkę przy pierwszym użyciu.
+     */
+    private val INCH_LETTER = Regex("^(LL|LM|HM|HH|EE|EH|L|M|H)\\d{4}")
+
+    /**
+     * Oznaczenia calowe BEZ przedrostka literowego. Żadna reguła ich nie rozpozna -
+     * "37431" wygląda dokładnie jak numer metryczny - więc lista jest jawna i rośnie
+     * po jednym wpisie, każdy ze źródłem (patrz serie_lozysk.py na serwerze).
+     * Dopasowanie po POCZĄTKU, żeby złapać też zapis kompletu: "37431A/37625".
+     */
+    private val INCH_NUMERIC = listOf("37431A", "37625")
+
+    /**
+     * Calowe łożyska OPOROWE Timkena (typ TTSP), np. T139-904A1. "T139" to numer
+     * bazowy, "T139-904A1" numer kompletu; separatory są tu już obcięte.
+     *
+     * Wzorzec wąski CELOWO: samo "^T\d" złapałoby T7FC060, czyli METRYCZNE łożysko
+     * stożkowe serii T7FC. Wymaganie dwóch cyfr zaraz po literze je odsiewa, bo tam
+     * po "T7" idzie litera. Przedrostek "TA" (igiełkowe) nie koliduje - nie ma tam
+     * cyfry po "T" - a jego reguła i tak jest sprawdzana wcześniej.
+     */
+    private val TIMKEN_THRUST = Regex("^T\\d{2,4}")
+
     /** Kolejność MA ZNACZENIE: igiełkowe (NA/NK/NKI) przed walcowymi (N/NU/NJ). */
     private val PREFIX_RULES: List<Pair<Regex, TypLozyska>> = listOf(
         // INA/Schaeffler PRZED igiełkowymi (tam jest reguła na RNA/NA).
@@ -27,6 +60,9 @@ object BearingTypeClassifier {
         // SNR seria EX - osobno od ES: przy tych samych 40 x 80 mm ma dużo szerszy
         // pierścień wewnętrzny, więc to inna część, nie zamiennik.
         Regex("^(EXPA|EXP|EXFL|EXFC|EXF|EXC|EXT|EX)\\d") to TypLozyska.WSTAWKOWE_EX,
+        // UD PRZED UC: UC205 i UD205 mają ten sam otwór i tę samą średnicę zewnętrzną,
+        // ale 34,1 vs 15 mm szerokości i inne mocowanie - to nie są zamienniki.
+        Regex("^UD\\d") to TypLozyska.WSTAWKOWE_UD,
         // ES PRZED UC i jako osobny typ - patrz komentarz przy TypLozyska.WSTAWKOWE_ES.
         Regex("^(ESPA|ESP|ES)\\d") to TypLozyska.WSTAWKOWE_ES,
         Regex("^(UCFL|UCFC|UCPH|UCP|UCF|UCT|UCX|UC|UK|SB|SA|CSA|USFE|US|UEL|UEM|YEL|YET|YAR)\\d") to TypLozyska.WSTAWKOWE,
@@ -35,6 +71,11 @@ object BearingTypeClassifier {
         Regex("^QJ\\d") to TypLozyska.SKOSNE,
         Regex("^(AXK|AX|81|89)\\d") to TypLozyska.OPOROWE,
         Regex("^C\\d{4}") to TypLozyska.WAHLIWE_BARYLKOWE,
+        // Stożkowe CALOWE Timkena - na KOŃCU, bo reguły wyżej są węższe i mają
+        // pierwszeństwo: "HK1010" ma zostać igiełkowe, a nie calowe od "H".
+        INCH_LETTER to TypLozyska.STOZKOWE_CALOWE,
+        // Oporowe calowe Timkena - PO regule "TA" (igiełkowe), która jest węższa.
+        TIMKEN_THRUST to TypLozyska.OPOROWE,
     )
 
     /** (liczba cyfr, przedrostki cyfrowe) -> typ. Sprawdzane przed regułą na pierwszej cyfrze. */
@@ -104,6 +145,17 @@ object BearingTypeClassifier {
         if (text.isEmpty()) return null
         if (NO_BORE_CODE.containsMatchIn(text)) return null
 
+        // Numeracja CALOWA nie ma kodu otworu. Bez tego warunku telefon liczył dla
+        // "37431A" otwór 155 mm (z cyfr "31"), podczas gdy prawdziwy to 109,538 -
+        // i dimensionsArePlausible() odrzucałoby PRAWDZIWE wymiary jako niepasujące.
+        // Serwer miał tę osłonę od dawna, telefon jej NIE MIAŁ; to była cicha
+        // rozbieżność między dwiema implementacjami tej samej reguły.
+        if (INCH_LETTER.containsMatchIn(text)) return null
+        if (INCH_NUMERIC.any { text.startsWith(it) }) return null
+        // Numer T idzie za otworem w setnych CALA, nie za kodem ISO: bez tego "T139"
+        // dałoby z cyfr "39" otwór 195 mm, przy prawdziwych 35,18 mm.
+        if (TIMKEN_THRUST.containsMatchIn(text)) return null
+
         // Serie INA: liczba to WPROST otwór w milimetrach (RAE35 = 35 mm), a nie kod
         // otworu. Reguła ISO dałaby tu 175 mm i odrzuciłaby prawdziwe wymiary.
         INA_BORE.find(text)?.let { dopasowanie ->
@@ -158,6 +210,10 @@ object BearingTypeClassifier {
         for ((pattern, typ) in PREFIX_RULES) {
             if (pattern.containsMatchIn(text)) return typ
         }
+
+        // Calowe bez przedrostka literowego - PRZED regułami cyfrowymi, inaczej
+        // "37431A" poleciałoby dalej i wypadło jako "nie wiem".
+        if (INCH_NUMERIC.any { text.startsWith(it) }) return TypLozyska.STOZKOWE_CALOWE
 
         val digits = LEADING_DIGITS.find(text)?.groupValues?.get(1) ?: return null
         if (digits.length < MIN_DIGITS) return null

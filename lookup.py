@@ -44,7 +44,19 @@ class LookupResult:
 # (serie_lozysk.py). Dopisanie serii w jednym miejscu zamyka ją we wszystkich -
 # a tests/test_spojnosc_regul.py pilnuje, żeby telefon znał dokładnie te same.
 # Posortowane od najdłuższego, żeby "NUP" wygrało z "NU", a "NU" z "N".
-_LETTER_PREFIXES = tuple(przedrostki_wszystkie())
+#
+# Tylko przedrostki LITEROWE, zgodnie z nazwą. W rejestrze są też wpisy czysto
+# liczbowe (calowe 37431A/37625), a te nie są przedrostkami serii - doklejenie do
+# nich cyfr dawało "37431A3762", symbol nieistniejący w żadnym katalogu.
+_LETTER_PREFIXES = tuple(p for p in przedrostki_wszystkie() if p[0].isalpha())
+
+# Oznaczenia calowe bez przedrostka literowego, w zapisie katalogowym. Zwracamy je
+# w CAŁOŚCI, bo obcięcie któregokolwiek członu daje inne łożysko albo żadne:
+# "37431A" -> "37431" gubiło literę i nie trafiało we własny wpis katalogu, a
+# "37431A/37625" (komplet stożek + miska) rozpadało się na sam numer stożka.
+_INCH_NUMERIC = tuple(p for p in przedrostki_wszystkie() if not p[0].isalpha())
+_INCH_ALTERNATYWA = "|".join(re.escape(p) for p in _INCH_NUMERIC)
+_INCH_RE = re.compile(rf"\b(?:{_INCH_ALTERNATYWA})(?:\s*/\s*(?:{_INCH_ALTERNATYWA}))?")
 
 
 def normalize_symbol(raw: str) -> str:
@@ -53,12 +65,20 @@ def normalize_symbol(raw: str) -> str:
     if not raw:
         return ""
     raw = raw.strip().upper()
+    # Oznaczenia calowe PRZED reszt(ą): są w całości cyfrowe, więc reguła "weź ciąg
+    # cyfr" na końcu tej funkcji zjadłaby literę i drugi człon kompletu.
+    m_cal = _INCH_RE.search(raw)
+    if m_cal:
+        return re.sub(r"\s+", "", m_cal.group(0))
     # UWAGA na KROPKI: SNR zapisuje oznaczenia jako "EX.208.G2" / "ES.208.G2". Dopóki
     # kropka nie była traktowana jak separator, przedrostek się nie doklejał i całość
     # redukowała się do gołego "208" - czyli do zwykłego łożyska kulkowego 40x80x18
     # zamiast wstawkowego 40x80x56,3. Ten sam objaw co przy NU205 -> 205.
+    #
+    # Zakres {3,6}, a nie {3,4}: numery calowe Timkena mają 4-6 cyfr, więc przy starym
+    # progu "LM11949" skracało się do "LM1194" - symbolu, którego nie ma nigdzie.
     for prefix in _LETTER_PREFIXES:
-        m = re.search(rf"\b{prefix}[\s\-_./]*(\d{{3,4}})", raw)
+        m = re.search(rf"\b{prefix}[\s\-_./]*(\d{{3,6}})", raw)
         if m:
             return f"{prefix}{m.group(1)}"
     match = re.search(r"\d{3,6}", raw)

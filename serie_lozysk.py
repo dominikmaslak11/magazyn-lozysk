@@ -25,7 +25,7 @@ from dataclasses import dataclass
 
 from bearing_data import (TYP_IGIELKOWE, TYP_OPOROWE, TYP_SKOSNE, TYP_STOZKOWE_CALOWE,
                            TYP_WALCOWE, TYP_WSTAWKOWE, TYP_WSTAWKOWE_ES, TYP_WSTAWKOWE_EX,
-                           TYP_WSTAWKOWE_RAE)
+                           TYP_WSTAWKOWE_RAE, TYP_WSTAWKOWE_UD)
 
 # Sposób, w jaki z oznaczenia czyta się średnicę otworu.
 KOD_ISO = "kod ISO"          # dwie ostatnie cyfry x 5 mm (6205 -> 25 mm)
@@ -41,6 +41,11 @@ class Seria:
     otwor: str
     zrodlo: str          # skąd wiemy - konkretny katalog, nie "z internetu"
     notatka: str = ""
+    # Cyfry doklejane do przedrostka, gdy test buduje przykładowe oznaczenie serii.
+    # Domyślne "208" pasuje do serii ISO, ale nie do wszystkich: numery calowe Timkena
+    # mają 4-6 cyfr, a reguła celowo wymaga tylu, żeby "H208" (tuleja wciągana) nie
+    # udawało łożyska stożkowego. Bez tego pola test wymuszałby regułę zbyt luźną.
+    cyfry_przykladu: str = "208"
 
 
 # Kolejność w krotce `przedrostki` MA ZNACZENIE tam, gdzie jedno jest początkiem
@@ -68,6 +73,17 @@ SERIE: tuple[Seria, ...] = (
         "szerokość 56,3 mm, pierścień zewnętrzny 21 mm - DUŻO szerszy niż UC i ES.",
     ),
     Seria(
+        ("UD",),
+        TYP_WSTAWKOWE_UD, KOD_ISO,
+        "albeco.com.pl (karta UD205 S ZVL: d 25, D 52, C 15, kulisty pierścień "
+        "zewnętrzny, masa 0,129 kg) oraz bearingsize.info (205-NPP-B INA, 25x52x15)",
+        "ZVL. Odpowiednik INA 2xx-NPP-B, GOST 1726205, rodzina SKF YAR. Kod otworu "
+        "jak w ISO (UD205 -> 05 -> 25 mm). PIERŚCIEŃ WEWNĘTRZNY NIE JEST POSZERZONY - "
+        "szerokość zewnętrzna i całkowita to ta sama liczba, inaczej niż przy UC/ES/EX. "
+        "UD205 to 25x52x15, a UC205 przy tym samym otworze i tej samej średnicy "
+        "zewnętrznej ma 34,1 mm; to nie są zamienniki.",
+    ),
+    Seria(
         ("GRAE", "RALE", "RASE", "RAE", "GRA", "RA"),
         TYP_WSTAWKOWE_RAE, WPROST_MM,
         "medias.schaeffler.com (RAE35-XL-NPP-B), traceparts.com (karta serii RAE..XL-NPP)",
@@ -91,11 +107,41 @@ SERIE: tuple[Seria, ...] = (
     Seria(("QJ",), TYP_SKOSNE, KOD_ISO, "ISO 15", "Czteropunktowe."),
     Seria(("AXK", "AX"), TYP_OPOROWE, BRAK_REGULY, "katalogi oporowych igiełkowych"),
     Seria(
-        ("37431A",),
+        ("LL", "LM", "HM", "HH", "EE", "EH", "L", "M", "H"),
         TYP_STOZKOWE_CALOWE, BRAK_REGULY,
-        "cad.timken.com, karta 37431A",
-        "Numeracja CALOWA. 37431A to sam pierścień wewnętrzny (cone) kompletu "
-        "37431A/37625: otwór 109,538 mm, stożek 132,745 mm, szerokość 21,438 mm.",
+        "ahrinternational.com/TIMKEN_nomenclature.shtml oraz "
+        "rhtrd.com/bearings/timken-bearings/timken-part-number-prefixes/ "
+        "(dwa niezależne wykazy przedrostków Timkena)",
+        "Serie CALOWE Timkena: L (light), M (medium), H (heavy) i ich złożenia "
+        "LL/LM/HM/HH, plus EE i EH. Numer bazowy to numer KATALOGOWY - nie koduje "
+        "ani otworu, ani rozmiaru, więc reguła ISO 'dwie ostatnie cyfry x 5 mm' tu "
+        "nie obowiązuje. UWAGA: przedrostek J (JLM, JH, JM, JW, JP...) to u Timkena "
+        "seria METRYCZNA, nie calowa - oba źródła mówią o nim 'metric cone bore and "
+        "cup O.D.', więc świadomie NIE ma go na tej liście.",
+        cyfry_przykladu="44643",
+    ),
+    Seria(
+        ("T",),
+        TYP_OPOROWE, BRAK_REGULY,
+        "cad.timken.com, karta T139-904A1 (typ TTSP) oraz "
+        "rhtrd.com/bearings/timken-bearings/timken-part-number-prefixes/ "
+        "('T (Race) - Thrust bearing assemblies')",
+        "Calowe łożyska OPOROWE Timkena, typ TTSP: dwie bieżnie, wałeczki, koszyk "
+        "i pierścień spinający. 'T139' to numer bazowy, 'T139-904A1' numer KOMPLETU - "
+        "ta sama relacja co przy stożkowych (37431A to sam stożek, 37431A/37625 "
+        "komplet). Numer idzie za otworem w setnych CALA (T126 -> 1,26\", "
+        "T139 -> 1,385\"), więc kod otworu ISO tu nie obowiązuje.",
+    ),
+    Seria(
+        ("37431A", "37625"),
+        TYP_STOZKOWE_CALOWE, BRAK_REGULY,
+        "cad.timken.com, karty 37431A (stożek) i 37431A/37625 (komplet)",
+        "Oznaczenia calowe BEZ przedrostka literowego. Nie da się ich odróżnić od "
+        "numeracji ISO żadną regułą - '37431' wygląda dokładnie jak numer metryczny - "
+        "więc znamy je WYŁĄCZNIE z tej listy i dopisujemy pojedynczo, ze źródłem. "
+        "Stożek i miska mają osobne numery, a komplet zapisuje się przez ukośnik: "
+        "37431A/37625 to 109,538 x 158,75 x 23,02 mm (23,02 to szerokość CAŁKOWITA T; "
+        "sam stożek ma 21,438 mm, sama miska 15,875 mm).",
     ),
 )
 

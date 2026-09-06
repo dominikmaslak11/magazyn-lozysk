@@ -33,6 +33,9 @@ private val LETTER_PREFIXES = listOf(
     // ES/ESP MUSZĄ tu być: bez nich "ES208" redukowało się do "208", czyli do zwykłego
     // łożyska kulkowego 40x80x18 - zupełnie innej części. Ta sama pułapka, co przy NU205.
     "ESPA", "ESP", "ES",
+    // UD (ZVL) / 2xx-NPP-B. Bez tego "UD205S" redukowało się do "205" - czyli do
+    // zwykłego kulkowego, a UD to wstawkowe o zupełnie innej szerokości niż UC205.
+    "UD",
     "EXPA", "EXP", "EXFL", "EXFC", "EXF", "EXC", "EXT", "EX",
     "USFE", "US", "UEL", "UEM", "YEL", "YET", "YAR",
     // INA/Schaeffler - liczba to wprost otwór w milimetrach (RAE35 = 35 mm).
@@ -41,7 +44,23 @@ private val LETTER_PREFIXES = listOf(
     "RNAO", "RNA", "NKIA", "NKIB", "NKI", "NKX", "NKS", "NAO", "NA", "NK", "HK", "BK",
     "IR", "TA", "AXK", "AX",
     "QJ",
+    // Calowe stożkowe Timkena. Bez nich "LM11949" redukowało się do "11949" - ta sama
+    // pułapka, co przy NU205 -> 205, tylko dla trzeciej konwencji oznaczeń.
+    "LL", "LM", "HM", "HH", "EE", "EH", "L", "M", "H",
+    // Oporowe calowe Timkena (TTSP). Bez tego "T139-904A1" redukowało się do "139" -
+    // czyli do numeru, który nie jest oznaczeniem żadnego łożyska.
+    "T",
 ).sortedByDescending { it.length }
+
+// Oznaczenia calowe BEZ przedrostka literowego, w zapisie katalogowym. Zwracamy je
+// w całości: "37431A" -> "37431" gubiło literę, a "37431A/37625" (komplet stożek +
+// miska) rozpadało się na sam numer stożka, czyli na inne łożysko.
+// Lista musi odpowiadać _INCH_NUMERIC w lookup.py na serwerze.
+private val INCH_NUMERIC = listOf("37431A", "37625")
+private val INCH_PATTERN: Pattern = Pattern.compile(
+    "\\b(?:" + INCH_NUMERIC.joinToString("|") { Pattern.quote(it) } + ")" +
+        "(?:\\s*/\\s*(?:" + INCH_NUMERIC.joinToString("|") { Pattern.quote(it) } + "))?"
+)
 
 // UWAGA na KROPKI: SNR zapisuje oznaczenia jako "EX.208.G2". Dopóki kropka nie była
 // separatorem, przedrostek się nie doklejał i całość redukowała się do gołego "208",
@@ -49,8 +68,14 @@ private val LETTER_PREFIXES = listOf(
 fun normalizeSymbol(raw: String): String {
     if (raw.isBlank()) return ""
     val upper = raw.trim().uppercase()
+    // Calowe PRZED resztą: są w całości cyfrowe, więc reguła "weź ciąg cyfr" na końcu
+    // tej funkcji zjadłaby literę i drugi człon kompletu.
+    val mCal = INCH_PATTERN.matcher(upper)
+    if (mCal.find()) return (mCal.group(0) ?: "").replace(Regex("\\s+"), "")
+    // Zakres {3,6}, a nie {3,4}: numery calowe mają 4-6 cyfr, więc przy starym progu
+    // "LM11949" skracało się do "LM1194" - symbolu, którego nie ma nigdzie.
     for (prefix in LETTER_PREFIXES) {
-        val m = Pattern.compile("\\b$prefix[\\s\\-_./]*(\\d{3,4})").matcher(upper)
+        val m = Pattern.compile("\\b$prefix[\\s\\-_./]*(\\d{3,6})").matcher(upper)
         if (m.find()) return prefix + m.group(1)
     }
     val m = Pattern.compile("\\d{3,6}").matcher(upper)

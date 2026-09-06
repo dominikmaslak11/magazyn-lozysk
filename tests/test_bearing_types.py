@@ -10,9 +10,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from bearing_data import SERIES, TYPY_NIEROZPOZNAWALNE_Z_OZNACZENIA
-from bearing_data import (TYP_IGIELKOWE, TYP_OPOROWE, TYP_SKOSNE, TYP_WSTAWKOWE, TYP_WSTAWKOWE_ES,
-                           TYP_WSTAWKOWE_EX, TYP_WSTAWKOWE_RAE)
+from bearing_data import SERIES
+from bearing_data import (TYP_IGIELKOWE, TYP_OPOROWE, TYP_SKOSNE, TYP_STOZKOWE_CALOWE,
+                           TYP_WSTAWKOWE_UD,
+                           TYP_WSTAWKOWE, TYP_WSTAWKOWE_ES, TYP_WSTAWKOWE_EX,
+                           TYP_WSTAWKOWE_RAE)
 from bearing_types import bore_from_symbol, classify_symbol
 
 
@@ -20,19 +22,12 @@ def test_zgodnosc_z_wbudowanym_katalogiem():
     """Najmocniejszy test: dla KAŻDEGO wpisu katalogu znamy typ na pewno,
     więc klasyfikator musi się z nim zgadzać co do jednego.
 
-    Wyjątek: serie w numeracji innej niż ISO (calowe). Ich oznaczenia nie kodują
-    ani typu, ani otworu, więc klasyfikator ma prawo powiedzieć "nie wiem" - i test
-    tego pilnuje ZAMIAST wymuszać zgadywanie.
+    Dotyczy to także oznaczeń CALOWYCH. Kiedyś były tu wyjątkiem ("nie wiem" było
+    uczciwsze niż zgadywanie), ale odkąd serie calowe są zarejestrowane w
+    serie_lozysk.py, klasyfikator ma je znać tak samo jak resztę.
     """
     bledy = []
     for typ, tabela in SERIES.items():
-        if typ in TYPY_NIEROZPOZNAWALNE_Z_OZNACZENIA:
-            for symbol in tabela:
-                assert classify_symbol(symbol) is None, (
-                    f"{symbol}: oznaczenie calowe nie może dawać typu z reguł ISO")
-                assert bore_from_symbol(symbol) is None, (
-                    f"{symbol}: kod otworu ISO nie obowiązuje w numeracji calowej")
-            continue
         for symbol in tabela:
             rozpoznany = classify_symbol(symbol)
             if rozpoznany != typ:
@@ -163,9 +158,9 @@ def test_es_nie_redukuje_sie_do_golych_cyfr():
 def test_seria_ina_liczy_otwor_wprost_w_milimetrach():
     """Trzecia konwencja oznaczeń w tym magazynie - i najłatwiejsza do przeoczenia.
 
-    ISO:        6205  -> kod "05" -> otwór 25 mm
-    Timken:     37431A -> brak reguły
-    INA:        RAE35 -> otwór 35 mm WPROST, a nie 35 x 5 = 175 mm
+    ISO:        6205   -> kod "05" -> otwór 25 mm
+    Timken:     37431A -> numer katalogowy, brak reguły otworu
+    INA:        RAE35  -> otwór 35 mm WPROST, a nie 35 x 5 = 175 mm
 
     Bez osobnej reguły program uznałby prawdziwe wymiary RAE35 (35 x 72 x 39) za
     niepasujące do oznaczenia i by je odrzucił.
@@ -180,6 +175,147 @@ def test_seria_ina_liczy_otwor_wprost_w_milimetrach():
     assert dimensions_are_plausible("RAE35", 35, 72, 39)
     # A wymiary innego łożyska - nie.
     assert not dimensions_are_plausible("RAE35", 175, 320, 68)
+
+
+def test_serie_calowe_timkena():
+    """Czwarta konwencja oznaczeń: numer KATALOGOWY, który nie koduje nic.
+
+    L (light), M (medium), H (heavy) i złożenia LL/LM/HM/HH, plus EE i EH.
+    """
+    for symbol in ("LM11949", "LM11910", "L44643", "L44610", "M12649", "M12610",
+                    "HM89449", "H414242", "EE640192", "LL264648", "HH221449"):
+        assert classify_symbol(symbol) == TYP_STOZKOWE_CALOWE, symbol
+        assert bore_from_symbol(symbol) is None, (
+            f"{symbol}: numer calowy nie koduje otworu, a program coś policzył")
+
+
+def test_przedrostek_J_u_timkena_to_seria_metryczna():
+    """JLM/JH/JM/JW to u Timkena bore i O.D. METRYCZNE, więc NIE są "calowe".
+
+    Wpisanie ich na listę serii calowych byłoby błędem merytorycznym, nie literówką -
+    stąd osobny test, żeby nikt ich tam nie dopisał "dla kompletu".
+    """
+    for symbol in ("JLM104948", "JH415647", "JM205149", "JW5049"):
+        assert classify_symbol(symbol) != TYP_STOZKOWE_CALOWE, symbol
+
+
+def test_prog_czterech_cyfr_odsiewa_nielozyska():
+    """Reguła calowa wymaga 4 cyfr i to jest jedyne, co ją broni przed fałszywkami.
+
+    H208  - tuleja wciągana do łożysk wahliwych, nie łożysko stożkowe.
+    LM8UU - łożysko LINIOWE (tuleiowe), spotykane przy drukarkach 3D.
+
+    Obniżenie progu do trzech cyfr wpuściłoby oba i nadałoby im pewnie brzmiący,
+    ale fałszywy typ - dokładnie to, czego ten plik ma nie robić.
+    """
+    for symbol in ("H208", "M208", "L208", "LM8UU", "H308"):
+        assert classify_symbol(symbol) != TYP_STOZKOWE_CALOWE, symbol
+
+
+def test_calowe_nie_kradna_igielkowych_ani_walcowych():
+    """Reguła na "H" nie może połknąć HK (igiełkowe), a "L"/"M" niczego z ISO."""
+    assert classify_symbol("HK1010") == TYP_IGIELKOWE
+    assert classify_symbol("HK2016") == TYP_IGIELKOWE
+    assert classify_symbol("NU205") == "walcowe"
+    assert classify_symbol("6205") == "kulkowe zwykłe"
+    assert classify_symbol("30204") == "stożkowe"
+
+
+def test_komplet_stozek_z_miska_nie_gubi_drugiego_czlonu():
+    """Komplet zapisuje się przez ukośnik i MUSI przetrwać normalizację w całości.
+
+    "37431A/37625" obcięte do "37431A" to sam stożek - inne wymiary (132,745 zamiast
+    158,75 mm średnicy zewnętrznej) i inne miejsce na półce. Skrócenie do "37431"
+    gubi z kolei literę i nie trafia we własny wpis katalogu.
+    """
+    from lookup import normalize_symbol
+
+    assert normalize_symbol("37431A/37625") == "37431A/37625"
+    assert normalize_symbol("TIMKEN 37431A/37625") == "37431A/37625"
+    assert normalize_symbol("37431A") == "37431A"
+    assert classify_symbol("37431A/37625") == TYP_STOZKOWE_CALOWE
+    assert bore_from_symbol("37431A/37625") is None
+
+    # Prawdziwe wymiary kompletu muszą przechodzić kontrolę sensowności - to jest
+    # cel całej osłony na kodzie otworu.
+    from bearing_types import dimensions_are_plausible
+    assert dimensions_are_plausible("37431A/37625", 109.538, 158.75, 23.02)
+
+
+def test_numer_calowy_nie_skraca_sie_do_czterech_cyfr():
+    """Regresja: próg {3,4} w normalizacji ucinał "LM11949" do "LM1194"."""
+    from lookup import normalize_symbol
+
+    assert normalize_symbol("LM11949") == "LM11949"
+    assert normalize_symbol("TIMKEN LM 11949") == "LM11949"
+    assert normalize_symbol("EE640192") == "EE640192"
+
+
+def test_ud_to_nie_uc():
+    """Najłatwiejsza do pomylenia para w tym magazynie.
+
+    UC205 i UD205 mają ten SAM otwór i tę SAMĄ średnicę zewnętrzną (25 x 52), ale
+    UC ma poszerzony pierścień wewnętrzny z wkrętami dociskowymi (34,1 mm), a UD
+    wchodzi na wał wciskiem (15 mm). Ponad dwukrotna różnica szerokości - wpisanie
+    jednego zamiast drugiego daje wymiary, które wyglądają wiarygodnie i są błędne.
+    """
+    from bearing_data import BEARING_DB
+    from lookup import normalize_symbol
+
+    assert classify_symbol("UD205") == TYP_WSTAWKOWE_UD
+    assert classify_symbol("UD205S") == TYP_WSTAWKOWE_UD
+    assert classify_symbol("UC205") == TYP_WSTAWKOWE
+
+    assert BEARING_DB["UD205"] == (25, 52, 15)
+    assert BEARING_DB["UC205"] == (25, 52, 34.1)
+
+    # Regresja: bez przedrostka "UD" symbol redukował się do gołego "205" - czwarty
+    # przypadek tej samej pułapki co NU205 -> 205 i ES208 -> 208.
+    assert normalize_symbol("UD205S") == "UD205"
+    assert normalize_symbol("UD 205 S ZVL") == "UD205"
+
+    # Kod otworu obowiązuje tu normalnie, w odróżnieniu od serii calowych.
+    assert bore_from_symbol("UD205") == 25.0
+
+
+def test_oporowe_calowe_timkena():
+    """Piąta konwencja: numer T idzie za otworem w setnych CALA (T139 -> 1,385").
+
+    "T139" to numer bazowy, "T139-904A1" numer KOMPLETU (typ TTSP) - ta sama relacja
+    co 37431A do 37431A/37625. Oba muszą dać ten sam typ.
+    """
+    from lookup import normalize_symbol
+
+    for symbol in ("T139", "T139-904A1", "T126-904A1", "T176-904A1"):
+        assert classify_symbol(symbol) == TYP_OPOROWE, symbol
+        assert bore_from_symbol(symbol) is None, (
+            f"{symbol}: numer T nie koduje otworu wg ISO, a program coś policzył")
+
+    # Regresja: bez przedrostka "T" w normalizacji symbol redukował się do "139",
+    # czyli do numeru, który nie jest oznaczeniem żadnego łożyska.
+    assert normalize_symbol("T139-904A1") == "T139"
+    assert normalize_symbol("TIMKEN T139-904A1") == "T139"
+
+    # Prawdziwe wymiary muszą przechodzić kontrolę sensowności. Gdyby reguła ISO
+    # zadziałała, wyliczyłaby z cyfr "39" otwór 195 mm i odrzuciła te poniżej.
+    from bearing_types import dimensions_are_plausible
+    assert dimensions_are_plausible("T139-904A1", 35.179, 58.738, 15.875)
+
+
+def test_seria_T_nie_kradnie_metrycznych_stozkowych():
+    """T7FC060 to METRYCZNE łożysko stożkowe, nie oporowe calowe.
+
+    Samo "^T\\d" by je połknęło. Broni przed tym wymaganie DWÓCH cyfr zaraz po
+    literze - w T7FC po "T7" idzie litera. To jedyne, co dzieli te dwie rodziny.
+    """
+    for symbol in ("T7FC060", "T7FC070", "T7FC045"):
+        assert classify_symbol(symbol) != TYP_OPOROWE, symbol
+
+
+def test_seria_T_nie_kradnie_igielkowych():
+    """Przedrostek "TA" (igiełkowe) nie ma cyfry po "T" i jego reguła jest wcześniej."""
+    assert classify_symbol("TA4020Z") == TYP_IGIELKOWE
+    assert classify_symbol("TA2020") == TYP_IGIELKOWE
 
 
 def test_ina_nie_kradnie_igielkowych():
