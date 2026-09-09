@@ -25,7 +25,8 @@ import bearing_types
 import database as db
 import lookup
 from bearing_data import ALL_TYPES, SOURCE_MANUAL
-from pdf_labels import build_bearing_qr_labels_pdf, build_shelf_labels_pdf
+from pdf_labels import (build_bearing_qr_labels_pdf, build_bin_labels_pdf,
+                        build_shelf_labels_pdf)
 
 app = Flask(__name__)
 
@@ -612,6 +613,16 @@ def api_export_shelf_labels_pdf():
     pdf_bytes = build_shelf_labels_pdf()
     return send_file(io.BytesIO(pdf_bytes), mimetype="application/pdf",
                       as_attachment=True, download_name="etykiety_regalow.pdf")
+
+
+@app.route("/api/export/bin-labels-pdf")
+def api_export_bin_labels_pdf():
+    """Arkusz naklejek na skrytki - kod skrytki, zakres średnicy i przeznaczenie.
+    Ułożony jak regał: górna półka u góry kartki, kolumny to lewa i prawa skrytka,
+    więc po rozcięciu naklejki nie wymagają sortowania."""
+    pdf_bytes = build_bin_labels_pdf()
+    return send_file(io.BytesIO(pdf_bytes), mimetype="application/pdf",
+                      as_attachment=True, download_name="naklejki_skrytek.pdf")
 
 
 @app.route("/api/export/bearing-qr-labels-pdf")
