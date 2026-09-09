@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Autostart po wlaczeniu tabletu. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Tablet ma tylko jedno zadanie, wiec ekran jest zawsze pionowy i nigdy
+         sie nie obraca - regal tez sie nie obraca. -->
+    <application
+        android:label="@string/app_name"
+        android:usesCleartextTraffic="true"
+        android:theme="@android:style/Theme.Holo.NoActionBar">
+
+        <activity
+            android:name=".MapaActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="stateAlwaysHidden"
+            android:stateNotNeeded="true"
+            android:clearTaskOnLaunch="true">
+
+            <!-- Zwykla ikona w szufladzie. -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- ORAZ ekran glowny urzadzenia. To jest sedno trybu kiosku: gdy
+                 ustawisz ta apke jako domyslny ekran glowny, tablet wstaje w nia
+                 po wlaczeniu, przycisk Home do niej wraca i nic jej nie przykrywa
+                 na stale. Nie trzeba wtedy zadnych sztuczek z pilnowaniem
+                 pierwszego planu - system sam trzyma ja na wierzchu. -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- Zapasowy autostart. Gdy apka NIE jest ustawiona jako ekran glowny,
+             ten odbiornik i tak podniesie ja po restarcie tabletu. -->
+        <receiver
+            android:name=".StartPoWlaczeniu"
+            android:exported="true"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

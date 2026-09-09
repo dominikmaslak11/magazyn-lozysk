@@ -24,3 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "LozyskaOffline"
 include(":app")
+include(":kiosk")

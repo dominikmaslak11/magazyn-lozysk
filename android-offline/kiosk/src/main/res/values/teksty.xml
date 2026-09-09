@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Magazyn - mapa</string>
+    <string name="podpowiedz_szukania">Szukaj lozyska</string>
+    <string name="naglowek_wyniki">GDZIE LEZY</string>
+    <string name="naglowek_ruchy">OSTATNIE RUCHY</string>
+    <string name="obroc">OBROC</string>
+    <string name="podpowiedz_pusta">Wpisz symbol, zeby zobaczyc gdzie lezy</string>
+    <string name="ruchy">RUCHY</string>
+    <string name="motyw">MOTYW</string>
+</resources>

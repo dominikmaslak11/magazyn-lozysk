@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Wszystkie rozmiary pisma w JEDNYM miejscu. Tablet ma 160 dpi, czyli 1 dp = 1 px,
+  a czytac ma z niego czlowiek ze slabym wzrokiem, bez okularow, z odleglosci kroku.
+  Stad litery duzo wieksze niz w typowej appce.
+
+  Gdyby nadal bylo za malo: podnies te liczby i tyle - nic innego nie trzeba ruszac.
+-->
+<resources>
+    <dimen name="pismo_szukanie">30sp</dimen>
+    <dimen name="pismo_przycisk">26sp</dimen>
+    <dimen name="pismo_stan">18sp</dimen>
+    <dimen name="pismo_naglowek_sekcji">20sp</dimen>
+
+    <!-- mapa regalu -->
+    <dimen name="pismo_skrytka">32sp</dimen>
+    <dimen name="pismo_zakres">20sp</dimen>
+    <dimen name="pismo_lozysko">26sp</dimen>
+
+    <!-- dolny pas: to jest ODPOWIEDZ na pytanie "gdzie to lezy", wiec najwieksze -->
+    <dimen name="pismo_odpowiedz">44sp</dimen>
+    <dimen name="pismo_szczegoly">22sp</dimen>
+    <dimen name="pismo_ruch">24sp</dimen>
+    <!-- przyciski + i - przy korekcie ilosci: maja byc trafialne palcem -->
+    <dimen name="pismo_przycisk_ilosc">40sp</dimen>
+    <dimen name="pismo_ilosc">38sp</dimen>
+</resources>

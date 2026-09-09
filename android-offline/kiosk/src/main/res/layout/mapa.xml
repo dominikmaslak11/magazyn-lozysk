@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Uklad dziala tak samo w pionie i w poziomie - wszystko jest w jednej kolumnie,
+  a mapa i dolny pas dziela sie wysokoscia proporcjami. Dzieki temu przycisk
+  OBROC nie wymaga drugiego pliku ukladu.
+
+  Przyciski siedza w OSOBNYM rzedzie pod polem szukania, a nie obok niego: przy
+  literach tej wielkosci trzy przyciski i pole w jednej linii nie mieszcza sie
+  na 600 dp szerokosci.
+
+  Kolory NIE sa tu ustawiane - nadaje je Motyw.kt w locie, bo motyw przelacza sie
+  przyciskiem bez restartu ekranu. Rozmiary pisma: res/values/wymiary.xml.
+
+  Zadnego androidx - same widoki z platformy, zeby uklad wszedl na API 17.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/korzen"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="8dp"
+    android:focusable="true"
+    android:focusableInTouchMode="true">
+
+    <!--
+      Korzen jest "focusableInTouchMode", zeby ognisko NIE ladowalo samo na polu
+      szukania. Bez tego przy kazdym starcie wyskakiwala klawiatura i zaslaniala
+      pol mapy - a tablet ma domyslnie pokazywac mape, nie czekac na pisanie.
+    -->
+
+    <EditText
+        android:id="@+id/szukaj"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/podpowiedz_szukania"
+        android:inputType="text"
+        android:imeOptions="actionSearch"
+        android:singleLine="true"
+        android:textSize="@dimen/pismo_szukanie"
+        android:padding="14dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="8dp">
+
+        <Button
+            android:id="@+id/ruchy"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/ruchy"
+            android:textSize="@dimen/pismo_przycisk" />
+
+        <Button
+            android:id="@+id/motyw"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginLeft="6dp"
+            android:text="@string/motyw"
+            android:textSize="@dimen/pismo_przycisk" />
+
+        <Button
+            android:id="@+id/obroc"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginLeft="6dp"
+            android:text="@string/obroc"
+            android:textSize="@dimen/pismo_przycisk" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/stan"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/pismo_stan"
+        android:paddingLeft="4dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp" />
+
+    <!-- Mapa regalu. Dostaje caly ekran, dopoki dolny pas jest schowany. -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="68">
+
+        <TableLayout
+            android:id="@+id/mapa"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:stretchColumns="0,1" />
+    </ScrollView>
+
+    <TextView
+        android:id="@+id/naglowek_dolu"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/naglowek_ruchy"
+        android:visibility="gone"
+        android:textSize="@dimen/pismo_naglowek_sekcji"
+        android:textStyle="bold"
+        android:paddingLeft="4dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="4dp" />
+
+    <!--
+      Dolny pas jest SCHOWANY, dopoki nie ma czego pokazac. Wtedy mapa zajmuje
+      caly ekran, bo to ona jest glownym zadaniem tabletu.
+    -->
+    <ScrollView
+        android:id="@+id/pas_dolny"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="42"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:id="@+id/dol"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </ScrollView>
+</LinearLayout>
