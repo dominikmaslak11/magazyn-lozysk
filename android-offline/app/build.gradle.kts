@@ -46,8 +46,8 @@ android {
         applicationId = "pl.lozyska.offline"
         minSdk = 24
         targetSdk = 34
-        versionCode = 14
-        versionName = "1.13.0"
+        versionCode = 15
+        versionName = "1.13.1"
     }
 
     flavorDimensions += "odbiorca"

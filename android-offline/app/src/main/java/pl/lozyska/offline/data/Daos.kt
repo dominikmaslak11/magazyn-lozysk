@@ -5,7 +5,17 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BearingDao {
-    @Query("SELECT * FROM bearings WHERE deletedAt IS NULL AND symbol LIKE '%' || :search || '%' ORDER BY symbol")
+    /**
+     * Szukanie po tekście. Obejmuje TAKŻE uwagi, bo użytkownik opisuje tam zastosowanie
+     * ("klima", "wał corncrackera") i chce po tym trafiać do części - tak samo jak nazwa
+     * naklejki na pudełku. Serwer robi to od dawna (get_bearings w database.py); telefon
+     * szukał samego symbolu i wyniki się rozjeżdżały między appką a przeglądarką.
+     */
+    @Query("""
+        SELECT * FROM bearings WHERE deletedAt IS NULL
+          AND (symbol LIKE '%' || :search || '%' OR uwagi LIKE '%' || :search || '%')
+        ORDER BY symbol
+    """)
     fun observeAll(search: String = ""): Flow<List<BearingEntity>>
 
     /**

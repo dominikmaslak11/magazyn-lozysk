@@ -90,7 +90,7 @@ fun BearingsScreen(vm: OfflineViewModel) {
                                 w.dZew?.let { "D=${fmt(it)}" },
                                 w.b?.let { "B=${fmt(it)}" },
                             ).joinToString(" ") + " ±${SearchQuery.TOLERANCE}mm"
-                        } ?: "symbol (6205) albo wymiary (25x52)",
+                        } ?: "symbol (6205), opis (klima) albo wymiary (25x52)",
                         style = MaterialTheme.typography.bodySmall,
                     )
                 },
