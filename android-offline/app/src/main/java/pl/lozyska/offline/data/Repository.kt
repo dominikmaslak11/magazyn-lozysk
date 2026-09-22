@@ -52,11 +52,11 @@ private val LETTER_PREFIXES = listOf(
     "T",
 ).sortedByDescending { it.length }
 
-// Oznaczenia calowe BEZ przedrostka literowego, w zapisie katalogowym. Zwracamy je
+// Oznaczenia numeryczne BEZ przedrostka literowego, w zapisie katalogowym. Zwracamy je
 // w całości: "37431A" -> "37431" gubiło literę, a "37431A/37625" (komplet stożek +
 // miska) rozpadało się na sam numer stożka, czyli na inne łożysko.
 // Lista musi odpowiadać _INCH_NUMERIC w lookup.py na serwerze.
-private val INCH_NUMERIC = listOf("37431A", "37625")
+private val INCH_NUMERIC = listOf("37431A", "37625", "357234")
 private val INCH_PATTERN: Pattern = Pattern.compile(
     "\\b(?:" + INCH_NUMERIC.joinToString("|") { Pattern.quote(it) } + ")" +
         "(?:\\s*/\\s*(?:" + INCH_NUMERIC.joinToString("|") { Pattern.quote(it) } + "))?"

@@ -39,6 +39,9 @@ enum class TypLozyska(val etykieta: String) {
     // jest katalogowy: nie koduje otworu ani rozmiaru, więc reguła "dwie ostatnie
     // cyfry x 5 mm" tu nie obowiązuje (patrz NO_BORE_CODE w BearingTypeClassifier).
     STOZKOWE_CALOWE("stożkowe calowe (Timken)"),
+    // Tuleja wciągana (adapter sleeve) - osprzęt montażowy, NIE łożysko toczne.
+    // Seria H (H208, H210...), na wałek, pod łożyska z otworem stożkowym.
+    TULEJA_WCIAGANA("tuleja wciągana"),
 }
 
 data class KatalogWpis(val symbol: String, val d: Double, val dZew: Double, val b: Double, val typ: TypLozyska)
@@ -314,6 +317,8 @@ object BearingCatalog {
         // Skośne dwurzędowe. 52xx to starsze oznaczenie serii 32xx - to samo łożysko.
         KatalogWpis("5202", 15.0, 35.0, 15.9, TypLozyska.SKOSNE),
         KatalogWpis("3202", 15.0, 35.0, 15.9, TypLozyska.SKOSNE),
+        // Numer katalogowy OEM, nie seria ISO. Dwurzędowe skośne kulkowe 35x72x34.
+        KatalogWpis("357234", 35.0, 72.0, 34.0, TypLozyska.SKOSNE),
         KatalogWpis("UC211", 55.0, 100.0, 55.6, TypLozyska.WSTAWKOWE),
         KatalogWpis("UC212", 60.0, 110.0, 65.1, TypLozyska.WSTAWKOWE),
     )

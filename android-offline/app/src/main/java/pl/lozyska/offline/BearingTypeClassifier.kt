@@ -25,9 +25,10 @@ object BearingTypeClassifier {
      * plus EE i EH. Numer jest KATALOGOWY - nie koduje otworu ani rozmiaru.
      *
      * Cztery cyfry to minimum, nie ozdobnik: numery calowe mają ich 4-6 (L44643,
-     * LM11949, EE640192), a próg odsiewa dwa realne fałszywe trafienia - "H208"
-     * (tuleja wciągana) i "LM8UU" (łożysko liniowe). Przedrostka J (JLM, JH, JW...)
-     * tu NIE MA i to jest świadome: u Timkena oznacza on serię METRYCZNĄ, nie calową.
+     * LM11949, EE640192), a próg odsiewa "LM8UU" (łożysko liniowe). "H208" (3 cyfry)
+     * to tuleja wciągana i ma własną regułę w PREFIX_RULES; litera H zostaje tu
+     * w wariancie 4+ cyfr (H414242). Przedrostka J (JLM, JH, JW...) tu NIE MA i to
+     * jest świadome: u Timkena oznacza on serię METRYCZNĄ, nie calową.
      *
      * Zadeklarowane PRZED PREFIX_RULES, bo `object` inicjalizuje pola w kolejności
      * zapisu - odwrotna kolejność dałaby null w regule i wywrotkę przy pierwszym użyciu.
@@ -35,12 +36,16 @@ object BearingTypeClassifier {
     private val INCH_LETTER = Regex("^(LL|LM|HM|HH|EE|EH|L|M|H)\\d{4}")
 
     /**
-     * Oznaczenia calowe BEZ przedrostka literowego. Żadna reguła ich nie rozpozna -
-     * "37431" wygląda dokładnie jak numer metryczny - więc lista jest jawna i rośnie
-     * po jednym wpisie, każdy ze źródłem (patrz serie_lozysk.py na serwerze).
+     * Oznaczenia NUMERYCZNE bez przedrostka literowego. Żadna reguła ich nie rozpozna -
+     * "37431" wygląda jak numer metryczny, a "357234" to numer katalogowy OEM - więc typ
+     * bierze się z tej mapy, po jednym wpisie ze źródłem (patrz serie_lozysk.py).
      * Dopasowanie po POCZĄTKU, żeby złapać też zapis kompletu: "37431A/37625".
      */
-    private val INCH_NUMERIC = listOf("37431A", "37625")
+    private val NUMERIC_TYPES = mapOf(
+        "37431A" to TypLozyska.STOZKOWE_CALOWE,
+        "37625" to TypLozyska.STOZKOWE_CALOWE,
+        "357234" to TypLozyska.SKOSNE,
+    )
 
     /**
      * Calowe łożyska OPOROWE Timkena (typ TTSP), np. T139-904A1. "T139" to numer
@@ -71,6 +76,9 @@ object BearingTypeClassifier {
         Regex("^QJ\\d") to TypLozyska.SKOSNE,
         Regex("^(AXK|AX|81|89)\\d") to TypLozyska.OPOROWE,
         Regex("^C\\d{4}") to TypLozyska.WAHLIWE_BARYLKOWE,
+        // Tuleja wciągana (H208/H210/H308, 3 cyfry) PRZED calowymi: "H" jest
+        // przeciążone - 3 cyfry = tuleja, a calowy Timken H (heavy) ma 4+ (H414242).
+        Regex("^H\\d{3}(?!\\d)") to TypLozyska.TULEJA_WCIAGANA,
         // Stożkowe CALOWE Timkena - na KOŃCU, bo reguły wyżej są węższe i mają
         // pierwszeństwo: "HK1010" ma zostać igiełkowe, a nie calowe od "H".
         INCH_LETTER to TypLozyska.STOZKOWE_CALOWE,
@@ -151,7 +159,7 @@ object BearingTypeClassifier {
         // Serwer miał tę osłonę od dawna, telefon jej NIE MIAŁ; to była cicha
         // rozbieżność między dwiema implementacjami tej samej reguły.
         if (INCH_LETTER.containsMatchIn(text)) return null
-        if (INCH_NUMERIC.any { text.startsWith(it) }) return null
+        if (NUMERIC_TYPES.keys.any { text.startsWith(it) }) return null
         // Numer T idzie za otworem w setnych CALA, nie za kodem ISO: bez tego "T139"
         // dałoby z cyfr "39" otwór 195 mm, przy prawdziwych 35,18 mm.
         if (TIMKEN_THRUST.containsMatchIn(text)) return null
@@ -211,9 +219,9 @@ object BearingTypeClassifier {
             if (pattern.containsMatchIn(text)) return typ
         }
 
-        // Calowe bez przedrostka literowego - PRZED regułami cyfrowymi, inaczej
-        // "37431A" poleciałoby dalej i wypadło jako "nie wiem".
-        if (INCH_NUMERIC.any { text.startsWith(it) }) return TypLozyska.STOZKOWE_CALOWE
+        // Numeryczne bez przedrostka literowego - PRZED regułami cyfrowymi, inaczej
+        // "37431A" czy "357234" poleciałyby dalej i wypadły jako "nie wiem".
+        NUMERIC_TYPES.entries.firstOrNull { text.startsWith(it.key) }?.let { return it.value }
 
         val digits = LEADING_DIGITS.find(text)?.groupValues?.get(1) ?: return null
         if (digits.length < MIN_DIGITS) return null

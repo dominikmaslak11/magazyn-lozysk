@@ -56,12 +56,16 @@ TYP_SKOSNE = "skośne (kulkowe)"
 TYP_WALCOWE = "walcowe"
 TYP_OPOROWE = "oporowe"
 TYP_IGIELKOWE = "igiełkowe"
+# Tuleja wciągana (adapter sleeve) - osprzęt montażowy, NIE łożysko toczne. Seria H
+# (H208, H210, H308...), zakładana na wałek, żeby osadzić łożysko z otworem stożkowym.
+TYP_TULEJA_WCIAGANA = "tuleja wciągana"
 
 ALL_TYPES = _TYPY_Z_KATALOGIEM + [TYP_WSTAWKOWE_ES, TYP_WSTAWKOWE_EX, TYP_WSTAWKOWE_RAE,
               TYP_WSTAWKOWE_UD,
               TYP_STOZKOWE_CALOWE,
               TYP_SKOSNE, TYP_WALCOWE,
-              TYP_OPOROWE, TYP_IGIELKOWE]
+              TYP_OPOROWE, TYP_IGIELKOWE,
+              TYP_TULEJA_WCIAGANA]
 
 # typ -> {symbol: (d, D, B)} w milimetrach
 SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
@@ -200,6 +204,9 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         # łożysko (5202 = 3202 = 15 x 35 x 15,9 mm). Źródło: karty katalogowe Nachi/VXB
         # oraz jawna równoważność 5202-2RS = 3202-2RS u dystrybutorów.
         "5202": (15, 35, 15.9), "3202": (15, 35, 15.9),
+        # Numer katalogowy (OEM), nie seria ISO. Rozpoznany przez Dominika jako
+        # dwurzędowe skośne kulkowe 35x72x34.
+        "357234": (35, 72, 34),
     },
 
     TYP_WSTAWKOWE_EX: {

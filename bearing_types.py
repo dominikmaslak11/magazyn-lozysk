@@ -29,7 +29,8 @@ from __future__ import annotations
 import re
 
 from bearing_data import (TYP_IGIELKOWE, TYP_KULKOWE, TYP_OPOROWE, TYP_SKOSNE,
-                           TYP_STOZKOWE, TYP_STOZKOWE_CALOWE, TYP_WAHLIWE_BARYLKOWE,
+                           TYP_STOZKOWE, TYP_STOZKOWE_CALOWE, TYP_TULEJA_WCIAGANA,
+                           TYP_WAHLIWE_BARYLKOWE,
                            TYP_WAHLIWE_KULKOWE, TYP_WALCOWE, TYP_WSTAWKOWE,
                            TYP_WSTAWKOWE_ES, TYP_WSTAWKOWE_RAE, TYP_WSTAWKOWE_EX,
                            TYP_WSTAWKOWE_UD)
@@ -42,19 +43,24 @@ from bearing_data import (TYP_IGIELKOWE, TYP_KULKOWE, TYP_OPOROWE, TYP_SKOSNE,
 # z reguły ISO na dwóch ostatnich cyfrach.
 #
 # Cztery cyfry to minimum, nie ozdobnik. Numery calowe mają ich 4-6 (L44643, M12649,
-# LM11949, H414242, EE640192), a próg odsiewa dwa realne fałszywe trafienia:
-#   H208   - tuleja wciągana do łożysk wahliwych, nie łożysko stożkowe,
+# LM11949, H414242, EE640192), a próg odsiewa jedno realne fałszywe trafienie:
 #   LM8UU  - liniowe łożysko tuleiowe, spotykane przy drukarkach 3D.
+# H208 (3 cyfry) już nie "udaje" stożka calowego - ma własną regułę niżej w PREFIX_RULES
+# (tuleja wciągana). Litera H zostaje tu w wariancie 4+ cyfr (H414242).
 #
 # Przedrostka J (JLM, JH, JM, JW, JP...) tu NIE MA i to jest świadome: u Timkena
 # oznacza on serię METRYCZNĄ ("metric cone bore and cup O.D."), a nie calową.
 _INCH_LETTER_RULE = r"^(LL|LM|HM|HH|EE|EH|L|M|H)\d{4}"
 
-# Oznaczenia calowe bez przedrostka literowego. Żadna reguła ich nie rozpozna -
-# "37431" wygląda dokładnie jak numer metryczny - więc lista jest jawna i rośnie
-# po jednym wpisie, każdy ze źródłem w serie_lozysk.py. Dopasowanie po POCZĄTKU
-# ciągu, żeby złapać też zapis kompletu: "37431A/37625" -> "37431A37625".
-_INCH_NUMERIC: tuple[str, ...] = ("37431A", "37625")
+# Oznaczenia NUMERYCZNE bez przedrostka literowego. Żadna reguła ich nie rozpozna -
+# "37431" wygląda dokładnie jak numer metryczny, a "357234" to numer katalogowy OEM -
+# więc typ bierze się z tej listy, po jednym wpisie ze źródłem w serie_lozysk.py.
+# Dopasowanie po POCZĄTKU ciągu, żeby złapać też zapis kompletu: "37431A/37625".
+_NUMERIC_TYPES: dict[str, str] = {
+    "37431A": TYP_STOZKOWE_CALOWE,
+    "37625": TYP_STOZKOWE_CALOWE,
+    "357234": TYP_SKOSNE,
+}
 
 # Calowe łożyska OPOROWE Timkena (typ TTSP), np. T139-904A1 w układzie kierowania.
 # "T139" to numer bazowy, "T139-904A1" numer kompletu; separatory są już obcięte,
@@ -102,6 +108,9 @@ _PREFIX_RULES: list[tuple[str, str]] = [
     (r"^C\d{4}", TYP_WAHLIWE_BARYLKOWE),
     # stożkowe CALOWE - na KOŃCU, bo reguły wyżej są węższe i mają pierwszeństwo:
     # "HK1010" ma być igiełkowe, a nie calowe stożkowe od przedrostka "H".
+    # Tuleja wciągana (H208/H210/H308, 3 cyfry) jest PRZED calowymi, bo "H" jest
+    # przeciążone: 3 cyfry = tuleja, a calowy Timken H (heavy) ma ich 4+ (H414242).
+    (r"^H\d{3}(?!\d)", TYP_TULEJA_WCIAGANA),
     (_INCH_LETTER_RULE, TYP_STOZKOWE_CALOWE),
     # oporowe calowe Timkena - PO regule "TA" (igiełkowe), która jest węższa.
     (_TIMKEN_THRUST_RULE, TYP_OPOROWE),
@@ -212,7 +221,7 @@ def bore_from_symbol(raw: str) -> float | None:
     # zatrzymuje: dla "37431A" reguła ISO wyliczyłaby z cyfr "31" otwór 155 mm,
     # dimensions_are_plausible() odrzuciłoby PRAWDZIWE 109,538 mm jako niepasujące
     # i przyjęło dowolną bzdurę z sieci. Kontrola sensowności działałaby na odwrót.
-    if re.match(_INCH_LETTER_RULE, text) or text.startswith(_INCH_NUMERIC):
+    if re.match(_INCH_LETTER_RULE, text) or any(text.startswith(s) for s in _NUMERIC_TYPES):
         return None
 
     # To samo dla oporowych calowych. Bez tego "T139" trafiłoby w gałąź "przedrostek
@@ -302,12 +311,13 @@ def classify_symbol(raw: str) -> str | None:
         if re.match(pattern, text):
             return typ
 
-    # Oznaczenia calowe bez przedrostka literowego - PRZED regułami cyfrowymi, bo
-    # inaczej "37431A" poszłoby dalej i wypadło jako "nie wiem". To jedyne miejsce,
-    # w którym typ bierze się z listy, a nie z reguły: numeracja calowa nie ma wzorca,
-    # po którym dałoby się ją odróżnić od ISO.
-    if text.startswith(_INCH_NUMERIC):
-        return TYP_STOZKOWE_CALOWE
+    # Oznaczenia numeryczne bez przedrostka literowego - PRZED regułami cyfrowymi, bo
+    # inaczej "37431A" czy "357234" poszłyby dalej i wypadły jako "nie wiem". To jedyne
+    # miejsce, w którym typ bierze się z listy, a nie z reguły: te numery nie mają wzorca,
+    # po którym dałoby się je odróżnić od ISO.
+    for sym, typ in _NUMERIC_TYPES.items():
+        if text.startswith(sym):
+            return typ
 
     # Ciąg cyfr rozpoczynający oznaczenie (przyrostki typu 2RS/ZZ/C3 są tu nieistotne).
     m = re.match(r"^(\d+)", text)

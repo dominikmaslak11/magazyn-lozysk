@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from bearing_data import SERIES
 from bearing_data import (TYP_IGIELKOWE, TYP_OPOROWE, TYP_SKOSNE, TYP_STOZKOWE_CALOWE,
+                           TYP_TULEJA_WCIAGANA,
                            TYP_WSTAWKOWE_UD,
                            TYP_WSTAWKOWE, TYP_WSTAWKOWE_ES, TYP_WSTAWKOWE_EX,
                            TYP_WSTAWKOWE_RAE)
@@ -210,6 +211,38 @@ def test_prog_czterech_cyfr_odsiewa_nielozyska():
     """
     for symbol in ("H208", "M208", "L208", "LM8UU", "H308"):
         assert classify_symbol(symbol) != TYP_STOZKOWE_CALOWE, symbol
+
+
+def test_tuleja_wciagana_seria_H():
+    """H2/H3 to tuleje wciągane (adapter sleeves), nie łożyska - 3 cyfry po H.
+
+    H210 = wałek 50 mm. Trzy cyfry odróżniają tuleję od calowego stożka Timkena
+    H (heavy), który ma ich 4+ (H414242) i dalej idzie do stożkowych calowych.
+    """
+    for symbol in ("H208", "H210", "H308", "H220", "H232"):
+        assert classify_symbol(symbol) == TYP_TULEJA_WCIAGANA, symbol
+    assert classify_symbol("FAG H210") == TYP_TULEJA_WCIAGANA
+    # kod otworu ISO: H208 -> 40 mm, H210 -> 50 mm
+    assert bore_from_symbol("H208") == 40.0
+    assert bore_from_symbol("H210") == 50.0
+    # calowy Timken H (heavy, 4+ cyfr) nie jest tuleją
+    assert classify_symbol("H414242") == TYP_STOZKOWE_CALOWE
+    assert bore_from_symbol("H414242") is None
+
+
+def test_numer_katalogowy_357234():
+    """357234 to numer katalogowy OEM (skośne dwurzędowe 35x72x34), nie seria ISO.
+
+    Żadna reguła go nie rozpozna, więc typ i wymiary są wpisane JAWNIE - jak przy
+    calowych 37431A/37625, tylko z innym typem (skośne, nie calowe).
+    """
+    from lookup import normalize_symbol
+    from bearing_data import BEARING_DB, BEARING_TYPE
+    assert classify_symbol("357234") == TYP_SKOSNE
+    assert bore_from_symbol("357234") is None  # numer nie koduje otworu ISO
+    assert normalize_symbol("357234") == "357234"
+    assert BEARING_DB["357234"] == (35, 72, 34)
+    assert BEARING_TYPE["357234"] == TYP_SKOSNE
 
 
 def test_calowe_nie_kradna_igielkowych_ani_walcowych():

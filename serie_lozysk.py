@@ -24,8 +24,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from bearing_data import (TYP_IGIELKOWE, TYP_OPOROWE, TYP_SKOSNE, TYP_STOZKOWE_CALOWE,
-                           TYP_WALCOWE, TYP_WSTAWKOWE, TYP_WSTAWKOWE_ES, TYP_WSTAWKOWE_EX,
-                           TYP_WSTAWKOWE_RAE, TYP_WSTAWKOWE_UD)
+                           TYP_TULEJA_WCIAGANA, TYP_WALCOWE, TYP_WSTAWKOWE, TYP_WSTAWKOWE_ES,
+                           TYP_WSTAWKOWE_EX, TYP_WSTAWKOWE_RAE, TYP_WSTAWKOWE_UD)
 
 # Sposób, w jaki z oznaczenia czyta się średnicę otworu.
 KOD_ISO = "kod ISO"          # dwie ostatnie cyfry x 5 mm (6205 -> 25 mm)
@@ -107,18 +107,32 @@ SERIE: tuple[Seria, ...] = (
     Seria(("QJ",), TYP_SKOSNE, KOD_ISO, "ISO 15", "Czteropunktowe."),
     Seria(("AXK", "AX"), TYP_OPOROWE, BRAK_REGULY, "katalogi oporowych igiełkowych"),
     Seria(
-        ("LL", "LM", "HM", "HH", "EE", "EH", "L", "M", "H"),
+        ("LL", "LM", "HM", "HH", "EE", "EH", "L", "M"),
         TYP_STOZKOWE_CALOWE, BRAK_REGULY,
         "ahrinternational.com/TIMKEN_nomenclature.shtml oraz "
         "rhtrd.com/bearings/timken-bearings/timken-part-number-prefixes/ "
         "(dwa niezależne wykazy przedrostków Timkena)",
-        "Serie CALOWE Timkena: L (light), M (medium), H (heavy) i ich złożenia "
+        "Serie CALOWE Timkena: L (light), M (medium) i ich złożenia "
         "LL/LM/HM/HH, plus EE i EH. Numer bazowy to numer KATALOGOWY - nie koduje "
         "ani otworu, ani rozmiaru, więc reguła ISO 'dwie ostatnie cyfry x 5 mm' tu "
         "nie obowiązuje. UWAGA: przedrostek J (JLM, JH, JM, JW, JP...) to u Timkena "
         "seria METRYCZNA, nie calowa - oba źródła mówią o nim 'metric cone bore and "
-        "cup O.D.', więc świadomie NIE ma go na tej liście.",
+        "cup O.D.', więc świadomie NIE ma go na tej liście. "
+        "Przedrostek H (heavy) jest PRZECIĄŻONY: dzieli go z tuleją wciąganą liczba "
+        "cyfr - tu zostaje wariant 4+ cyfr (H414242), a 3-cyfrowe H2/H3 to osobna "
+        "seria 'tuleja wciągana' poniżej.",
         cyfry_przykladu="44643",
+    ),
+    Seria(
+        ("H",),
+        TYP_TULEJA_WCIAGANA, KOD_ISO,
+        "SKF/Schaeffler, katalog tulei wciąganych (seria H); potwierdzone na sztuce "
+        "FAG H210 z magazynu (wałek 50 mm)",
+        "Tuleja wciągana (adapter sleeve), NIE łożysko toczne - osprzęt do osadzenia "
+        "łożyska z otworem stożkowym na wałku cylindrycznym. Trzy cyfry po H to "
+        "liczba 2xx/3xx i kod otworu ISO: H208 = 40 mm, H210 = 50 mm. Trzy cyfry "
+        "odróżniają tuleję od calowego stożka Timkena H (heavy), który ma ich 4+.",
+        cyfry_przykladu="208",
     ),
     Seria(
         ("T",),
@@ -142,6 +156,16 @@ SERIE: tuple[Seria, ...] = (
         "Stożek i miska mają osobne numery, a komplet zapisuje się przez ukośnik: "
         "37431A/37625 to 109,538 x 158,75 x 23,02 mm (23,02 to szerokość CAŁKOWITA T; "
         "sam stożek ma 21,438 mm, sama miska 15,875 mm).",
+    ),
+    Seria(
+        ("357234",),
+        TYP_SKOSNE, BRAK_REGULY,
+        "Identyfikacja Dominika (22.09): łożysko kulkowe skośne dwurzędowe 35x72x34, "
+        "numer katalogowy OEM",
+        "Numer katalogowy producenta, nie seria ISO - żadna reguła go nie rozpozna, więc "
+        "typ i wymiary są wpisane JAWNIE (35x72x34, skośne dwurzędowe). '35' na początku "
+        "przypadkowo zgadza się z otworem, ale numer nie koduje otworu regułą ISO - stąd "
+        "BRAK_REGULY, a wymiary biorą się z katalogu.",
     ),
 )
 

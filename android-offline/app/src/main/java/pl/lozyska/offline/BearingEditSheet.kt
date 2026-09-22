@@ -332,6 +332,8 @@ private fun opisTypu(typ: String): String? = when (typ) {
     "wstawkowe (RAE/INA)" -> "INA/Schaeffler; liczba w oznaczeniu to WPROST otwór w mm " +
         "(RAE35 = 35 mm). UWAGA: RAE ma pierścień zewnętrzny WALCOWY, a GRAE KULISTY - " +
         "tylko GRAE kompensuje niewspółosiowość wału."
+    "tuleja wciągana" -> "Osprzęt montażowy, NIE łożysko. Seria H (H208, H210...), na wałek, " +
+        "do osadzenia łożyska z otworem stożkowym. Liczba po H to kod otworu: H210 = wałek 50 mm."
     else -> null
 }
 
