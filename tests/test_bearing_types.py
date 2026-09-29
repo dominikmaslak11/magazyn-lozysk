@@ -483,3 +483,12 @@ def test_rae30_i_rae35_w_katalogu():
     for zapis, wym in (("RAE30", (30, 62, 35.8)), ("RAE 35 NPP B", (35, 72, 39))):
         r = lookup_by_symbol(zapis)
         assert (r.d, r.D, r.B, r.typ) == (*wym, TYP_WSTAWKOWE_RAE), zapis
+
+
+def test_m86649_komplet_timken():
+    from lookup import lookup_by_symbol, normalize_symbol
+    for zapis in ("M86649/M86610", "M86649/86610", "TIMKEN M 86649 / M 86610"):
+        assert normalize_symbol(zapis) == "M86649", zapis
+        assert classify_symbol(zapis) == TYP_STOZKOWE_CALOWE, zapis
+    r = lookup_by_symbol("M86649/M86610")
+    assert (r.d, r.D, r.B) == (30.1625, 64.294, 21.431)     # T kompletu, nie 16,67 (miska)

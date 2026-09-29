@@ -280,6 +280,13 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         # 18,034 (T). Sam stożek ma B = 18,288 mm - tu nie podajemy, bo w magazynie
         # leży komplet. Źródło: cad.timken.com, karta LM48548/LM48510 (Dominik 29.09).
         "LM48548": (34.925, 65.0875, 18.034),
+
+        # M86649/M86610 - komplet stożek + miska, pod numerem stożka (jak LM48548):
+        # 1,1875" x 2,5312" x 0,8438" = 30,1625 x 64,294 x 21,431 (T komplet). UWAGA na
+        # sklepy: nzminiaturebearings.com podaje w tytule "30.16x64.29x16.67", ale 16,67
+        # to szerokość samej MISKI (C = 0,6563"), nie komplet. Źródło: cad.timken.com
+        # (karta M86649/M86610), bearingsrus.com (29.09).
+        "M86649": (30.1625, 64.294, 21.431),
     },
 
     TYP_TULEJA_SLIZGOWA: {
