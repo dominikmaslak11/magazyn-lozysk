@@ -136,7 +136,7 @@ object BearingTypeClassifier {
     // Kropka JEST separatorem: SNR zapisuje oznaczenia jako "EX.208.G2".
     private val SEPARATORS = Regex("[\\s\\-_/.]")
     private val LEADING_DIGITS = Regex("^(\\d+)")
-    private val PREFIX_AND_DIGITS = Regex("^([A-Z]*)(\\d+)")
+    private val PREFIX_AND_DIGITS = Regex("^([A-Z]*)\\s?(\\d+)")
 
     /** Serie, w których dwie ostatnie cyfry NIE są kodem otworu. */
     private val NO_BORE_CODE = Regex("^(RNAO|RNA|NKIA|NKIB|NKI|NKX|NKS|NAO|NA|NK|HK|BK|IR|TA|AXK|AX)\\d")
@@ -146,6 +146,15 @@ object BearingTypeClassifier {
 
     /** Kody otworu odbiegające od reguły "kod x 5 mm" (ISO 15). */
     private val BORE_EXCEPTIONS = mapOf("00" to 10.0, "01" to 12.0, "02" to 15.0, "03" to 17.0)
+
+    private fun normalizedRozdzielony(raw: String?): String {
+        if (raw.isNullOrBlank()) return ""
+        val text = Regex("[\\s\\-_/.]+").replace(raw.trim().uppercase(), " ").trim()
+        for (brand in BRANDS) {
+            if (text.startsWith(brand) && text.length > brand.length) return text.substring(brand.length).trim()
+        }
+        return text
+    }
 
     private fun normalized(raw: String?): String {
         if (raw.isNullOrBlank()) return ""
@@ -191,7 +200,9 @@ object BearingTypeClassifier {
             return if (wartosc in 10..200) wartosc.toDouble() else null
         }
 
-        val m = PREFIX_AND_DIGITS.find(text) ?: return null
+        // Na tekście z separatorami zamienionymi na spację: po sklejeniu "6205-2RS"
+        // dawało cyfry "62052" i otwór 260 mm (port normalizedRozdzielony z serwera).
+        val m = PREFIX_AND_DIGITS.find(normalizedRozdzielony(raw)) ?: return null
         val prefiks = m.groupValues[1]
         val digits = m.groupValues[2]
 

@@ -185,6 +185,10 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         # seria UC200, łożyska wstawkowe do opraw (pillow block), wg Codex
         "UC201": (12, 47, 31), "UC202": (15, 47, 31), "UC203": (17, 47, 31),
         "UC204": (20, 47, 31), "UC205": (25, 52, 34.1), "UC206": (30, 62, 38.1),
+        # SKF YAR 206-2F: te same wymiary co UC206 (30 x 62 x 38,1; pierścień zewnętrzny
+        # 18 mm), inne uszczelnienie (2F = tworzywo z blaszką) i wkręty dociskowe. Wpis
+        # Dominika 29.09; źródło: opis produktu SKF YAR 206-2F.
+        "YAR206": (30, 62, 38.1),
         "UC207": (35, 72, 42.9), "UC208": (40, 80, 49.2), "UC209": (45, 85, 49.2),
         "UC210": (50, 90, 51.6), "UC211": (55, 100, 55.6), "UC212": (60, 110, 65.1),
     },

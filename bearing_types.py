@@ -190,6 +190,16 @@ _BRANDS = (
 )
 
 
+def _normalized_rozdzielony(raw: str) -> str:
+    """Jak _normalized(), ale separatory zostają jako pojedyncze spacje - żeby przyrostek
+    z cyfrą (2RS, 2Z, 2F) nie skleił się z numerem łożyska."""
+    text = re.sub(r"[\s\-_/.]+", " ", (raw or "").strip().upper()).strip()
+    for brand in _BRANDS:
+        if text.startswith(brand) and len(text) > len(brand):
+            return text[len(brand):].strip()
+    return text
+
+
 def _normalized(raw: str) -> str:
     """Wielkie litery, bez separatorów, bez nazwy producenta z przodu."""
     text = re.sub(r"[\s\-_/.]", "", (raw or "").strip().upper())
@@ -257,7 +267,12 @@ def bore_from_symbol(raw: str) -> float | None:
         return None
 
     # Część numeryczna: pomijamy przedrostek literowy serii (NU, UC, QJ...).
-    m = re.match(r"^([A-Z]*)(\d+)", text)
+    # Liczymy na tekście z SEPARATORAMI (zamienionymi na spację), nie na sklejonym:
+    # po sklejeniu "6205-2RS" dawało cyfry "62052", kod "52" i otwór 260 mm, a
+    # "YAR206-2F" -> "2062" -> 310 mm. dimensions_are_plausible() odrzucało wtedy
+    # PRAWDZIWE wymiary z internetu dla każdego symbolu z przyrostkiem 2RS/2Z/2F.
+    tekst_rozdzielony = _normalized_rozdzielony(raw)
+    m = re.match(r"^([A-Z]*)\s?(\d+)", tekst_rozdzielony)
     if not m:
         return None
     prefiks, digits = m.group(1), m.group(2)

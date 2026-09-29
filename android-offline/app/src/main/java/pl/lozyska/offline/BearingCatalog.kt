@@ -298,6 +298,7 @@ object BearingCatalog {
         KatalogWpis("UC204", 20.0, 47.0, 31.0, TypLozyska.WSTAWKOWE),
         KatalogWpis("UC205", 25.0, 52.0, 34.1, TypLozyska.WSTAWKOWE),
         KatalogWpis("UC206", 30.0, 62.0, 38.1, TypLozyska.WSTAWKOWE),
+        KatalogWpis("YAR206", 30.0, 62.0, 38.1, TypLozyska.WSTAWKOWE),
         KatalogWpis("UC207", 35.0, 72.0, 42.9, TypLozyska.WSTAWKOWE),
         KatalogWpis("UC208", 40.0, 80.0, 49.2, TypLozyska.WSTAWKOWE),
         KatalogWpis("UC209", 45.0, 85.0, 49.2, TypLozyska.WSTAWKOWE),

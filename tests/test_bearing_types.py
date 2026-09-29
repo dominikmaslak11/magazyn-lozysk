@@ -492,3 +492,22 @@ def test_m86649_komplet_timken():
         assert classify_symbol(zapis) == TYP_STOZKOWE_CALOWE, zapis
     r = lookup_by_symbol("M86649/M86610")
     assert (r.d, r.D, r.B) == (30.1625, 64.294, 21.431)     # T kompletu, nie 16,67 (miska)
+
+
+def test_przyrostek_z_cyfra_nie_skleja_sie_z_numerem():
+    """"6205-2RS" dawało otwór 260 mm (cyfry "62052"), "YAR206-2F" - 310 mm. Kontrola
+    sensowności odrzucała wtedy prawdziwe wymiary z internetu."""
+    from bearing_types import dimensions_are_plausible
+    for zapis, otwor in (("6205-2RS", 25.0), ("6205 2RSH", 25.0), ("6205-2Z", 25.0),
+                         ("YAR206-2F", 30.0), ("YAR 206 2F", 30.0), ("UC206-2F", 30.0),
+                         ("NU205 ECP", 25.0), ("30204 A", 20.0), ("SKF 6204-2RS1", 20.0)):
+        assert bore_from_symbol(zapis) == otwor, zapis
+    assert dimensions_are_plausible("YAR206-2F", 30, 62, 38.1)
+    assert not dimensions_are_plausible("YAR206-2F", 310, 400, 38.1)
+
+
+def test_yar206_wstawkowe_w_katalogu():
+    from bearing_data import TYP_WSTAWKOWE
+    from lookup import lookup_by_symbol
+    r = lookup_by_symbol("YAR 206 2F")
+    assert (r.d, r.D, r.B, r.typ) == (30, 62, 38.1, TYP_WSTAWKOWE)
