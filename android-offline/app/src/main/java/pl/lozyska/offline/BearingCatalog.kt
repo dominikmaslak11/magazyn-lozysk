@@ -312,6 +312,7 @@ object BearingCatalog {
         // INA/Schaeffler. Trzecia liczba to szerokość CAŁKOWITA, jak przy UC i ES.
         // UWAGA: RAE ma pierścień zewnętrzny WALCOWY, GRAE KULISTY - i tylko ten drugi
         // kompensuje niewspółosiowość wału, czyli jest samonastawny w oprawie.
+        KatalogWpis("RAE30", 30.0, 62.0, 35.8, TypLozyska.WSTAWKOWE_RAE),
         KatalogWpis("RAE35", 35.0, 72.0, 39.0, TypLozyska.WSTAWKOWE_RAE),
         // SNR. Kulista powierzchnia zewnętrzna, mocowanie mimośrodowym pierścieniem.
         // Trzecia liczba to szerokość CAŁKOWITA (sam pierścień zewnętrzny ma 21 mm).

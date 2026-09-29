@@ -231,6 +231,9 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         # UWAGA na wariant: RAE ma pierścień zewnętrzny WALCOWY, a GRAE KULISTY - i tylko
         # ten drugi kompensuje niewspółosiowość wału (jest "samonastawny" w oprawie).
         "RAE35": (35, 72, 39),
+        # RAE30-NPP-B (= RAE30-XL-NPP-B w obecnym oznaczeniu Schaeffler): 30 x 62 x 35,8;
+        # starsze karty podają 35,7. Źródło: northeastparts.com, agrobearings.com (29.09).
+        "RAE30": (30, 62, 35.8),
     },
 
     TYP_WSTAWKOWE_UD: {

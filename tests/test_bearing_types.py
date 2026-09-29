@@ -475,3 +475,11 @@ def test_tuleja_slizgowa_skf_or_bvpb():
         assert bore_from_symbol(zapis) is None      # numer OE nie koduje otworu
     r = lookup_by_symbol("OR-BVPB366936A")
     assert (r.d, r.D, r.B, r.typ) == (35, 52, 16.5, TYP_TULEJA_SLIZGOWA)
+
+
+def test_rae30_i_rae35_w_katalogu():
+    from bearing_data import TYP_WSTAWKOWE_RAE
+    from lookup import lookup_by_symbol
+    for zapis, wym in (("RAE30", (30, 62, 35.8)), ("RAE 35 NPP B", (35, 72, 39))):
+        r = lookup_by_symbol(zapis)
+        assert (r.d, r.D, r.B, r.typ) == (*wym, TYP_WSTAWKOWE_RAE), zapis
