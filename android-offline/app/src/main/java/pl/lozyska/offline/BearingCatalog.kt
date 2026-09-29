@@ -320,6 +320,8 @@ object BearingCatalog {
         // Numer katalogowy OEM, nie seria ISO. Dwurzędowe skośne kulkowe 35x72x34.
         KatalogWpis("357234", 35.0, 72.0, 34.0, TypLozyska.SKOSNE),
         // NACHI 30BG5222-2DSE (sprężarki klimatyzacji): 30 (otwór) BG 52 (D) 22 (B).
+        // Komplet LM48548/LM48510 (Timken), pod numerem stożka - patrz bearing_data.py.
+        KatalogWpis("LM48548", 34.925, 65.0875, 18.034, TypLozyska.STOZKOWE_CALOWE),
         KatalogWpis("30BG5222", 30.0, 52.0, 22.0, TypLozyska.SKOSNE),
         KatalogWpis("UC211", 55.0, 100.0, 55.6, TypLozyska.WSTAWKOWE),
         KatalogWpis("UC212", 60.0, 110.0, 65.1, TypLozyska.WSTAWKOWE),

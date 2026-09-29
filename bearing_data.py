@@ -266,6 +266,13 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         # Katalog producenta rozstrzyga na korzyść nagłówka.
         # Źródło: cad.timken.com, karta 37431A/37625.
         "37431A/37625": (109.538, 158.75, 23.02),
+
+        # LM48548/LM48510 - komplet stożek + miska. Symbol normalizuje się do "LM48548"
+        # (przedrostek LM + cyfry, człon "/48510" odpada), więc wpis jest pod numerem
+        # stożka, ale wymiary są KOMPLETU: 1,375" x 2,5625" x 0,71" = 34,925 x 65,0875 x
+        # 18,034 (T). Sam stożek ma B = 18,288 mm - tu nie podajemy, bo w magazynie
+        # leży komplet. Źródło: cad.timken.com, karta LM48548/LM48510 (Dominik 29.09).
+        "LM48548": (34.925, 65.0875, 18.034),
     },
 }
 

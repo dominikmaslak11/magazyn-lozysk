@@ -452,3 +452,14 @@ def test_seria_bg_bd_to_skosne_dwurzedowe_z_otworem_na_poczatku():
     assert (r.d, r.D, r.B, r.typ) == (30, 52, 22, TYP_SKOSNE)
     # wąski wzorzec: zwykłe łożyska nie mogą wpaść w regułę BG/BD
     assert classify_symbol("6205") != TYP_SKOSNE and bore_from_symbol("6205") == 25.0
+
+
+def test_lm48548_komplet_nie_ginie_przy_normalizacji():
+    """LM48548/LM48510 (Timken, 34,925 x 65,0875 x 18,034) - zapis kompletu z ukośnikiem."""
+    from lookup import lookup_by_symbol, normalize_symbol
+    for zapis in ("LM48548/48510", "LM48548/LM48510", "LM 48548 / LM 48510"):
+        assert normalize_symbol(zapis) == "LM48548", zapis
+        assert classify_symbol(zapis) == TYP_STOZKOWE_CALOWE, zapis
+        assert bore_from_symbol(zapis) is None      # numer calowy nie koduje otworu
+    r = lookup_by_symbol("LM48548/48510")
+    assert (r.d, r.D, r.B) == (34.925, 65.0875, 18.034)
