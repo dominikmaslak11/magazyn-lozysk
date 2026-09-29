@@ -319,6 +319,8 @@ object BearingCatalog {
         KatalogWpis("3202", 15.0, 35.0, 15.9, TypLozyska.SKOSNE),
         // Numer katalogowy OEM, nie seria ISO. Dwurzędowe skośne kulkowe 35x72x34.
         KatalogWpis("357234", 35.0, 72.0, 34.0, TypLozyska.SKOSNE),
+        // NACHI 30BG5222-2DSE (sprężarki klimatyzacji): 30 (otwór) BG 52 (D) 22 (B).
+        KatalogWpis("30BG5222", 30.0, 52.0, 22.0, TypLozyska.SKOSNE),
         KatalogWpis("UC211", 55.0, 100.0, 55.6, TypLozyska.WSTAWKOWE),
         KatalogWpis("UC212", 60.0, 110.0, 65.1, TypLozyska.WSTAWKOWE),
     )

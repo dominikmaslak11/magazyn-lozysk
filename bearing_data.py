@@ -207,6 +207,10 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         # Numer katalogowy (OEM), nie seria ISO. Rozpoznany przez Dominika jako
         # dwurzędowe skośne kulkowe 35x72x34.
         "357234": (35, 72, 34),
+        # NACHI 30BG5222-2DSE, do sprężarek klimatyzacji. Wymiary kodowane w oznaczeniu:
+        # 30 (otwór) BG 52 (D) 22 (B). Wpis Dominika 29.09; typ (skośne dwurzędowe) wg
+        # rodziny BG/BD - do potwierdzenia w karcie NACHI.
+        "30BG5222": (30, 52, 22),
     },
 
     TYP_WSTAWKOWE_EX: {

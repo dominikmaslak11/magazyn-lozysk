@@ -58,6 +58,14 @@ object BearingTypeClassifier {
      */
     private val TIMKEN_THRUST = Regex("^T\\d{2,4}")
 
+    /**
+     * Seria BG/BD (NACHI, NSK) - skośne dwurzędowe do sprężarek klimatyzacji. Otwór
+     * stoi NA POCZĄTKU wprost w mm, po B[GD] idą D i B: 30BG5222 = 30 x 52 x 22.
+     * Bez tej reguły "30BG5222 2DSE" skracało się do "5222" (inne łożysko, 110 x 200).
+     * Port 1:1 z _BORE_FIRST_RULE w bearing_types.py.
+     */
+    private val BORE_FIRST = Regex("^(\\d{2,3})B[GD]\\d{4}")
+
     /** Kolejność MA ZNACZENIE: igiełkowe (NA/NK/NKI) przed walcowymi (N/NU/NJ). */
     private val PREFIX_RULES: List<Pair<Regex, TypLozyska>> = listOf(
         // INA/Schaeffler PRZED igiełkowymi (tam jest reguła na RNA/NA).
@@ -157,6 +165,12 @@ object BearingTypeClassifier {
         if (text.isEmpty()) return null
         if (NO_BORE_CODE.containsMatchIn(text)) return null
 
+        // Seria BG/BD: otwór to liczba PRZED literami, wprost w milimetrach.
+        BORE_FIRST.find(text)?.let { dopasowanie ->
+            val wartosc = dopasowanie.groupValues[1].toIntOrNull() ?: return null
+            return if (wartosc in 10..200) wartosc.toDouble() else null
+        }
+
         // Numeracja CALOWA nie ma kodu otworu. Bez tego warunku telefon liczył dla
         // "37431A" otwór 155 mm (z cyfr "31"), podczas gdy prawdziwy to 109,538 -
         // i dimensionsArePlausible() odrzucałoby PRAWDZIWE wymiary jako niepasujące.
@@ -226,6 +240,9 @@ object BearingTypeClassifier {
         // Numeryczne bez przedrostka literowego - PRZED regułami cyfrowymi, inaczej
         // "37431A" czy "357234" poleciałyby dalej i wypadły jako "nie wiem".
         NUMERIC_TYPES.entries.firstOrNull { text.startsWith(it.key) }?.let { return it.value }
+
+        // Seria BG/BD - PRZED regułami cyfrowymi, bo tekst zaczyna się od cyfr.
+        if (BORE_FIRST.containsMatchIn(text)) return TypLozyska.SKOSNE
 
         val digits = LEADING_DIGITS.find(text)?.groupValues?.get(1) ?: return null
         if (digits.length < MIN_DIGITS) return null

@@ -434,3 +434,21 @@ def test_us206_to_kulkowe_samonastawne_a_nie_wstawkowe():
         assert classify_symbol(symbol) == TYP_WAHLIWE_KULKOWE
     assert classify_symbol("USFE208") == TYP_WSTAWKOWE
     assert bore_from_symbol("US206") == 30.0
+
+
+def test_seria_bg_bd_to_skosne_dwurzedowe_z_otworem_na_poczatku():
+    """30BG5222 2DSE (NACHI) skracało się do "5222" - wahliwego baryłkowego 110x200."""
+    from bearing_data import BEARING_DB
+    from lookup import lookup_by_symbol, normalize_symbol
+    for zapis in ("30BG5222 2DSE", "30BG5222-2DSE", "NACHI 30BG5222 2DSE", "30bg5222"):
+        assert normalize_symbol(zapis) == "30BG5222", zapis
+        assert classify_symbol(zapis) == TYP_SKOSNE, zapis
+        assert bore_from_symbol(zapis) == 30.0, zapis
+    # inny rozmiar tej samej rodziny: otwór 35 wprost, nie kod ISO
+    assert classify_symbol("35BD5222") == TYP_SKOSNE
+    assert bore_from_symbol("35BD5222") == 35.0
+    assert BEARING_DB["30BG5222"] == (30, 52, 22)
+    r = lookup_by_symbol("30BG5222 2DSE")
+    assert (r.d, r.D, r.B, r.typ) == (30, 52, 22, TYP_SKOSNE)
+    # wąski wzorzec: zwykłe łożyska nie mogą wpaść w regułę BG/BD
+    assert classify_symbol("6205") != TYP_SKOSNE and bore_from_symbol("6205") == 25.0

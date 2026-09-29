@@ -62,6 +62,15 @@ _NUMERIC_TYPES: dict[str, str] = {
     "357234": TYP_SKOSNE,
 }
 
+# Seria BG/BD (NACHI, NSK) - dwurzędowe skośne łożyska do sprężarek klimatyzacji.
+# Oznaczenie ma otwór NA POCZĄTKU, w milimetrach, a po literach B[GD] idą cztery cyfry
+# = średnica zewnętrzna i szerokość: 30BG5222 = 30 x 52 x 22, 35BD5222 = 35 x 52 x 22.
+# Nie ma tu kodu otworu ISO ani przedrostka literowego, więc żadna reguła "cyfry na
+# początku" tego nie rozpozna: "30BG5222 2DSE" skracało się do "5222" (wahliwe
+# baryłkowe 110 x 200 x 69,85 - zupełnie inne łożysko), a 3-4-cyfrowy początek
+# wpadał w reguły cyfrowe. Wąski wzorzec: dwie-trzy cyfry, BG albo BD, cztery cyfry.
+_BORE_FIRST_RULE = r"^(\d{2,3})B[GD]\d{4}"
+
 # Calowe łożyska OPOROWE Timkena (typ TTSP), np. T139-904A1 w układzie kierowania.
 # "T139" to numer bazowy, "T139-904A1" numer kompletu; separatory są już obcięte,
 # więc widzimy "T139904A1".
@@ -220,6 +229,12 @@ def bore_from_symbol(raw: str) -> float | None:
         # Zakres rozsądku: seria obejmuje kilkanaście do stu kilkudziesięciu milimetrów.
         return float(wartosc) if 10 <= wartosc <= 200 else None
 
+    # Seria BG/BD: otwór to liczba PRZED literami, wprost w milimetrach (30BG5222 -> 30).
+    m_bg = re.match(_BORE_FIRST_RULE, text)
+    if m_bg:
+        wartosc = int(m_bg.group(1))
+        return float(wartosc) if 10 <= wartosc <= 200 else None
+
     # Serie, w których dwie ostatnie cyfry NIE są kodem otworu.
     if re.match(r"^(RNAO|RNA|NKIA|NKIB|NKI|NKX|NKS|NAO|NA|NK|HK|BK|IR|TA|AXK|AX)\d", text):
         return None
@@ -326,6 +341,11 @@ def classify_symbol(raw: str) -> str | None:
     for sym, typ in _NUMERIC_TYPES.items():
         if text.startswith(sym):
             return typ
+
+    # Seria BG/BD - patrz komentarz przy _BORE_FIRST_RULE. PRZED regułami cyfrowymi,
+    # bo tekst zaczyna się od cyfr i "30BG..." wyglądałby na początek numeru ISO.
+    if re.match(_BORE_FIRST_RULE, text):
+        return TYP_SKOSNE
 
     # Ciąg cyfr rozpoczynający oznaczenie (przyrostki typu 2RS/ZZ/C3 są tu nieistotne).
     m = re.match(r"^(\d+)", text)

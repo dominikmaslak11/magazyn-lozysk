@@ -59,6 +59,10 @@ _INCH_ALTERNATYWA = "|".join(re.escape(p) for p in _INCH_NUMERIC)
 _INCH_RE = re.compile(rf"\b(?:{_INCH_ALTERNATYWA})(?:\s*/\s*(?:{_INCH_ALTERNATYWA}))?")
 
 
+# Seria BG/BD - patrz komentarz przy _BORE_FIRST_RULE w bearing_types.py.
+_BG_RE = re.compile(r"\b(\d{2,3})\s*B([GD])[\s\-_./]*(\d{4})")
+
+
 def normalize_symbol(raw: str) -> str:
     """Wyciąga bazowy numer łożyska z dowolnego zapisu, np. 'SKF 6008-2RS1' -> '6008',
     ale zachowuje przedrostki literowe serii wstawkowych, np. 'UC 211 D1' -> 'UC211'."""
@@ -77,6 +81,11 @@ def normalize_symbol(raw: str) -> str:
     #
     # Zakres {3,6}, a nie {3,4}: numery calowe Timkena mają 4-6 cyfr, więc przy starym
     # progu "LM11949" skracało się do "LM1194" - symbolu, którego nie ma nigdzie.
+    # Seria BG/BD (30BG5222 2DSE): otwór przed literami, potem cztery cyfry. Bez tego
+    # reguła "weź ciąg cyfr" niżej zwracała "5222" - inne łożysko o innych wymiarach.
+    m_bg = _BG_RE.search(raw)
+    if m_bg:
+        return f"{m_bg.group(1)}B{m_bg.group(2)}{m_bg.group(3)}"
     for prefix in _LETTER_PREFIXES:
         m = re.search(rf"\b{prefix}[\s\-_./]*(\d{{3,6}})", raw)
         if m:
