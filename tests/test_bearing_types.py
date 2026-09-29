@@ -424,3 +424,13 @@ if __name__ == "__main__":
             print(f"  BŁĄD {t.__name__}\n       {e}")
     print(f"\n{len(testy) - niepowodzenia}/{len(testy)} testów przeszło")
     sys.exit(1 if niepowodzenia else 0)
+
+
+def test_us206_to_kulkowe_samonastawne_a_nie_wstawkowe():
+    """US206 (30x62x16) to odpowiednik 1206, nie UC206 (30x62x38,1). Goły przedrostek
+    "US" jest samonastawny; wstawkowe to dopiero USFE."""
+    from bearing_data import TYP_WAHLIWE_KULKOWE, TYP_WSTAWKOWE
+    for symbol in ("US206", "US208", "US206G2"):
+        assert classify_symbol(symbol) == TYP_WAHLIWE_KULKOWE
+    assert classify_symbol("USFE208") == TYP_WSTAWKOWE
+    assert bore_from_symbol("US206") == 30.0

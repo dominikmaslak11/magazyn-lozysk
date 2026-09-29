@@ -46,6 +46,12 @@ class MapaActivity : Activity() {
     private lateinit var ustawienia: SharedPreferences
     private var motyw: Motyw = Motyw.NORMALNY
 
+    // Ikony przyciskow gornego rzedu - trzymane, zeby zmiana motywu je przemalowala.
+    private lateinit var ikonaLupa: Ikona
+    private lateinit var ikonaRuchy: Ikona
+    private lateinit var ikonaMotyw: Ikona
+    private lateinit var ikonaObroc: Ikona
+
     private var magazyn: Magazyn? = null
     private var pokazujRuchy = false
     private val watek = Handler()
@@ -88,6 +94,16 @@ class MapaActivity : Activity() {
         dol = findViewById(R.id.dol)
 
         motyw = Motyw.wg(ustawienia.getInt("motyw", 0))
+        ikonaLupa = ikona(Ikona.Rodzaj.LUPA, 30)
+        ikonaRuchy = ikona(Ikona.Rodzaj.ZEGAR, 34)
+        ikonaMotyw = ikona(Ikona.Rodzaj.MOTYW, 34)
+        ikonaObroc = ikona(Ikona.Rodzaj.OBROT, 34)
+        poleSzukania.setCompoundDrawables(ikonaLupa, null, null, null)
+        poleSzukania.compoundDrawablePadding = 12
+        // Ikona nad podpisem: rozpoznaje sie ja od razu, a napis tylko potwierdza.
+        przyciskRuchy.setCompoundDrawables(null, ikonaRuchy, null, null)
+        przyciskMotyw.setCompoundDrawables(null, ikonaMotyw, null, null)
+        przyciskObroc.setCompoundDrawables(null, ikonaObroc, null, null)
         zastosujMotyw()
 
         poleSzukania.addTextChangedListener(object : TextWatcher {
@@ -165,9 +181,25 @@ class MapaActivity : Activity() {
         for (p in listOf(przyciskRuchy, przyciskMotyw, przyciskObroc)) {
             p.setTextColor(motyw.tekst)
         }
+        for (i in listOf(ikonaRuchy, ikonaMotyw, ikonaObroc)) i.ustawKolor(motyw.tekst)
+        ikonaLupa.ustawKolor(motyw.tekstSlaby)
     }
 
     private fun pismo(id: Int): Float = resources.getDimension(id)
+
+    /** Ikona o boku [dp] gestosciowo niezaleznych pikseli, w kolorze biezacego motywu. */
+    private fun ikona(rodzaj: Ikona.Rodzaj, dp: Int, kolor: Int = motyw.tekst): Ikona =
+        Ikona(rodzaj, kolor, (dp * resources.displayMetrics.density).toInt())
+
+    /** Ikona z lewej strony paska stanu: odswiez, gdy wszystko gra; trojkat, gdy nie. */
+    private fun ikonaStanu(ostrzezenie: Boolean) {
+        val kolor = if (ostrzezenie) motyw.ostrzezenie else motyw.tekstSlaby
+        stan.setCompoundDrawables(
+            ikona(if (ostrzezenie) Ikona.Rodzaj.OSTRZEZENIE else Ikona.Rodzaj.ODSWIEZ, 22, kolor),
+            null, null, null,
+        )
+        stan.compoundDrawablePadding = 10
+    }
 
     private fun pokaz(tekst: String) = Toast.makeText(this, tekst, Toast.LENGTH_SHORT).show()
 
@@ -191,6 +223,7 @@ class MapaActivity : Activity() {
                     // Nie ma ani serwera, ani kopii na dysku - pierwsze uruchomienie
                     // poza zasiegiem. Mowimy wprost, co jest nie tak.
                     stan.setTextColor(motyw.ostrzezenie)
+                    ikonaStanu(true)
                     stan.text = "Brak polaczenia i brak kopii.\n$blad\n${BuildConfig.ADRES}"
                 }
             }
@@ -233,6 +266,7 @@ class MapaActivity : Activity() {
         val trafione = szukaj(dane, pytanie)
 
         stan.setTextColor(if (dane.zeSchowka) motyw.ostrzezenie else motyw.tekstSlaby)
+        ikonaStanu(dane.zeSchowka)
         stan.text = if (dane.zeSchowka)
             "BRAK POLACZENIA - dane z kopii z ${dane.pobrano}\ndotknij, aby sprobowac ponownie"
         else
@@ -380,22 +414,23 @@ class MapaActivity : Activity() {
             )
             wiersz.addView(opis)
 
-            wiersz.addView(przyciskIlosci("-") { zmienIlosc(l, -1) })
+            wiersz.addView(przyciskIlosci(Ikona.Rodzaj.MINUS, "Zmniejsz o jeden") { zmienIlosc(l, -1) })
             val ile = tekst("${l.ilosc}", motyw.tekst, pismo(R.dimen.pismo_ilosc), pogrubiony = true)
             ile.setPadding(18, 0, 18, 0)
             wiersz.addView(ile)
-            wiersz.addView(przyciskIlosci("+") { zmienIlosc(l, +1) })
+            wiersz.addView(przyciskIlosci(Ikona.Rodzaj.PLUS, "Zwieksz o jeden") { zmienIlosc(l, +1) })
 
             dol.addView(wiersz)
         }
     }
 
     /** Duzy przycisk, ktory da sie trafic palcem bez celowania. */
-    private fun przyciskIlosci(napis: String, akcja: () -> Unit): Button {
+    private fun przyciskIlosci(rodzaj: Ikona.Rodzaj, opis: String, akcja: () -> Unit): Button {
         val b = Button(this)
-        b.text = napis
-        b.setTextSize(TypedValue.COMPLEX_UNIT_PX, pismo(R.dimen.pismo_przycisk_ilosc))
-        b.setTextColor(motyw.tekst)
+        // Rysowany plus/minus zamiast znaku "+"/"-": ten sam rozmiar i grubosc
+        // niezaleznie od czcionki, a przy slabym wzroku ksztalt czyta sie latwiej.
+        b.setCompoundDrawables(ikona(rodzaj, 44), null, null, null)
+        b.contentDescription = opis
         b.minimumWidth = 110
         b.minimumHeight = 110
         b.setOnClickListener { akcja() }
@@ -416,6 +451,16 @@ class MapaActivity : Activity() {
                 pismo(R.dimen.pismo_ruch),
             )
             t.setPadding(10, 10, 10, 10)
+            // Zielona strzalka w gore = przybylo, czerwona w dol = ubylo. Kolor sam
+            // nie wystarczy (daltonizm), wiec kierunek niesie ten sam sens.
+            t.setCompoundDrawables(
+                ikona(
+                    if (r.delta > 0) Ikona.Rodzaj.STRZALKA_GORA else Ikona.Rodzaj.STRZALKA_DOL,
+                    18, if (r.delta > 0) motyw.przybylo else motyw.ubylo,
+                ),
+                null, null, null,
+            )
+            t.compoundDrawablePadding = 12
             dol.addView(t)
         }
     }

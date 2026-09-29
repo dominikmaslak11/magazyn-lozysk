@@ -151,6 +151,11 @@ object Serwer {
     private fun liczbaLubNull(o: JSONObject, klucz: String): Double? =
         if (o.isNull(klucz)) null else o.optDouble(klucz)
 
+    // Skrytki wisza bezposrednio pod regalem (od 30.09 bez wezlow "Polka N"),
+    // wiec rzad wynika z liczby na poczatku nazwy: "9L" -> 9.
+    private fun numerZNazwy(nazwa: String): Int =
+        nazwa.takeWhile { it.isDigit() }.toIntOrNull() ?: 0
+
     private fun skrytkiZJson(tekst: String): List<Skrytka> {
         val tablica = JSONArray(tekst)
         // Najpierw mapa id -> poziom polki, zeby wiedziec, w ktorym rzedzie
@@ -169,7 +174,8 @@ object Serwer {
             wynik.add(
                 Skrytka(
                     nazwa = o.optString("nazwa"),
-                    polka = poziomPolki[o.optString("parent_id")] ?: 0,
+                    polka = poziomPolki[o.optString("parent_id")]
+                        ?: numerZNazwy(o.optString("nazwa")),
                     dMin = liczbaLubNull(o, "d_min"),
                     dMax = liczbaLubNull(o, "d_max"),
                 )

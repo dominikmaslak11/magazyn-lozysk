@@ -92,10 +92,18 @@ _PREFIX_RULES: list[tuple[str, str]] = [
     # konstrukcje i jedna nie zastąpi drugiej w maszynie.
     (r"^(ESPA|ESP|ES)\d", TYP_WSTAWKOWE_ES),
     # łożyska wstawkowe / w oprawach (mocowane wkrętami)
-    # US/UEL (SNR) i YEL/YET/YAR (SKF) to również łożyska wstawkowe; kod otworu czyta
-    # się w nich jak w ISO, więc idą razem z UC.
-    (r"^(UCFL|UCFC|UCPH|UCP|UCF|UCT|UCX|UC|UK|SB|SA|CSA|USFE|US|UEL|UEM|YEL|YET|YAR)\d",
+    # USFE/UEL (SNR) i YEL/YET/YAR (SKF) to również łożyska wstawkowe; kod otworu czyta
+    # się w nich jak w ISO, więc idą razem z UC. Goły "US" (bez FE) NIE jest tu -
+    # patrz reguła niżej, to inna konstrukcja.
+    (r"^(UCFL|UCFC|UCPH|UCP|UCF|UCT|UCX|UC|UK|SB|SA|CSA|USFE|UEL|UEM|YEL|YET|YAR)\d",
      TYP_WSTAWKOWE),
+    # Kulkowe SAMONASTAWNE serii "US" (US206, US208...) - PRZED regułą wstawkowych
+    # (kolejność bez znaczenia, bo \d zaraz po prefiksie odróżnia je od USFE, ale
+    # zostaje tu czytelnie obok). Sztuka US206 z magazynu (identyfikacja Dominika,
+    # 23.09) nie ma oprawy ani wkrętów dociskowych - to odpowiednik 1206 (30x62x16),
+    # nie wstawkowe. Wcześniejsza karta SNR US208G2 opisywała inne łożysko - patrz
+    # notatka w serie_lozysk.py.
+    (r"^US\d", TYP_WAHLIWE_KULKOWE),
     # igiełkowe - PRZED walcowymi
     (r"^(RNAO|RNA|NKIA|NKIB|NKI|NKX|NKS|NAO|NA|NK|HK|BK|IR|TA)\d", TYP_IGIELKOWE),
     # walcowe

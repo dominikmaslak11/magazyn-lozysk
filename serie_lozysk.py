@@ -24,8 +24,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from bearing_data import (TYP_IGIELKOWE, TYP_OPOROWE, TYP_SKOSNE, TYP_STOZKOWE_CALOWE,
-                           TYP_TULEJA_WCIAGANA, TYP_WALCOWE, TYP_WSTAWKOWE, TYP_WSTAWKOWE_ES,
-                           TYP_WSTAWKOWE_EX, TYP_WSTAWKOWE_RAE, TYP_WSTAWKOWE_UD)
+                           TYP_TULEJA_WCIAGANA, TYP_WAHLIWE_KULKOWE, TYP_WALCOWE, TYP_WSTAWKOWE,
+                           TYP_WSTAWKOWE_ES, TYP_WSTAWKOWE_EX, TYP_WSTAWKOWE_RAE,
+                           TYP_WSTAWKOWE_UD)
 
 # Sposób, w jaki z oznaczenia czyta się średnicę otworu.
 KOD_ISO = "kod ISO"          # dwie ostatnie cyfry x 5 mm (6205 -> 25 mm)
@@ -53,10 +54,22 @@ class Seria:
 SERIE: tuple[Seria, ...] = (
     Seria(
         ("UCFL", "UCFC", "UCPH", "UCP", "UCF", "UCT", "UCX", "UC", "UK", "SB", "SA", "CSA",
-         "USFE", "US", "UEL", "UEM", "YEL", "YET", "YAR"),
+         "USFE", "UEL", "UEM", "YEL", "YET", "YAR"),
         TYP_WSTAWKOWE, KOD_ISO,
-        "eshop.ntn-snr.com (US208G2), katalog UC200",
-        "Wstawkowe mocowane WKRĘTAMI dociskowymi. UC208: pierścień wewnętrzny 49,2 mm.",
+        "eshop.ntn-snr.com (USFE208G2), katalog UC200",
+        "Wstawkowe mocowane WKRĘTAMI dociskowymi. UC208: pierścień wewnętrzny 49,2 mm. "
+        "Goły przedrostek 'US' (bez FE) NIE jest tu - patrz seria osobno niżej.",
+    ),
+    Seria(
+        ("US",),
+        TYP_WAHLIWE_KULKOWE, KOD_ISO,
+        "Identyfikacja Dominika (23.09) na sztuce US206 z magazynu",
+        "Kulkowe SAMONASTAWNE (dwurzędowe, seria 1200), NIE wstawkowe - mimo że 'US' "
+        "dawniej stał w tej samej grupie co UC/UEL/YAR na podstawie karty SNR "
+        "US208G2 z eshop.ntn-snr.com. Ta karta opisywała inne łożysko - fizyczna sztuka "
+        "z magazynu nie ma oprawy ani wkrętów dociskowych. US206 to odpowiednik 1206 "
+        "(30x62x16), ten sam kod otworu ISO co przy wstawkowych (US206 -> 06 -> 30 mm), "
+        "ale wymiary D/B trzeba brać z katalogu serii 1200, nie z UC.",
     ),
     Seria(
         ("ESPA", "ESP", "ES"),

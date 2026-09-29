@@ -70,7 +70,11 @@ object BearingTypeClassifier {
         Regex("^UD\\d") to TypLozyska.WSTAWKOWE_UD,
         // ES PRZED UC i jako osobny typ - patrz komentarz przy TypLozyska.WSTAWKOWE_ES.
         Regex("^(ESPA|ESP|ES)\\d") to TypLozyska.WSTAWKOWE_ES,
-        Regex("^(UCFL|UCFC|UCPH|UCP|UCF|UCT|UCX|UC|UK|SB|SA|CSA|USFE|US|UEL|UEM|YEL|YET|YAR)\\d") to TypLozyska.WSTAWKOWE,
+        // Goły "US" (bez FE) NIE jest tu - to kulkowe samonastawne, patrz reguła niżej.
+        Regex("^(UCFL|UCFC|UCPH|UCP|UCF|UCT|UCX|UC|UK|SB|SA|CSA|USFE|UEL|UEM|YEL|YET|YAR)\\d") to TypLozyska.WSTAWKOWE,
+        // Kulkowe samonastawne serii "US" (US206, US208...) - identyfikacja Dominika
+        // na sztuce US206 z magazynu (23.09), patrz serie_lozysk.py po stronie serwera.
+        Regex("^US\\d") to TypLozyska.WAHLIWE_KULKOWE,
         Regex("^(RNAO|RNA|NKIA|NKIB|NKI|NKX|NKS|NAO|NA|NK|HK|BK|IR|TA)\\d") to TypLozyska.IGIELKOWE,
         Regex("^(NNU|NNCF|NCF|NUP|NUB|NJP|NN|NU|NJ|NF|NP|N)\\d") to TypLozyska.WALCOWE,
         Regex("^QJ\\d") to TypLozyska.SKOSNE,
