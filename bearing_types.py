@@ -29,7 +29,7 @@ from __future__ import annotations
 import re
 
 from bearing_data import (TYP_IGIELKOWE, TYP_KULKOWE, TYP_OPOROWE, TYP_SKOSNE,
-                           TYP_STOZKOWE, TYP_STOZKOWE_CALOWE, TYP_TULEJA_WCIAGANA,
+                           TYP_STOZKOWE, TYP_STOZKOWE_CALOWE, TYP_TULEJA_SLIZGOWA, TYP_TULEJA_WCIAGANA,
                            TYP_WAHLIWE_BARYLKOWE,
                            TYP_WAHLIWE_KULKOWE, TYP_WALCOWE, TYP_WSTAWKOWE,
                            TYP_WSTAWKOWE_ES, TYP_WSTAWKOWE_RAE, TYP_WSTAWKOWE_EX,
@@ -128,6 +128,9 @@ _PREFIX_RULES: list[tuple[str, str]] = [
     # Tuleja wciągana (H208/H210/H308, 3 cyfry) jest PRZED calowymi, bo "H" jest
     # przeciążone: 3 cyfry = tuleja, a calowy Timken H (heavy) ma ich 4+ (H414242).
     (r"^H\d{3}(?!\d)", TYP_TULEJA_WCIAGANA),
+    # Tuleja ŚLIZGOWA SKF (OR-BVPB366936A). Cała rodzina zaczyna się od BVPB, "OR" to
+    # nazwa klasy SKF przed nią. Po separatorach zostaje "ORBVPB366936A".
+    (r"^(ORBVPB|BVPB)\d", TYP_TULEJA_SLIZGOWA),
     (_INCH_LETTER_RULE, TYP_STOZKOWE_CALOWE),
     # oporowe calowe Timkena - PO regule "TA" (igiełkowe), która jest węższa.
     (_TIMKEN_THRUST_RULE, TYP_OPOROWE),

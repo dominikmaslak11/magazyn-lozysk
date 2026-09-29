@@ -40,6 +40,8 @@ private val LETTER_PREFIXES = listOf(
     "USFE", "US", "UEL", "UEM", "YEL", "YET", "YAR",
     // INA/Schaeffler - liczba to wprost otwór w milimetrach (RAE35 = 35 mm).
     "GRAE", "RALE", "RASE", "RAE", "GRA", "RA",
+    // SKF OR-BVPB (tuleja ślizgowa): bez tego "OR-BVPB366936A" redukowało się do "366936".
+    "BVPB",
     "NNU", "NNCF", "NCF", "NUP", "NUB", "NJP", "NN", "NU", "NJ", "NF", "NP", "N",
     "RNAO", "RNA", "NKIA", "NKIB", "NKI", "NKX", "NKS", "NAO", "NA", "NK", "HK", "BK",
     "IR", "TA", "AXK", "AX",

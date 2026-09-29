@@ -91,6 +91,8 @@ object BearingTypeClassifier {
         // Tuleja wciągana (H208/H210/H308, 3 cyfry) PRZED calowymi: "H" jest
         // przeciążone - 3 cyfry = tuleja, a calowy Timken H (heavy) ma 4+ (H414242).
         Regex("^H\\d{3}(?!\\d)") to TypLozyska.TULEJA_WCIAGANA,
+        // Tuleja ŚLIZGOWA SKF (OR-BVPB366936A): po separatorach "ORBVPB366936A".
+        Regex("^(ORBVPB|BVPB)\\d") to TypLozyska.TULEJA_SLIZGOWA,
         // Stożkowe CALOWE Timkena - na KOŃCU, bo reguły wyżej są węższe i mają
         // pierwszeństwo: "HK1010" ma zostać igiełkowe, a nie calowe od "H".
         INCH_LETTER to TypLozyska.STOZKOWE_CALOWE,

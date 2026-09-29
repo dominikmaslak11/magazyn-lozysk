@@ -24,7 +24,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from bearing_data import (TYP_IGIELKOWE, TYP_OPOROWE, TYP_SKOSNE, TYP_STOZKOWE_CALOWE,
-                           TYP_TULEJA_WCIAGANA, TYP_WAHLIWE_KULKOWE, TYP_WALCOWE, TYP_WSTAWKOWE,
+                           TYP_TULEJA_SLIZGOWA, TYP_TULEJA_WCIAGANA, TYP_WAHLIWE_KULKOWE, TYP_WALCOWE, TYP_WSTAWKOWE,
                            TYP_WSTAWKOWE_ES, TYP_WSTAWKOWE_EX, TYP_WSTAWKOWE_RAE,
                            TYP_WSTAWKOWE_UD)
 
@@ -135,6 +135,17 @@ SERIE: tuple[Seria, ...] = (
         "cyfr - tu zostaje wariant 4+ cyfr (H414242), a 3-cyfrowe H2/H3 to osobna "
         "seria 'tuleja wciągana' poniżej.",
         cyfry_przykladu="44643",
+    ),
+    Seria(
+        ("BVPB",),
+        TYP_TULEJA_SLIZGOWA, BRAK_REGULY,
+        "rufus.pl (SKF OR-BVPB366936A, 35x52x16,5, 'pierścień ślizgowy') oraz "
+        "acorn-ind.co.uk ('SKF Plain Bearing'); potwierdzone na sztuce z magazynu",
+        "Łożysko ŚLIZGOWE SKF, NIE toczne - tuleja/pierścień bez elementów tocznych. "
+        "Numer po BVPB to numer OE (366936), nie koduje otworu, więc reguła ISO tu nie "
+        "obowiązuje. Zapis 'OR-BVPB 366936 A': bez tego przedrostka normalizacja "
+        "redukowała go do gołego '366936'.",
+        cyfry_przykladu="366936",
     ),
     Seria(
         ("H",),

@@ -334,6 +334,8 @@ private fun opisTypu(typ: String): String? = when (typ) {
         "tylko GRAE kompensuje niewspółosiowość wału."
     "tuleja wciągana" -> "Osprzęt montażowy, NIE łożysko. Seria H (H208, H210...), na wałek, " +
         "do osadzenia łożyska z otworem stożkowym. Liczba po H to kod otworu: H210 = wałek 50 mm."
+    "tuleja ślizgowa" -> "Łożysko ŚLIZGOWE (SKF OR-BVPB...), NIE toczne: tuleja albo " +
+        "pierścień bez elementów tocznych. Numer po BVPB to numer OE, nie koduje otworu."
     else -> null
 }
 

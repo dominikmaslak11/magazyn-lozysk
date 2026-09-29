@@ -463,3 +463,15 @@ def test_lm48548_komplet_nie_ginie_przy_normalizacji():
         assert bore_from_symbol(zapis) is None      # numer calowy nie koduje otworu
     r = lookup_by_symbol("LM48548/48510")
     assert (r.d, r.D, r.B) == (34.925, 65.0875, 18.034)
+
+
+def test_tuleja_slizgowa_skf_or_bvpb():
+    """OR-BVPB366936A redukowało się do gołego "366936" (numer OE) i typu None."""
+    from bearing_data import TYP_TULEJA_SLIZGOWA
+    from lookup import lookup_by_symbol, normalize_symbol
+    for zapis in ("OR-BVPB366936A", "OR-BVPB 366936 A", "SKF OR-BVPB366936A", "BVPB366936"):
+        assert normalize_symbol(zapis) == "BVPB366936", zapis
+        assert classify_symbol(zapis) == TYP_TULEJA_SLIZGOWA, zapis
+        assert bore_from_symbol(zapis) is None      # numer OE nie koduje otworu
+    r = lookup_by_symbol("OR-BVPB366936A")
+    assert (r.d, r.D, r.B, r.typ) == (35, 52, 16.5, TYP_TULEJA_SLIZGOWA)

@@ -42,6 +42,8 @@ enum class TypLozyska(val etykieta: String) {
     // Tuleja wciągana (adapter sleeve) - osprzęt montażowy, NIE łożysko toczne.
     // Seria H (H208, H210...), na wałek, pod łożyska z otworem stożkowym.
     TULEJA_WCIAGANA("tuleja wciągana"),
+    // Tuleja/pierścień ŚLIZGOWY (SKF OR-BVPB) - łożysko ślizgowe, NIE toczne.
+    TULEJA_SLIZGOWA("tuleja ślizgowa"),
 }
 
 data class KatalogWpis(val symbol: String, val d: Double, val dZew: Double, val b: Double, val typ: TypLozyska)
@@ -322,6 +324,8 @@ object BearingCatalog {
         // NACHI 30BG5222-2DSE (sprężarki klimatyzacji): 30 (otwór) BG 52 (D) 22 (B).
         // Komplet LM48548/LM48510 (Timken), pod numerem stożka - patrz bearing_data.py.
         KatalogWpis("LM48548", 34.925, 65.0875, 18.034, TypLozyska.STOZKOWE_CALOWE),
+        // SKF OR-BVPB 366936 A, tuleja ślizgowa - patrz bearing_data.py.
+        KatalogWpis("BVPB366936", 35.0, 52.0, 16.5, TypLozyska.TULEJA_SLIZGOWA),
         KatalogWpis("30BG5222", 30.0, 52.0, 22.0, TypLozyska.SKOSNE),
         KatalogWpis("UC211", 55.0, 100.0, 55.6, TypLozyska.WSTAWKOWE),
         KatalogWpis("UC212", 60.0, 110.0, 65.1, TypLozyska.WSTAWKOWE),

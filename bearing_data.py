@@ -59,13 +59,17 @@ TYP_IGIELKOWE = "igiełkowe"
 # Tuleja wciągana (adapter sleeve) - osprzęt montażowy, NIE łożysko toczne. Seria H
 # (H208, H210, H308...), zakładana na wałek, żeby osadzić łożysko z otworem stożkowym.
 TYP_TULEJA_WCIAGANA = "tuleja wciągana"
+# Tuleja / pierścień ŚLIZGOWY (łożysko ślizgowe): brak elementów tocznych, więc to nie
+# łożysko toczne. Seria SKF OR-BVPB (np. OR-BVPB 366936 A, 35 x 52 x 16,5 mm) - numer
+# po BVPB to numer OE, nie koduje otworu.
+TYP_TULEJA_SLIZGOWA = "tuleja ślizgowa"
 
 ALL_TYPES = _TYPY_Z_KATALOGIEM + [TYP_WSTAWKOWE_ES, TYP_WSTAWKOWE_EX, TYP_WSTAWKOWE_RAE,
               TYP_WSTAWKOWE_UD,
               TYP_STOZKOWE_CALOWE,
               TYP_SKOSNE, TYP_WALCOWE,
               TYP_OPOROWE, TYP_IGIELKOWE,
-              TYP_TULEJA_WCIAGANA]
+              TYP_TULEJA_WCIAGANA, TYP_TULEJA_SLIZGOWA]
 
 # typ -> {symbol: (d, D, B)} w milimetrach
 SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
@@ -273,6 +277,14 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         # 18,034 (T). Sam stożek ma B = 18,288 mm - tu nie podajemy, bo w magazynie
         # leży komplet. Źródło: cad.timken.com, karta LM48548/LM48510 (Dominik 29.09).
         "LM48548": (34.925, 65.0875, 18.034),
+    },
+
+    TYP_TULEJA_SLIZGOWA: {
+        # SKF OR-BVPB 366936 A (Carraro, John Deere, Bobcat, Dana, Manitou; OE 366936).
+        # Symbol normalizuje się do "BVPB366936" (przedrostek BVPB + numer OE; "OR-"
+        # z przodu i wariant "A" na końcu odpadają). Źródło: rufus.pl, 29.09 - jedno
+        # źródło, wymiary do sprawdzenia suwmiarką.
+        "BVPB366936": (35, 52, 16.5),
     },
 }
 
