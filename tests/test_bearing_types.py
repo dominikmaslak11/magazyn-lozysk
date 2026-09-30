@@ -551,3 +551,13 @@ def test_32210m_i_nu210e_w_katalogu():
         r = lookup_by_symbol(zapis)
         assert (r.d, r.D, r.B, r.typ) == (*wym, typ), zapis
         assert r.source == "offline", zapis
+
+
+def test_uk310g2_wstawkowe_ze_stozkowym_otworem():
+    from bearing_data import TYP_WSTAWKOWE
+    from lookup import lookup_by_symbol
+    for zapis in ("UK310G2", "UK 310 G2", "SNR UK.310.G2"):
+        r = lookup_by_symbol(zapis)
+        assert (r.d, r.D, r.B, r.typ) == (50, 110, 41, TYP_WSTAWKOWE), zapis
+        assert r.source == "offline", zapis
+    assert bore_from_symbol("UK310G2") == 50.0

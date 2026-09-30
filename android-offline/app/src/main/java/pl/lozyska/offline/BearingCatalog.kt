@@ -301,6 +301,8 @@ object BearingCatalog {
         KatalogWpis("UC205", 25.0, 52.0, 34.1, TypLozyska.WSTAWKOWE),
         KatalogWpis("UC206", 30.0, 62.0, 38.1, TypLozyska.WSTAWKOWE),
         KatalogWpis("YAR206", 30.0, 62.0, 38.1, TypLozyska.WSTAWKOWE),
+        // UK310: otwór stożkowy 1:12, pod tuleję wciąganą - patrz bearing_data.py.
+        KatalogWpis("UK310", 50.0, 110.0, 41.0, TypLozyska.WSTAWKOWE),
         KatalogWpis("UC207", 35.0, 72.0, 42.9, TypLozyska.WSTAWKOWE),
         KatalogWpis("UC208", 40.0, 80.0, 49.2, TypLozyska.WSTAWKOWE),
         KatalogWpis("UC209", 45.0, 85.0, 49.2, TypLozyska.WSTAWKOWE),

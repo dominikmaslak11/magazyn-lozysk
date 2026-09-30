@@ -192,6 +192,12 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         # 18 mm), inne uszczelnienie (2F = tworzywo z blaszką) i wkręty dociskowe. Wpis
         # Dominika 29.09; źródło: opis produktu SKF YAR 206-2F.
         "YAR206": (30, 62, 38.1),
+        # UK310 (SNR UK310G2, Asahi UK 310): otwór STOŻKOWY 1:12 (50 mm nominalnie), do
+        # osadzenia na tulei wciąganej (UK310+H2310) - to wstawkowe, ale NIE zamiennik
+        # UC310 (UC ma otwór walcowy i pierścień 49,2 mm). Trzecia liczba to szerokość
+        # pierścienia wewnętrznego B = 41 mm; szerokość zewnętrznego C = 32 mm.
+        # Źródło: bearingfinder.ntnamericas.com (UK310), albeco.com.pl (30.09).
+        "UK310": (50, 110, 41),
         "UC207": (35, 72, 42.9), "UC208": (40, 80, 49.2), "UC209": (45, 85, 49.2),
         "UC210": (50, 90, 51.6), "UC211": (55, 100, 55.6), "UC212": (60, 110, 65.1),
     },
