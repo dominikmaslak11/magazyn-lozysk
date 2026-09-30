@@ -511,3 +511,12 @@ def test_yar206_wstawkowe_w_katalogu():
     from lookup import lookup_by_symbol
     r = lookup_by_symbol("YAR 206 2F")
     assert (r.d, r.D, r.B, r.typ) == (30, 62, 38.1, TYP_WSTAWKOWE)
+
+
+def test_l44649_komplet_timken():
+    from lookup import lookup_by_symbol, normalize_symbol
+    for zapis in ("L44649/L44610", "l44649/44610", "TIMKEN L 44649 / L 44610"):
+        assert normalize_symbol(zapis) == "L44649", zapis
+        assert classify_symbol(zapis) == TYP_STOZKOWE_CALOWE, zapis
+    r = lookup_by_symbol("l44649/44610")
+    assert (r.d, r.D, r.B) == (26.9875, 50.292, 14.224)

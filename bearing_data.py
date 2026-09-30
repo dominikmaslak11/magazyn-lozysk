@@ -291,6 +291,12 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         # to szerokość samej MISKI (C = 0,6563"), nie komplet. Źródło: cad.timken.com
         # (karta M86649/M86610), bearingsrus.com (29.09).
         "M86649": (30.1625, 64.294, 21.431),
+
+        # L44649/L44610 - komplet stożek + miska, pod numerem stożka: 1,0625" x 1,98" x
+        # 0,56" = 26,9875 x 50,292 x 14,224 (T komplet; sam stożek B = 0,58", sama miska
+        # C = 0,42"). Sklepy (Amazon) opisują 0,56" jako "Cup Width" - to T kompletu.
+        # Źródło: cad.timken.com, bearingsrus.com (30.09).
+        "L44649": (26.9875, 50.292, 14.224),
     },
 
     TYP_TULEJA_SLIZGOWA: {

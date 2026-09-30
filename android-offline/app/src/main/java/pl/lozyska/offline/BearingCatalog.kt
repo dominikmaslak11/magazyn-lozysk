@@ -326,6 +326,8 @@ object BearingCatalog {
         // NACHI 30BG5222-2DSE (sprężarki klimatyzacji): 30 (otwór) BG 52 (D) 22 (B).
         // Komplet LM48548/LM48510 (Timken), pod numerem stożka - patrz bearing_data.py.
         // Komplet Timken M86649/M86610 pod numerem stożka - patrz bearing_data.py.
+        // Komplet Timken L44649/L44610 pod numerem stożka - patrz bearing_data.py.
+        KatalogWpis("L44649", 26.9875, 50.292, 14.224, TypLozyska.STOZKOWE_CALOWE),
         KatalogWpis("M86649", 30.1625, 64.294, 21.431, TypLozyska.STOZKOWE_CALOWE),
         KatalogWpis("LM48548", 34.925, 65.0875, 18.034, TypLozyska.STOZKOWE_CALOWE),
         // SKF OR-BVPB 366936 A, tuleja ślizgowa - patrz bearing_data.py.
