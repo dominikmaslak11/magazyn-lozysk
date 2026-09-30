@@ -67,7 +67,7 @@ private val INCH_PATTERN: Pattern = Pattern.compile(
 // UWAGA na KROPKI: SNR zapisuje oznaczenia jako "EX.208.G2". Dopóki kropka nie była
 // separatorem, przedrostek się nie doklejał i całość redukowała się do gołego "208",
 // czyli do zwykłego łożyska kulkowego 40x80x18 zamiast wstawkowego 40x80x56,3.
-private val INA_PATTERN: Pattern = Pattern.compile("\\b(GRAE|RALE|RASE|RAE|GRA)[\\s\\-_./]*(\\d{2,3})(?!\\d)")
+private val INA_PATTERN: Pattern = Pattern.compile("\\b(GRAE|RALE|RASE|RAE|GRA|UCX)[\\s\\-_./]*(\\d{2,3})(?!\\d)")
 
 // Seria BG/BD (30BG5222 2DSE) - musi odpowiadać _BG_RE w lookup.py.
 private val BG_PATTERN: Pattern = Pattern.compile("\\b(\\d{2,3})\\s*B([GD])[\\s\\-_./]*(\\d{4})")

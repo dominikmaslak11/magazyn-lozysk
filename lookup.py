@@ -59,8 +59,10 @@ _INCH_ALTERNATYWA = "|".join(re.escape(p) for p in _INCH_NUMERIC)
 _INCH_RE = re.compile(rf"\b(?:{_INCH_ALTERNATYWA})(?:\s*/\s*(?:{_INCH_ALTERNATYWA}))?")
 
 
-# INA: GRAE/RALE/RASE/RAE/GRA/RA + numer 2-3 cyfrowy (otwór w mm), np. RAE30, GRAE35.
-_INA_RE = re.compile(r"\b(GRAE|RALE|RASE|RAE|GRA)[\s\-_./]*(\d{2,3})(?!\d)")
+# Serie z numerem DWUCYFROWYM: INA (GRAE/RALE/RASE/RAE/GRA, otwór w mm: RAE30, GRAE35)
+# oraz SNR/UC UCX (UCX07 = kod otworu 07, seria UCX05-UCX20). Ogólna reguła wymaga
+# 3+ cyfr, więc bez tego "UCX07D1" zostawało w całości i nie trafiało do katalogu.
+_INA_RE = re.compile(r"\b(GRAE|RALE|RASE|RAE|GRA|UCX)[\s\-_./]*(\d{2,3})(?!\d)")
 
 # Seria BG/BD - patrz komentarz przy _BORE_FIRST_RULE w bearing_types.py.
 _BG_RE = re.compile(r"\b(\d{2,3})\s*B([GD])[\s\-_./]*(\d{4})")

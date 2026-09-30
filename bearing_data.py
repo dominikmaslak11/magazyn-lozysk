@@ -198,6 +198,10 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         # pierścienia wewnętrznego B = 41 mm; szerokość zewnętrznego C = 32 mm.
         # Źródło: bearingfinder.ntnamericas.com (UK310), albeco.com.pl (30.09).
         "UK310": (50, 110, 41),
+        # UCX07 (D1 = odmiana pierścieni): 35 x 80 x 49,2, seria X = grubszy pierścień
+        # zewnętrzny niż UC207 (72 mm) - NIE zamiennik UC207. Źródło: NTN (UCX07),
+        # etkbearing.com, northwestbearings.co.uk (30.09).
+        "UCX07": (35, 80, 49.2),
         "UC207": (35, 72, 42.9), "UC208": (40, 80, 49.2), "UC209": (45, 85, 49.2),
         "UC210": (50, 90, 51.6), "UC211": (55, 100, 55.6), "UC212": (60, 110, 65.1),
     },

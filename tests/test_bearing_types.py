@@ -570,3 +570,14 @@ def test_lm12749_komplet_timken():
         r = lookup_by_symbol(zapis)
         assert (r.d, r.D, r.B) == (21.987, 45.237, 15.494), zapis
         assert r.typ == TYP_STOZKOWE_CALOWE and r.source == "offline", zapis
+
+
+def test_ucx07_dwucyfrowy_numer_trafia_do_katalogu():
+    from bearing_data import TYP_WSTAWKOWE
+    from lookup import lookup_by_symbol, normalize_symbol
+    for zapis in ("UCX07D1", "UCX 07 D1", "UCX07"):
+        assert normalize_symbol(zapis) == "UCX07", zapis
+        r = lookup_by_symbol(zapis)
+        assert (r.d, r.D, r.B, r.typ) == (35, 80, 49.2, TYP_WSTAWKOWE), zapis
+        assert r.source == "offline", zapis
+    assert normalize_symbol("UC207") == "UC207" and normalize_symbol("UCP208") == "UCP208"
