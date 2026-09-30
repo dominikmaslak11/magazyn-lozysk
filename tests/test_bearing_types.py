@@ -547,7 +547,8 @@ def test_32210m_i_nu210e_w_katalogu():
     for zapis, wym, typ in (("32210M", (50, 90, 24.75), TYP_STOZKOWE),
                             ("TIMKEN 32210M", (50, 90, 24.75), TYP_STOZKOWE),
                             ("NU210E", (50, 90, 20), TYP_WALCOWE),
-                            ("NU 210 E", (50, 90, 20), TYP_WALCOWE)):
+                            ("NU 210 E", (50, 90, 20), TYP_WALCOWE),
+                            ("NU 204", (20, 47, 14), TYP_WALCOWE)):
         r = lookup_by_symbol(zapis)
         assert (r.d, r.D, r.B, r.typ) == (*wym, typ), zapis
         assert r.source == "offline", zapis

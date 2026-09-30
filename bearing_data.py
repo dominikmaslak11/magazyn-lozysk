@@ -273,6 +273,8 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         # NU2xx wg ISO 15. Wpis Dominika 30.09. Pierścień wewnętrzny bez kołnierzy,
         # więc nie przenosi obciążeń osiowych.
         "NU210": (50, 90, 20),
+        # NU204: 20 x 47 x 14 (ISO 15, seria NU2xx). Wpis Dominika 30.09.
+        "NU204": (20, 47, 14),
     },
 
     TYP_STOZKOWE_CALOWE: {
