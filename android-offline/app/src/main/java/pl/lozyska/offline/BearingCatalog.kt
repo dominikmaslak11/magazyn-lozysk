@@ -321,6 +321,7 @@ object BearingCatalog {
         // Skośne dwurzędowe. 52xx to starsze oznaczenie serii 32xx - to samo łożysko.
         KatalogWpis("5202", 15.0, 35.0, 15.9, TypLozyska.SKOSNE),
         KatalogWpis("3202", 15.0, 35.0, 15.9, TypLozyska.SKOSNE),
+        KatalogWpis("3303", 17.0, 47.0, 22.2, TypLozyska.SKOSNE),
         // Numer katalogowy OEM, nie seria ISO. Dwurzędowe skośne kulkowe 35x72x34.
         KatalogWpis("357234", 35.0, 72.0, 34.0, TypLozyska.SKOSNE),
         // NACHI 30BG5222-2DSE (sprężarki klimatyzacji): 30 (otwór) BG 52 (D) 22 (B).

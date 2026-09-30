@@ -520,3 +520,17 @@ def test_l44649_komplet_timken():
         assert classify_symbol(zapis) == TYP_STOZKOWE_CALOWE, zapis
     r = lookup_by_symbol("l44649/44610")
     assert (r.d, r.D, r.B) == (26.9875, 50.292, 14.224)
+
+
+def test_typ_nie_skleja_przyrostka_z_numerem():
+    """"3303-2RS" -> cyfry "33032" -> regula pieciocyfrowa 330xx (stozkowe) zamiast 33xx
+    (skosne dwurzedowe). Ten sam blad co przy otworze: przyrostek 2RS/2Z/2F."""
+    from bearing_data import TYP_STOZKOWE
+    from lookup import lookup_by_symbol
+    for zapis in ("3303-2RS", "3303 2RS", "CRAFT 3303-2RS", "3303"):
+        assert classify_symbol(zapis) == TYP_SKOSNE, zapis
+    r = lookup_by_symbol("3303-2RS")
+    assert (r.d, r.D, r.B, r.typ) == (17, 47, 22.2, TYP_SKOSNE)
+    # pieciocyfrowe stozkowe nadal dzialaja, tez z przyrostkiem
+    assert classify_symbol("30204-2RS") == TYP_STOZKOWE
+    assert classify_symbol("32206 A") == TYP_STOZKOWE

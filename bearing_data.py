@@ -212,6 +212,9 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         # łożysko (5202 = 3202 = 15 x 35 x 15,9 mm). Źródło: karty katalogowe Nachi/VXB
         # oraz jawna równoważność 5202-2RS = 3202-2RS u dystrybutorów.
         "5202": (15, 35, 15.9), "3202": (15, 35, 15.9),
+        # 3303 (seria 33, dwurzędowe skośne): 17 x 47 x 22,2. Wpis Dominika 30.09 z
+        # opisu produktu (CRAFT 3303-2RS).
+        "3303": (17, 47, 22.2),
         # Numer katalogowy (OEM), nie seria ISO. Rozpoznany przez Dominika jako
         # dwurzędowe skośne kulkowe 35x72x34.
         "357234": (35, 72, 34),

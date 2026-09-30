@@ -257,7 +257,9 @@ object BearingTypeClassifier {
         // Seria BG/BD - PRZED regułami cyfrowymi, bo tekst zaczyna się od cyfr.
         if (BORE_FIRST.containsMatchIn(text)) return TypLozyska.SKOSNE
 
-        val digits = LEADING_DIGITS.find(text)?.groupValues?.get(1) ?: return null
+        // Z separatorami jako spacjami: "3303-2RS" nie może sklejać się do "33032"
+        // (port poprawki z serwera).
+        val digits = LEADING_DIGITS.find(normalizedRozdzielony(raw))?.groupValues?.get(1) ?: return null
         if (digits.length < MIN_DIGITS) return null
 
         for ((length, prefixes, typ) in DIGIT_RULES) {

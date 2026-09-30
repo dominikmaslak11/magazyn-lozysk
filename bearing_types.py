@@ -366,7 +366,9 @@ def classify_symbol(raw: str) -> str | None:
         return TYP_SKOSNE
 
     # Ciąg cyfr rozpoczynający oznaczenie (przyrostki typu 2RS/ZZ/C3 są tu nieistotne).
-    m = re.match(r"^(\d+)", text)
+    # Z separatorami zamienionymi na spację: po sklejeniu "3303-2RS" dawało "33032" i
+    # regułę pięciocyfrową serii 330xx (stożkowe) zamiast czterocyfrowej 33xx (skośne).
+    m = re.match(r"^(\d+)", _normalized_rozdzielony(raw))
     if not m:
         return None
     digits = m.group(1)
