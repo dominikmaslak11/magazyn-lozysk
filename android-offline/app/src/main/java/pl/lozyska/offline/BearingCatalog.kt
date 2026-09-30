@@ -212,6 +212,8 @@ object BearingCatalog {
         KatalogWpis("30204", 20.0, 47.0, 15.25, TypLozyska.STOZKOWE),
         KatalogWpis("30205", 25.0, 52.0, 16.25, TypLozyska.STOZKOWE),
         KatalogWpis("30206", 30.0, 62.0, 17.25, TypLozyska.STOZKOWE),
+        KatalogWpis("32210", 50.0, 90.0, 24.75, TypLozyska.STOZKOWE),
+        KatalogWpis("NU210", 50.0, 90.0, 20.0, TypLozyska.WALCOWE),
         KatalogWpis("30207", 35.0, 72.0, 18.25, TypLozyska.STOZKOWE),
         KatalogWpis("30208", 40.0, 80.0, 19.75, TypLozyska.STOZKOWE),
         KatalogWpis("30209", 45.0, 85.0, 20.75, TypLozyska.STOZKOWE),

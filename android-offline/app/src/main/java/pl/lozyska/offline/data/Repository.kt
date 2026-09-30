@@ -67,6 +67,8 @@ private val INCH_PATTERN: Pattern = Pattern.compile(
 // UWAGA na KROPKI: SNR zapisuje oznaczenia jako "EX.208.G2". Dopóki kropka nie była
 // separatorem, przedrostek się nie doklejał i całość redukowała się do gołego "208",
 // czyli do zwykłego łożyska kulkowego 40x80x18 zamiast wstawkowego 40x80x56,3.
+private val INA_PATTERN: Pattern = Pattern.compile("\\b(GRAE|RALE|RASE|RAE|GRA)[\\s\\-_./]*(\\d{2,3})(?!\\d)")
+
 // Seria BG/BD (30BG5222 2DSE) - musi odpowiadać _BG_RE w lookup.py.
 private val BG_PATTERN: Pattern = Pattern.compile("\\b(\\d{2,3})\\s*B([GD])[\\s\\-_./]*(\\d{4})")
 
@@ -77,6 +79,9 @@ fun normalizeSymbol(raw: String): String {
     // tej funkcji zjadłaby literę i drugi człon kompletu.
     val mCal = INCH_PATTERN.matcher(upper)
     if (mCal.find()) return (mCal.group(0) ?: "").replace(Regex("\\s+"), "")
+    // INA (RAE30, RAE35-NPP-B): numer 2-3 cyfrowy, port _INA_RE z lookup.py.
+    val mIna = INA_PATTERN.matcher(upper)
+    if (mIna.find()) return mIna.group(1) + mIna.group(2)
     val mBg = BG_PATTERN.matcher(upper)
     if (mBg.find()) return mBg.group(1) + "B" + mBg.group(2) + mBg.group(3)
     // Zakres {3,6}, a nie {3,4}: numery calowe mają 4-6 cyfr, więc przy starym progu

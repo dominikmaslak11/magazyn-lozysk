@@ -59,6 +59,9 @@ _INCH_ALTERNATYWA = "|".join(re.escape(p) for p in _INCH_NUMERIC)
 _INCH_RE = re.compile(rf"\b(?:{_INCH_ALTERNATYWA})(?:\s*/\s*(?:{_INCH_ALTERNATYWA}))?")
 
 
+# INA: GRAE/RALE/RASE/RAE/GRA/RA + numer 2-3 cyfrowy (otwór w mm), np. RAE30, GRAE35.
+_INA_RE = re.compile(r"\b(GRAE|RALE|RASE|RAE|GRA)[\s\-_./]*(\d{2,3})(?!\d)")
+
 # Seria BG/BD - patrz komentarz przy _BORE_FIRST_RULE w bearing_types.py.
 _BG_RE = re.compile(r"\b(\d{2,3})\s*B([GD])[\s\-_./]*(\d{4})")
 
@@ -86,6 +89,12 @@ def normalize_symbol(raw: str) -> str:
     m_bg = _BG_RE.search(raw)
     if m_bg:
         return f"{m_bg.group(1)}B{m_bg.group(2)}{m_bg.group(3)}"
+    # INA/Schaeffler (RAE30, RAE35-NPP-B): numer to WPROST otwór w mm, więc ma DWIE cyfry.
+    # Ogólna reguła niżej wymaga 3+ cyfr i zostawiała "RAE35-NPP-B" w całości, przez co
+    # katalog go nie znajdował i program szedł do internetu.
+    m_ina = _INA_RE.search(raw)
+    if m_ina:
+        return f"{m_ina.group(1)}{m_ina.group(2)}"
     for prefix in _LETTER_PREFIXES:
         m = re.search(rf"\b{prefix}[\s\-_./]*(\d{{3,6}})", raw)
         if m:

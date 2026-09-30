@@ -145,6 +145,9 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         "30202": (15, 35, 11.75), "30203": (17, 40, 13.25), "30204": (20, 47, 15.25),
         "30205": (25, 52, 16.25), "30206": (30, 62, 17.25), "30207": (35, 72, 18.25),
         "30208": (40, 80, 19.75), "30209": (45, 85, 20.75), "30210": (50, 90, 21.75),
+        # seria 32210 (szersza od 30210): 50 x 90 x 24,75. Wpis Dominika 30.09 (Timken
+        # 32210M; M = klatka mosiężna, wymiary bez zmian).
+        "32210": (50, 90, 24.75),
         "30211": (55, 100, 22.75), "30212": (60, 110, 23.75), "30213": (65, 120, 24.75),
         "30214": (70, 125, 26.25), "30215": (75, 130, 27.25), "30216": (80, 140, 28.25),
         "30217": (85, 150, 30.50), "30218": (90, 160, 32.50), "30219": (95, 170, 34.50),
@@ -257,6 +260,13 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         # Cr = 14 900 N, C0r = 7800 N, masa 0,129 kg.
         # Źródła: albeco.com.pl (karta UD205 S ZVL), bearingsize.info (205-NPP-B INA).
         "UD205": (25, 52, 15),
+    },
+
+    TYP_WALCOWE: {
+        # NU210E (E = wzmocniona konstrukcja, wymiary jak NU210): 50 x 90 x 20, seria
+        # NU2xx wg ISO 15. Wpis Dominika 30.09. Pierścień wewnętrzny bez kołnierzy,
+        # więc nie przenosi obciążeń osiowych.
+        "NU210": (50, 90, 20),
     },
 
     TYP_STOZKOWE_CALOWE: {

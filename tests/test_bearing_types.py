@@ -483,6 +483,11 @@ def test_rae30_i_rae35_w_katalogu():
     for zapis, wym in (("RAE30", (30, 62, 35.8)), ("RAE 35 NPP B", (35, 72, 39))):
         r = lookup_by_symbol(zapis)
         assert (r.d, r.D, r.B, r.typ) == (*wym, TYP_WSTAWKOWE_RAE), zapis
+        assert r.source == "offline", zapis       # z katalogu, nie z internetu
+    from lookup import normalize_symbol
+    for zapis, oczekiwany in (("RAE35-NPP-B", "RAE35"), ("RAE 30 NPP B", "RAE30"),
+                              ("GRAE35NPPB", "GRAE35"), ("NU205", "NU205")):
+        assert normalize_symbol(zapis) == oczekiwany, zapis
 
 
 def test_m86649_komplet_timken():
@@ -534,3 +539,15 @@ def test_typ_nie_skleja_przyrostka_z_numerem():
     # pieciocyfrowe stozkowe nadal dzialaja, tez z przyrostkiem
     assert classify_symbol("30204-2RS") == TYP_STOZKOWE
     assert classify_symbol("32206 A") == TYP_STOZKOWE
+
+
+def test_32210m_i_nu210e_w_katalogu():
+    from bearing_data import TYP_STOZKOWE, TYP_WALCOWE
+    from lookup import lookup_by_symbol
+    for zapis, wym, typ in (("32210M", (50, 90, 24.75), TYP_STOZKOWE),
+                            ("TIMKEN 32210M", (50, 90, 24.75), TYP_STOZKOWE),
+                            ("NU210E", (50, 90, 20), TYP_WALCOWE),
+                            ("NU 210 E", (50, 90, 20), TYP_WALCOWE)):
+        r = lookup_by_symbol(zapis)
+        assert (r.d, r.D, r.B, r.typ) == (*wym, typ), zapis
+        assert r.source == "offline", zapis
