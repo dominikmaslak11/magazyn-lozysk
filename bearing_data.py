@@ -318,6 +318,11 @@ SERIES: dict[str, dict[str, tuple[float, float, float]]] = {
         # C = 0,42"). Sklepy (Amazon) opisują 0,56" jako "Cup Width" - to T kompletu.
         # Źródło: cad.timken.com, bearingsrus.com (30.09).
         "L44649": (26.9875, 50.292, 14.224),
+
+        # LM12749/LM12710 - komplet stożek + miska, pod numerem stożka: 0,8656" x 1,781" x
+        # 0,61" = 21,987 x 45,237 x 15,494 (T komplet; cup C = 0,475", cone B = 0,655").
+        # Źródło: cad.timken.com, bearingsrus.com, tuli-shop.com (30.09).
+        "LM12749": (21.987, 45.237, 15.494),
     },
 
     TYP_TULEJA_SLIZGOWA: {

@@ -333,6 +333,8 @@ object BearingCatalog {
         // Komplet LM48548/LM48510 (Timken), pod numerem stożka - patrz bearing_data.py.
         // Komplet Timken M86649/M86610 pod numerem stożka - patrz bearing_data.py.
         // Komplet Timken L44649/L44610 pod numerem stożka - patrz bearing_data.py.
+        // Komplet Timken LM12749/LM12710 pod numerem stożka - patrz bearing_data.py.
+        KatalogWpis("LM12749", 21.987, 45.237, 15.494, TypLozyska.STOZKOWE_CALOWE),
         KatalogWpis("L44649", 26.9875, 50.292, 14.224, TypLozyska.STOZKOWE_CALOWE),
         KatalogWpis("M86649", 30.1625, 64.294, 21.431, TypLozyska.STOZKOWE_CALOWE),
         KatalogWpis("LM48548", 34.925, 65.0875, 18.034, TypLozyska.STOZKOWE_CALOWE),
